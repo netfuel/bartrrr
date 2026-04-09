@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Moon, Sun } from 'lucide-react'
 import { Button, Input } from '@/components/ui'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore } from '@/stores'
+import { toggleDarkMode, isDarkMode } from '@/lib/utils/dark-mode'
 import type { NotificationPrefs } from '@/types'
 
 const DEFAULT_PREFS: NotificationPrefs = {
@@ -33,6 +35,12 @@ export default function SettingsPage() {
     currentUser?.notificationPrefs ?? DEFAULT_PREFS
   )
   const [saved, setSaved] = useState(false)
+  const [dark, setDark] = useState(isDarkMode)
+
+  const handleDarkToggle = () => {
+    const next = toggleDarkMode()
+    setDark(next)
+  }
 
   if (!currentUser) return null
 
@@ -65,6 +73,29 @@ export default function SettingsPage() {
             />
           </div>
         </div>
+      </section>
+
+      {/* Appearance */}
+      <section className="bg-white rounded-lg p-6 border border-sand-light mb-6">
+        <h2 className="font-display text-lg font-semibold text-ink mb-4">Appearance</h2>
+        <label className="flex items-center justify-between cursor-pointer">
+          <span className="flex items-center gap-2 text-sm text-ink-2">
+            {dark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            Dark mode
+          </span>
+          <button
+            type="button"
+            onClick={handleDarkToggle}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 ${dark ? 'bg-clay' : 'bg-sand'}`}
+            role="switch"
+            aria-checked={dark}
+            aria-label="Toggle dark mode"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${dark ? 'translate-x-6' : 'translate-x-1'}`}
+            />
+          </button>
+        </label>
       </section>
 
       {/* Notifications */}

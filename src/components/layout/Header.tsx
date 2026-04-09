@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Bell } from 'lucide-react'
+import { Search, Bell, Moon, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toggleDarkMode, isDarkMode } from '@/lib/utils/dark-mode'
 import { useNotificationsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { NotificationDropdown } from './NotificationDropdown'
@@ -16,7 +17,13 @@ export function Header({ className }: HeaderProps) {
   const getUnreadCount = useNotificationsStore((s) => s.getUnreadCount)
   const [searchQuery, setSearchQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
+  const [dark, setDark] = useState(isDarkMode)
   const notifRef = useRef<HTMLDivElement>(null)
+
+  const handleToggle = () => {
+    const next = toggleDarkMode()
+    setDark(next)
+  }
 
   const unreadCount = currentUser ? getUnreadCount(currentUser.id) : 0
 
@@ -61,6 +68,15 @@ export function Header({ className }: HeaderProps) {
           className="w-full rounded-full border border-sand bg-cream pl-9 pr-4 py-2.5 text-[15px] placeholder:text-muted hover:border-clay-mid focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition-colors"
         />
       </div>
+
+      {/* Dark mode toggle */}
+      <button
+        onClick={handleToggle}
+        className="p-2 rounded-full hover:bg-sand-light transition-colors text-muted hover:text-ink"
+        aria-label="Toggle dark mode"
+      >
+        {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
 
       {/* Notifications */}
       <div ref={notifRef} className="relative">

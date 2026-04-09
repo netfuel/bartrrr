@@ -65,6 +65,7 @@ body {
   background-color: var(--color-cream);
   font-size: 15px;
   line-height: 1.5;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Font family defaults — sizes handled by Tailwind utilities */
@@ -103,9 +104,48 @@ h1, h2, .font-display {
 /* Dark mode base */
 .dark {
   color-scheme: dark;
-}
 
-.dark body {
-  background-color: #1A1714;
-  color: #F8F3EC;
+  /* Backgrounds */
+  --color-cream: #1C1916;
+  --color-sand-light: #2A2520;
+  --color-sand: #3D3528;
+  --color-white: #252018;    /* used for card backgrounds */
+
+  /* Text */
+  --color-ink: #F2EDE6;
+  --color-ink-2: #C8BFB3;
+  --color-muted: #7A7068;
+
+  /* Brand colors — slightly desaturated/lighter for dark bg */
+  --color-clay: #D4714A;
+  --color-clay-light: #2E1E14;
+  --color-clay-mid: #C0865E;
+  --color-clay-dark: #E8A07A;
+
+  --color-forest: #3D7060;
+  --color-forest-light: #152820;
+  --color-forest-mid: #7AADA0;
+  --color-forest-dark: #A8CCBF;
+
+  --color-teal: #4ABFBA;
+  --color-teal-light: #0F2E2C;
+  --color-teal-dark: #7DDBD6;
+
+  --color-gold: #D4962E;
+  --color-gold-light: #2A2010;
+
+  --color-moss: #8AAA44;
+  --color-moss-light: #1A2210;
+
+  /* Override bg-white for cards in dark mode */
+  & .bg-white {
+    background-color: #252018;
+  }
+  & .border-white\/10 {
+    border-color: rgba(255,255,255,0.1);
+  }
+  & .shadow-sm,
+  & .shadow-md {
+    --tw-shadow-color: rgba(0,0,0,0.4);
+  }
 }
