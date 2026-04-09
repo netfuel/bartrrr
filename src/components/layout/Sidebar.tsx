@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Map, MessageSquare, FileCheck, User, Settings } from 'lucide-react'
+import { LayoutDashboard, Map, MessageSquare, FileCheck, User, Settings, Rss } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar } from '@/components/ui'
 import { useAuth } from '@/providers/AuthProvider'
@@ -7,6 +7,7 @@ import { useAuth } from '@/providers/AuthProvider'
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/browse', label: 'Browse', icon: Map },
+  { to: '/feed', label: 'Feed', icon: Rss },
   { to: '/offers', label: 'My Offers', icon: MessageSquare },
   { to: '/agreements', label: 'Agreements', icon: FileCheck },
   { to: '/profile/me', label: 'Profile', icon: User },

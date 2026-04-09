@@ -112,6 +112,14 @@ export type TradeAgreement = {
 }
 
 // ─── User Profile ────────────────────────────────────────────
+export type NotificationPrefs = {
+  newOffers: boolean
+  messages: boolean
+  agreementUpdates: boolean
+  tradeCompletions: boolean
+  perfectMatches: boolean
+}
+
 export type UserProfile = {
   id: string
   username: string
@@ -120,9 +128,11 @@ export type UserProfile = {
   bio?: string
   neighborhood: string
   lookingFor?: string[]
+  interests?: string[]
   reputationScore: number
   tradeCount: number
   joinedAt: string
+  notificationPrefs?: NotificationPrefs
 }
 
 // ─── Review ──────────────────────────────────────────────────
@@ -146,6 +156,7 @@ export type NotificationType =
   | 'agreement_ready'
   | 'trade_complete'
   | 'review_request'
+  | 'match'
 
 export type AppNotification = {
   id: string

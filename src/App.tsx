@@ -16,6 +16,7 @@ import SignupPage from '@/pages/SignupPage'
 import DashboardPage from '@/pages/DashboardPage'
 import EditListingPage from '@/pages/EditListingPage'
 import OnboardingPage from '@/pages/OnboardingPage'
+import ActivityFeedPage from '@/pages/ActivityFeedPage'
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
 
         <Route element={<PageShell />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/feed" element={<ActivityFeedPage />} />
           <Route path="/browse" element={<BrowsePage />} />
           <Route path="/listing/:id" element={<ListingDetailPage />} />
           <Route path="/listing/:id/edit" element={<EditListingPage />} />

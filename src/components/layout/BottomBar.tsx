@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Map, Plus, MessageSquare, User } from 'lucide-react'
+import { LayoutDashboard, Map, Plus, MessageSquare, User, Rss } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { to: '/browse', label: 'Discover', icon: Map },
-  { to: '/offers', label: 'Offers', icon: MessageSquare },
+  { to: '/feed', label: 'Feed', icon: Rss },
   { to: '/listing/new', label: 'Post', icon: Plus, isPrimary: true },
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/offers', label: 'Offers', icon: MessageSquare },
   { to: '/profile/me', label: 'Profile', icon: User },
 ]
 

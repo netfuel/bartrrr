@@ -64,7 +64,7 @@ export default function OnboardingPage() {
 
   const handleFinish = () => {
     if (neighborhood) {
-      updateUser(currentUser.id, { neighborhood })
+      updateUser(currentUser.id, { neighborhood, interests })
     }
     markOnboarded(currentUser.id)
     navigate('/browse')
@@ -222,7 +222,7 @@ export default function OnboardingPage() {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => { markOnboarded(currentUser.id); navigate('/listing/new') }}
+                onClick={() => { if (neighborhood) updateUser(currentUser.id, { neighborhood, interests }); markOnboarded(currentUser.id); navigate('/listing/new') }}
                 className="w-full"
               >
                 Post my first listing

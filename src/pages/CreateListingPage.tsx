@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Camera, Check, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button, Input, Textarea, Chip } from '@/components/ui'
 import { CATEGORY_LABELS, type Category, type ListingCondition } from '@/types'
-import { useListingsStore } from '@/stores'
+import { useListingsStore, useUsersStore, useNotificationsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
@@ -21,6 +21,8 @@ export default function CreateListingPage() {
   const navigate = useNavigate()
   const { currentUser } = useAuth()
   const addListing = useListingsStore((s) => s.addListing)
+  const users = useUsersStore((s) => s.users)
+  const addNotification = useNotificationsStore((s) => s.addNotification)
 
   const [step, setStep] = useState(0)
   const [title, setTitle] = useState('')
@@ -62,6 +64,21 @@ export default function CreateListingPage() {
         neighborhood: currentUser.neighborhood,
       },
     })
+
+    // Notify users whose interests match the new listing's category
+    const listingCategory = category!
+    users.forEach((u) => {
+      if (u.id !== currentUser.id && u.interests?.includes(listingCategory)) {
+        addNotification({
+          userId: u.id,
+          type: 'match',
+          title: 'Perfect Match!',
+          body: `A new listing matches your interests: "${title}"`,
+          data: { listingId: newId },
+        })
+      }
+    })
+
     navigate(`/listing/${newId}`)
   }
 

@@ -5,6 +5,7 @@ import { formatDistance } from '@/lib/utils'
 import { Badge, Avatar, Button } from '@/components/ui'
 import type { Listing, UserProfile } from '@/types'
 import { CATEGORY_LABELS } from '@/types'
+import { useAuth } from '@/providers/AuthProvider'
 
 export interface TradeCardProps {
   listing: Listing
@@ -26,6 +27,10 @@ export function TradeCard({
   onOffer,
   className,
 }: TradeCardProps) {
+  const { currentUser } = useAuth()
+  const isPerfectMatch =
+    currentUser?.interests?.includes(listing.category) ?? false
+
   return (
     <div
       className={cn(
@@ -54,6 +59,13 @@ export function TradeCard({
             {CATEGORY_LABELS[listing.category]}
           </Badge>
         </div>
+        {isPerfectMatch && (
+          <div className="absolute top-2 right-2">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold text-white text-[11px] font-semibold shadow-sm">
+              ✦ Match
+            </span>
+          </div>
+        )}
       </Link>
 
       {/* Content */}

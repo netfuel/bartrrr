@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Calendar, MapPin, Info, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui'
-import { AgreementCard } from '@/components/bartrrr'
+import { AgreementCard, FirstTradeCelebration } from '@/components/bartrrr'
 import { useAgreementsStore, useUsersStore, useNotificationsStore } from '@/stores'
 import { useReviewsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
@@ -38,6 +39,8 @@ export default function AgreementDetailPage() {
     : agreement.partyA.userId
   const otherParty = getUserById(otherPartyId)
 
+  const [showCelebration, setShowCelebration] = useState(false)
+
   const alreadyReviewed = hasReviewed(agreement.id, currentUser.id)
   const agreementReviews = reviews.filter((r) => r.agreementId === agreement.id)
 
@@ -53,6 +56,7 @@ export default function AgreementDetailPage() {
   }
 
   const handleComplete = () => {
+    const isFirstTrade = !currentUser.tradeCount || currentUser.tradeCount === 0
     completeAgreement(agreement.id)
     incrementTradeCount(agreement.partyA.userId)
     incrementTradeCount(agreement.partyB.userId)
@@ -63,6 +67,9 @@ export default function AgreementDetailPage() {
       body: 'Your trade has been marked as complete. Leave a review!',
       data: { agreementId: agreement.id },
     })
+    if (isFirstTrade) {
+      setShowCelebration(true)
+    }
   }
 
   const handleReview = (rating: number, comment: string) => {
@@ -172,6 +179,14 @@ export default function AgreementDetailPage() {
             />
           )}
         </div>
+      )}
+
+      {/* First trade celebration */}
+      {showCelebration && (
+        <FirstTradeCelebration
+          userId={currentUser.username}
+          onClose={() => setShowCelebration(false)}
+        />
       )}
     </div>
   )
