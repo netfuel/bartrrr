@@ -1,0 +1,129 @@
+import { create } from 'zustand'
+import type { Offer, OfferMessage, OfferDeclineReason } from '@/types'
+import { mockOffers } from '@/data/mock-offers'
+import { generateId } from '@/lib/utils'
+
+interface CreateOfferData {
+  listingId: string
+  fromUserId: string
+  toUserId: string
+  content: string
+  items: string[]
+}
+
+interface OffersState {
+  offers: Offer[]
+  getOfferById: (id: string) => Offer | undefined
+  getOffersByUser: (userId: string) => { incoming: Offer[]; outgoing: Offer[] }
+  getOfferByOfferId: (offerId: string) => Offer | undefined
+  createOffer: (data: CreateOfferData) => string
+  acceptOffer: (offerId: string, userId: string) => void
+  declineOffer: (offerId: string, userId: string, reason: OfferDeclineReason, note?: string) => void
+  counterOffer: (offerId: string, userId: string, content: string, items: string[]) => void
+  addMessage: (offerId: string, fromUserId: string, content: string) => void
+}
+
+export const useOffersStore = create<OffersState>((set, get) => ({
+  offers: [...mockOffers],
+
+  getOfferById: (id) => get().offers.find((o) => o.id === id),
+
+  getOffersByUser: (userId) => ({
+    incoming: get().offers.filter((o) => o.toUserId === userId),
+    outgoing: get().offers.filter((o) => o.fromUserId === userId),
+  }),
+
+  getOfferByOfferId: (offerId) => get().offers.find((o) => o.id === offerId),
+
+  createOffer: (data) => {
+    const id = generateId()
+    const message: OfferMessage = {
+      id: generateId(),
+      fromUserId: data.fromUserId,
+      content: data.content,
+      items: data.items,
+      type: 'offer',
+      createdAt: new Date().toISOString(),
+    }
+    const offer: Offer = {
+      id,
+      listingId: data.listingId,
+      fromUserId: data.fromUserId,
+      toUserId: data.toUserId,
+      messages: [message],
+      status: 'pending',
+      round: 1,
+      maxRounds: 5,
+      expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+    }
+    set((state) => ({ offers: [offer, ...state.offers] }))
+    return id
+  },
+
+  acceptOffer: (offerId, userId) =>
+    set((state) => ({
+      offers: state.offers.map((o) => {
+        if (o.id !== offerId) return o
+        const msg: OfferMessage = {
+          id: generateId(),
+          fromUserId: userId,
+          content: 'Offer accepted!',
+          type: 'accept',
+          createdAt: new Date().toISOString(),
+        }
+        return { ...o, status: 'accepted' as const, messages: [...o.messages, msg] }
+      }),
+    })),
+
+  declineOffer: (offerId, userId, reason, note) =>
+    set((state) => ({
+      offers: state.offers.map((o) => {
+        if (o.id !== offerId) return o
+        const msg: OfferMessage = {
+          id: generateId(),
+          fromUserId: userId,
+          content: note || reason,
+          type: 'decline',
+          createdAt: new Date().toISOString(),
+        }
+        return { ...o, status: 'declined' as const, messages: [...o.messages, msg] }
+      }),
+    })),
+
+  counterOffer: (offerId, userId, content, items) =>
+    set((state) => ({
+      offers: state.offers.map((o) => {
+        if (o.id !== offerId) return o
+        const msg: OfferMessage = {
+          id: generateId(),
+          fromUserId: userId,
+          content,
+          items,
+          type: 'counter',
+          createdAt: new Date().toISOString(),
+        }
+        return {
+          ...o,
+          status: 'countered' as const,
+          round: o.round + 1,
+          messages: [...o.messages, msg],
+        }
+      }),
+    })),
+
+  addMessage: (offerId, fromUserId, content) =>
+    set((state) => ({
+      offers: state.offers.map((o) => {
+        if (o.id !== offerId) return o
+        const msg: OfferMessage = {
+          id: generateId(),
+          fromUserId,
+          content,
+          type: 'message',
+          createdAt: new Date().toISOString(),
+        }
+        return { ...o, messages: [...o.messages, msg] }
+      }),
+    })),
+}))

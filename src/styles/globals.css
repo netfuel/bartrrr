@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Outfit:wght@100..900&display=swap');
+
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+
+  --color-clay: #C05A35;
+  --color-clay-light: #F5E8E1;
+  --color-clay-mid: #E8A88C;
+  --color-clay-dark: #7A3318;
+
+  --color-forest: #2A5240;
+  --color-forest-light: #E2EDE8;
+  --color-forest-mid: #6A9E87;
+  --color-forest-dark: #162E24;
+
+  --color-teal: #3AABA6;
+  --color-teal-light: #DFF3F2;
+  --color-teal-dark: #1D6662;
+
+  --color-gold: #C88A2A;
+  --color-gold-light: #FAF0DC;
+
+  --color-moss: #7A9A3A;
+  --color-moss-light: #EAF0DB;
+
+  --color-sand: #D4B896;
+  --color-sand-light: #F5EDE0;
+
+  --color-cream: #F8F3EC;
+
+  --color-ink: #1A1714;
+  --color-ink-2: #3D3830;
+
+  --color-muted: #8A8278;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+  --radius-pill: 9999px;
+}
+
+:root {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+  --radius-pill: 9999px;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background-color: var(--color-cream);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Font family defaults — sizes handled by Tailwind utilities */
+h1, h2, .font-display {
+  font-family: var(--font-display);
+}
+
+/* Opt-in typography utility classes (CLAUDE.md §5.3) */
+.text-display {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.text-small {
+  font-size: 13px;
+}
+
+.text-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Dark mode base */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #1A1714;
+  color: #F8F3EC;
+}
