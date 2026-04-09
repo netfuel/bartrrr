@@ -43,10 +43,10 @@ const stats = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-cream overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden">
 
       {/* ── Nav ── */}
-      <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-cream/90 backdrop-blur-md border-b border-sand-light">
+      <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-cream/95 backdrop-blur-md border-b border-sand-light">
         <span className="font-display text-2xl font-bold text-clay">Bartrrr</span>
         <div className="flex items-center gap-3">
           <Link to="/auth/login">
@@ -59,36 +59,52 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="flex flex-col items-center justify-center text-center min-h-[82vh] px-6 py-20">
-        {/* Memphis badge */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-clay/30 bg-clay-light text-clay text-xs font-semibold uppercase tracking-widest mb-8">
-          <MapPin className="h-3 w-3" /> Memphis, TN
-        </div>
+      <section className="relative flex flex-col items-center justify-center text-center min-h-[82vh] px-6 py-20 overflow-hidden">
+        {/* Video background */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/homes.mp4" type="video/mp4" />
+        </video>
+        {/* Warm dark overlay */}
+        <div className="absolute inset-0 bg-ink/55" />
 
-        <h1 className="font-display font-bold text-ink leading-[0.95] mb-7"
-          style={{ fontSize: 'clamp(3.5rem, 10vw, 7.5rem)' }}>
-          Trade,<br />don't buy.
-        </h1>
+        {/* Content */}
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Memphis badge */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/25 bg-white/10 text-white/80 text-xs font-semibold uppercase tracking-widest mb-8 backdrop-blur-sm">
+            <MapPin className="h-3 w-3" /> Memphis, TN
+          </div>
 
-        <p className="text-lg text-ink-2 max-w-sm leading-relaxed mb-10">
-          Swap goods, skills, and services with your Memphis neighbors — no cash, no awkward pricing, just fair exchange.
-        </p>
+          <h1 className="font-display font-bold text-white leading-[0.95] mb-7"
+            style={{ fontSize: 'clamp(3.5rem, 10vw, 7.5rem)' }}>
+            Trade,<br />don't buy.
+          </h1>
 
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link to="/auth/signup">
-            <Button variant="primary" size="lg">
-              Start trading <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link to="/browse">
-            <Button variant="outline" size="lg">Browse listings</Button>
-          </Link>
-        </div>
+          <p className="text-lg text-white/70 max-w-sm leading-relaxed mb-10">
+            Swap goods, skills, and services with your Memphis neighbors — no cash, no awkward pricing, just fair exchange.
+          </p>
 
-        {/* Scroll hint */}
-        <div className="mt-16 flex flex-col items-center gap-2 text-muted opacity-60">
-          <div className="w-px h-10 bg-sand" />
-          <span className="text-xs tracking-widest uppercase">Scroll</span>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link to="/auth/signup">
+              <Button variant="primary" size="lg">
+                Start trading <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link to="/browse">
+              <Button variant="ghost" size="lg" className="text-white border border-white/30 hover:bg-white/10">Browse listings</Button>
+            </Link>
+          </div>
+
+          {/* Scroll hint */}
+          <div className="mt-16 flex flex-col items-center gap-2 text-white/40">
+            <div className="w-px h-10 bg-white/30" />
+            <span className="text-xs tracking-widest uppercase">Scroll</span>
+          </div>
         </div>
       </section>
 

@@ -143,7 +143,7 @@ export default function BrowsePage() {
               onAction={() => navigate('/listing/new')}
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredListings.map((listing) => {
                 const user = getUserById(listing.userId)
                 if (!user) return null

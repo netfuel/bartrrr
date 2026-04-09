@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+public/trees.mp4
+public/homes.mp4
+design/
