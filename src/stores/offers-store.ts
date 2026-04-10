@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Offer, OfferMessage, OfferDeclineReason } from '@/types'
 import { mockOffers } from '@/data/mock-offers'
 import { generateId } from '@/lib/utils'
+import * as svc from '@/lib/supabase/supabase-service'
 
 interface CreateOfferData {
   listingId: string
@@ -13,6 +14,7 @@ interface CreateOfferData {
 
 interface OffersState {
   offers: Offer[]
+  setOffers: (offers: Offer[]) => void
   getOfferById: (id: string) => Offer | undefined
   getOffersByUser: (userId: string) => { incoming: Offer[]; outgoing: Offer[] }
   getOfferByOfferId: (offerId: string) => Offer | undefined
@@ -25,6 +27,8 @@ interface OffersState {
 
 export const useOffersStore = create<OffersState>((set, get) => ({
   offers: [...mockOffers],
+
+  setOffers: (offers) => set({ offers }),
 
   getOfferById: (id) => get().offers.find((o) => o.id === id),
 
@@ -58,10 +62,18 @@ export const useOffersStore = create<OffersState>((set, get) => ({
       createdAt: new Date().toISOString(),
     }
     set((state) => ({ offers: [offer, ...state.offers] }))
+    // Persist to Supabase and replace local temp offer with real one
+    svc.createOffer(data).then((saved) => {
+      set((state) => ({
+        offers: state.offers.map((o) => (o.id === id ? saved : o)),
+      }))
+    }).catch((err) =>
+      console.warn('[Bartr] Failed to persist new offer to Supabase', err),
+    )
     return id
   },
 
-  acceptOffer: (offerId, userId) =>
+  acceptOffer: (offerId, userId) => {
     set((state) => ({
       offers: state.offers.map((o) => {
         if (o.id !== offerId) return o
@@ -74,9 +86,13 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         }
         return { ...o, status: 'accepted' as const, messages: [...o.messages, msg] }
       }),
-    })),
+    }))
+    svc.acceptOffer(offerId, userId).catch((err) =>
+      console.warn('[Bartr] Failed to accept offer in Supabase', err),
+    )
+  },
 
-  declineOffer: (offerId, userId, reason, note) =>
+  declineOffer: (offerId, userId, reason, note) => {
     set((state) => ({
       offers: state.offers.map((o) => {
         if (o.id !== offerId) return o
@@ -89,9 +105,13 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         }
         return { ...o, status: 'declined' as const, messages: [...o.messages, msg] }
       }),
-    })),
+    }))
+    svc.declineOffer(offerId, userId, reason, note).catch((err) =>
+      console.warn('[Bartr] Failed to decline offer in Supabase', err),
+    )
+  },
 
-  counterOffer: (offerId, userId, content, items) =>
+  counterOffer: (offerId, userId, content, items) => {
     set((state) => ({
       offers: state.offers.map((o) => {
         if (o.id !== offerId) return o
@@ -110,9 +130,13 @@ export const useOffersStore = create<OffersState>((set, get) => ({
           messages: [...o.messages, msg],
         }
       }),
-    })),
+    }))
+    svc.counterOffer(offerId, userId, content, items).catch((err) =>
+      console.warn('[Bartr] Failed to counter offer in Supabase', err),
+    )
+  },
 
-  addMessage: (offerId, fromUserId, content) =>
+  addMessage: (offerId, fromUserId, content) => {
     set((state) => ({
       offers: state.offers.map((o) => {
         if (o.id !== offerId) return o
@@ -125,5 +149,9 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         }
         return { ...o, messages: [...o.messages, msg] }
       }),
-    })),
+    }))
+    svc.addOfferMessage(offerId, fromUserId, content).catch((err) =>
+      console.warn('[Bartr] Failed to persist message to Supabase', err),
+    )
+  },
 }))

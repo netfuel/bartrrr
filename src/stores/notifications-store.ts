@@ -12,6 +12,7 @@ interface AddNotificationData {
 
 interface NotificationsState {
   notifications: AppNotification[]
+  setNotifications: (notifications: AppNotification[]) => void
   getNotificationsForUser: (userId: string) => AppNotification[]
   getUnreadCount: (userId: string) => number
   addNotification: (data: AddNotificationData) => void
@@ -21,6 +22,8 @@ interface NotificationsState {
 
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   notifications: [],
+
+  setNotifications: (notifications) => set({ notifications }),
 
   getNotificationsForUser: (userId) =>
     get().notifications.filter((n) => n.userId === userId),

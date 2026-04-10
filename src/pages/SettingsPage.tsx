@@ -124,7 +124,7 @@ export default function SettingsPage() {
       {/* Account */}
       <section className="bg-white rounded-lg p-6 border border-sand-light">
         <h2 className="font-display text-lg font-semibold text-ink mb-4">Account</h2>
-        <Button variant="outline" size="sm" onClick={() => { logout(); navigate('/auth/login') }}>
+        <Button variant="outline" size="sm" onClick={() => { logout().then(() => navigate('/auth/login')) }}>
           Log out
         </Button>
       </section>

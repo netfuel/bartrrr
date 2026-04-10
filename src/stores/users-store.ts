@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import type { UserProfile } from '@/types'
 import { mockUsers } from '@/data/mock-users'
+import * as svc from '@/lib/supabase/supabase-service'
 
 interface UsersState {
   users: UserProfile[]
+  setUsers: (users: UserProfile[]) => void
   getUserById: (id: string) => UserProfile | undefined
   getUserByUsername: (username: string) => UserProfile | undefined
   updateUser: (id: string, data: Partial<UserProfile>) => void
@@ -14,15 +16,22 @@ interface UsersState {
 export const useUsersStore = create<UsersState>((set, get) => ({
   users: [...mockUsers],
 
+  setUsers: (users) => set({ users }),
+
   getUserById: (id) => get().users.find((u) => u.id === id),
 
   getUserByUsername: (username) =>
     get().users.find((u) => u.username === username),
 
-  updateUser: (id, data) =>
+  updateUser: (id, data) => {
     set((state) => ({
       users: state.users.map((u) => (u.id === id ? { ...u, ...data } : u)),
-    })),
+    }))
+    // Dual-write to Supabase (fire and forget)
+    svc.updateUser(id, data).catch((err) =>
+      console.warn('[Bartr] Failed to persist user update to Supabase', err),
+    )
+  },
 
   incrementTradeCount: (userId) =>
     set((state) => ({

@@ -262,6 +262,13 @@ export async function updateListing(
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
+export async function fetchAllUsers(): Promise<UserProfile[]> {
+  assertClient(supabase)
+  const { data, error } = await supabase.from('users').select('*').order('joined_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []).map(mapUserRow)
+}
+
 export async function fetchUser(id: string): Promise<UserProfile | null> {
   assertClient(supabase)
   const { data, error } = await supabase
@@ -472,6 +479,22 @@ export async function counterOffer(
     items,
   })
   if (msgErr) throw msgErr
+}
+
+export async function addOfferMessage(
+  offerId: string,
+  fromUserId: string,
+  content: string,
+): Promise<void> {
+  assertClient(supabase)
+  const { error } = await supabase.from('offer_messages').insert({
+    offer_id: offerId,
+    from_user_id: fromUserId,
+    type: 'message',
+    content,
+    items: [],
+  })
+  if (error) throw error
 }
 
 // ─── Agreements ───────────────────────────────────────────────────────────────

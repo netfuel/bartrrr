@@ -11,14 +11,26 @@ export default function LoginPage() {
   const { login } = useAuth()
   const users = useUsersStore((s) => s.users)
   const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
 
   const returnTo = searchParams.get('returnTo') || '/browse'
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (selectedUserId) {
-      login(selectedUserId)
+    const selectedUser = users.find((u) => u.id === selectedUserId)
+    if (!selectedUser) return
+
+    setIsLoggingIn(true)
+    setLoginError(null)
+    try {
+      await login(selectedUser.username)
       navigate(returnTo)
+    } catch (err) {
+      console.error('Login failed:', err)
+      setLoginError('Login failed. Please try again.')
+    } finally {
+      setIsLoggingIn(false)
     }
   }
 
@@ -76,14 +88,19 @@ export default function LoginPage() {
               ))}
             </div>
 
+            {loginError && (
+              <p className="text-sm text-red-500 text-center">{loginError}</p>
+            )}
             <Button
               variant="primary"
               size="lg"
               className="w-full"
               type="submit"
-              disabled={!selectedUserId}
+              disabled={!selectedUserId || isLoggingIn}
             >
-              Log in as {selectedUser?.displayName.split(' ')[0] || '...'}
+              {isLoggingIn
+                ? 'Signing in…'
+                : `Log in as ${selectedUser?.displayName.split(' ')[0] || '...'}`}
             </Button>
           </form>
         </div>

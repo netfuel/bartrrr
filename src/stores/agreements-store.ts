@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { TradeAgreement } from '@/types'
 import { mockAgreements } from '@/data/mock-agreements'
 import { generateId } from '@/lib/utils'
+import * as svc from '@/lib/supabase/supabase-service'
 
 interface CreateAgreementData {
   offerId: string
@@ -11,6 +12,7 @@ interface CreateAgreementData {
 
 interface AgreementsState {
   agreements: TradeAgreement[]
+  setAgreements: (agreements: TradeAgreement[]) => void
   getAgreementById: (id: string) => TradeAgreement | undefined
   getAgreementsByUser: (userId: string) => TradeAgreement[]
   getAgreementByOfferId: (offerId: string) => TradeAgreement | undefined
@@ -21,6 +23,8 @@ interface AgreementsState {
 
 export const useAgreementsStore = create<AgreementsState>((set, get) => ({
   agreements: [...mockAgreements],
+
+  setAgreements: (agreements) => set({ agreements }),
 
   getAgreementById: (id) => get().agreements.find((a) => a.id === id),
 
@@ -43,10 +47,18 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
       createdAt: new Date().toISOString(),
     }
     set((state) => ({ agreements: [agreement, ...state.agreements] }))
+    // Persist to Supabase and replace with real DB record
+    svc.createAgreement(data.offerId, data.partyA, data.partyB).then((saved) => {
+      set((state) => ({
+        agreements: state.agreements.map((a) => (a.id === id ? saved : a)),
+      }))
+    }).catch((err) =>
+      console.warn('[Bartr] Failed to persist agreement to Supabase', err),
+    )
     return id
   },
 
-  signAgreement: (id, userId) =>
+  signAgreement: (id, userId) => {
     set((state) => ({
       agreements: state.agreements.map((a) => {
         if (a.id !== id) return a
@@ -62,14 +74,22 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
         }
         return updated
       }),
-    })),
+    }))
+    svc.signAgreement(id, userId).catch((err) =>
+      console.warn('[Bartr] Failed to sign agreement in Supabase', err),
+    )
+  },
 
-  completeAgreement: (id) =>
+  completeAgreement: (id) => {
     set((state) => ({
       agreements: state.agreements.map((a) =>
         a.id === id
           ? { ...a, status: 'completed' as const, completedAt: new Date().toISOString() }
           : a,
       ),
-    })),
+    }))
+    svc.completeAgreement(id).catch((err) =>
+      console.warn('[Bartr] Failed to complete agreement in Supabase', err),
+    )
+  },
 }))
