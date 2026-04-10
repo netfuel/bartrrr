@@ -3,6 +3,7 @@ import type { Offer, OfferMessage, OfferDeclineReason } from '@/types'
 import { mockOffers } from '@/data/mock-offers'
 import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
+import { sendPushNotification } from '@/lib/push'
 
 interface CreateOfferData {
   listingId: string
@@ -62,6 +63,13 @@ export const useOffersStore = create<OffersState>((set, get) => ({
       createdAt: new Date().toISOString(),
     }
     set((state) => ({ offers: [offer, ...state.offers] }))
+    // Notify the listing owner
+    sendPushNotification({
+      userId: data.toUserId,
+      title: 'New offer on your listing!',
+      body: 'Someone made you a trade offer. Tap to view.',
+      url: `/offers/${id}`,
+    })
     // Persist to Supabase and replace local temp offer with real one
     svc.createOffer(data).then((saved) => {
       set((state) => ({
@@ -90,6 +98,17 @@ export const useOffersStore = create<OffersState>((set, get) => ({
     svc.acceptOffer(offerId, userId).catch((err) =>
       console.warn('[Bartr] Failed to accept offer in Supabase', err),
     )
+    // Notify the original offer sender
+    const offer = get().offers.find((o) => o.id === offerId)
+    if (offer) {
+      const notifyUserId = offer.fromUserId === userId ? offer.toUserId : offer.fromUserId
+      sendPushNotification({
+        userId: notifyUserId,
+        title: 'Your offer was accepted!',
+        body: "Great news — it's a deal. Tap to sign the agreement.",
+        url: `/offers/${offerId}`,
+      })
+    }
   },
 
   declineOffer: (offerId, userId, reason, note) => {
@@ -134,6 +153,17 @@ export const useOffersStore = create<OffersState>((set, get) => ({
     svc.counterOffer(offerId, userId, content, items).catch((err) =>
       console.warn('[Bartr] Failed to counter offer in Supabase', err),
     )
+    // Notify the other party
+    const counterOffer = get().offers.find((o) => o.id === offerId)
+    if (counterOffer) {
+      const notifyUserId = counterOffer.fromUserId === userId ? counterOffer.toUserId : counterOffer.fromUserId
+      sendPushNotification({
+        userId: notifyUserId,
+        title: 'New counter-offer',
+        body: 'Someone responded with a counter-offer. Tap to review.',
+        url: `/offers/${offerId}`,
+      })
+    }
   },
 
   addMessage: (offerId, fromUserId, content) => {

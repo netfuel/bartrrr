@@ -3,6 +3,7 @@ import type { TradeAgreement } from '@/types'
 import { mockAgreements } from '@/data/mock-agreements'
 import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
+import { sendPushNotification } from '@/lib/push'
 
 interface CreateAgreementData {
   offerId: string
@@ -78,6 +79,20 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
     svc.signAgreement(id, userId).catch((err) =>
       console.warn('[Bartr] Failed to sign agreement in Supabase', err),
     )
+    // Notify the other party
+    const ag = get().agreements.find((a) => a.id === id)
+    if (ag) {
+      const notifyUserId = ag.partyA.userId === userId ? ag.partyB.userId : ag.partyA.userId
+      const bothSigned = ag.partyA.signed && ag.partyB.signed
+      sendPushNotification({
+        userId: notifyUserId,
+        title: bothSigned ? 'Agreement fully signed!' : 'Agreement signed',
+        body: bothSigned
+          ? "Both parties have signed. The trade is officially on!"
+          : 'Your trade partner signed the agreement. Your turn!',
+        url: `/agreements/${id}`,
+      })
+    }
   },
 
   completeAgreement: (id) => {

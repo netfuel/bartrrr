@@ -9,6 +9,7 @@ import {
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import * as svc from '@/lib/supabase/supabase-service'
+import { subscribeToPush, isPushSupported } from '@/lib/push'
 import { useAuthStore } from '@/stores/auth-store'
 import { useUsersStore } from '@/stores/users-store'
 import { useListingsStore } from '@/stores/listings-store'
@@ -72,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setNotifications(dbNotifications)
     } catch (err) {
       console.warn('[Bartr] Supabase data load failed — falling back to mock data', err)
+    }
+
+    // Request push permission and subscribe (non-blocking)
+    if (isPushSupported()) {
+      subscribeToPush(userId).catch(() => { /* permission denied is fine */ })
     }
   }
 
