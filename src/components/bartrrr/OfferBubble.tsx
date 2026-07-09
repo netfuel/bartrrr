@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import type { OfferMessage } from '@/types'
 
@@ -8,7 +9,7 @@ export interface OfferBubbleProps {
   senderName: string
 }
 
-export function OfferBubble({
+function OfferBubbleInner({
   message,
   isOwn,
   isConfirmed = false,
@@ -81,3 +82,5 @@ export function OfferBubble({
     </div>
   )
 }
+
+export const OfferBubble = memo(OfferBubbleInner)

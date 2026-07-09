@@ -2,8 +2,13 @@ import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Map, List, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Chip, EmptyState } from '@/components/ui'
-import { TradeCard, ListingsMap } from '@/components/bartrrr'
+import { Chip, EmptyState, Skeleton } from '@/components/ui'
+import { lazy, Suspense } from 'react'
+import { TradeCard } from '@/components/bartrrr'
+
+const ListingsMap = lazy(() =>
+  import('@/components/bartrrr/ListingsMap').then((m) => ({ default: m.ListingsMap })),
+)
 import { useListingsStore, useUsersStore } from '@/stores'
 import type { Category } from '@/types'
 import { CATEGORY_LABELS } from '@/types'
@@ -121,16 +126,18 @@ export default function BrowsePage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Map panel */}
         <div className={cn('lg:w-1/2 lg:block', view === 'map' ? 'w-full' : 'hidden')}>
-          <ListingsMap
-            listings={filteredListings}
-            users={Object.fromEntries(
-              filteredListings
-                .map((l) => getUserById(l.userId))
-                .filter(Boolean)
-                .map((u) => [u!.id, u!])
-            )}
-            className="h-full"
-          />
+          <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
+            <ListingsMap
+              listings={filteredListings}
+              users={Object.fromEntries(
+                filteredListings
+                  .map((l) => getUserById(l.userId))
+                  .filter(Boolean)
+                  .map((u) => [u!.id, u!])
+              )}
+              className="h-full"
+            />
+          </Suspense>
         </div>
 
         {/* Card grid */}

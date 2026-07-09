@@ -1,19 +1,14 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { MapPin, Star, ArrowLeft, ChevronLeft, ChevronRight, Pencil, XCircle, RefreshCw, PartyPopper } from 'lucide-react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { Button, Badge, Avatar, ShareButton } from '@/components/ui'
 import { TradeCard, OfferBuilder } from '@/components/bartrrr'
 import { useListingsStore, useUsersStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { formatDistance } from '@/lib/utils'
-import { CATEGORY_LABELS } from '@/types'
+import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/types'
 
-const badgeVariant: Record<string, 'clay' | 'teal' | 'gold' | 'moss'> = {
-  goods: 'clay',
-  services: 'teal',
-  skills: 'gold',
-  outdoor: 'moss',
-}
+const badgeVariant = CATEGORY_COLORS as Record<string, 'clay' | 'teal' | 'gold' | 'moss'>
 
 export default function ListingDetailPage() {
   const { id } = useParams()
@@ -36,6 +31,16 @@ export default function ListingDetailPage() {
     if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
   }
 
+  const relatedListings = useMemo(
+    () =>
+      listing
+        ? listings
+            .filter((l) => l.category === listing.category && l.id !== listing.id && l.status === 'active')
+            .slice(0, 4)
+        : [],
+    [listings, listing],
+  )
+
   if (!listing || !user) {
     return (
       <div className="p-8 text-center">
@@ -46,9 +51,6 @@ export default function ListingDetailPage() {
   }
 
   const isOwner = currentUser?.id === listing.userId
-  const relatedListings = listings
-    .filter((l) => l.category === listing.category && l.id !== listing.id && l.status === 'active')
-    .slice(0, 4)
 
   return (
     <div className="max-w-3xl mx-auto pb-24">
@@ -89,6 +91,13 @@ export default function ListingDetailPage() {
             const el = e.currentTarget
             const i = Math.round(el.scrollLeft / el.clientWidth)
             if (i !== imageIndex) setImageIndex(i)
+          }}
+          tabIndex={0}
+          role="region"
+          aria-label={`Photo gallery, ${listing.images.length} photos. Use arrow keys to browse.`}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight') scrollToImage(Math.min(listing.images.length - 1, imageIndex + 1))
+            if (e.key === 'ArrowLeft') scrollToImage(Math.max(0, imageIndex - 1))
           }}
           className="no-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto"
         >

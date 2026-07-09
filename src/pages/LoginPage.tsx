@@ -62,7 +62,8 @@ export default function LoginPage() {
                   key={user.id}
                   type="button"
                   onClick={() => setSelectedUserId(user.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                  aria-pressed={selectedUserId === user.id}
+                  className={`pressable w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
                     selectedUserId === user.id
                       ? 'border-clay bg-clay-light'
                       : 'border-sand-light hover:border-sand'

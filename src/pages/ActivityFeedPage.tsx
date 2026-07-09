@@ -127,8 +127,8 @@ export default function ActivityFeedPage() {
           <div className="absolute left-[19px] top-0 bottom-0 w-px bg-sand" />
 
           <div className="space-y-0">
-            {feedItems.map((item, idx) => (
-              <div key={`${item.type}-${item.id}-${idx}`} className="relative flex gap-4 pb-6">
+            {feedItems.map((item) => (
+              <div key={`${item.type}-${item.id}`} className="relative flex gap-4 pb-6">
                 {/* Icon bubble */}
                 <div
                   className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${

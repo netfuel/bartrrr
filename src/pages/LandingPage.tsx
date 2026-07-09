@@ -331,6 +331,8 @@ export default function LandingPage() {
           <img
             src={PHOTOS.editorial}
             alt="Neighbors exchanging"
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
           {/* Subtle warm vignette */}
@@ -412,7 +414,7 @@ export default function LandingPage() {
 
       {/* ── Atmospheric stats ── */}
       <section className="relative py-28 px-6">
-        <img src={PHOTOS.statsBg} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={PHOTOS.statsBg} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-ink/80" />
 
         <div className="relative z-10 max-w-4xl mx-auto">

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { X } from 'lucide-react'
 import confetti from 'canvas-confetti'
-import { Button, ShareButton } from '@/components/ui'
+import { Button, ShareButton, Modal } from '@/components/ui'
 
 interface FirstTradeCelebrationProps {
   userId: string
@@ -29,11 +29,11 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
   }, [])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ backgroundColor: 'rgba(26, 23, 20, 0.6)' }}
+    <Modal
+      onClose={onClose}
+      labelledBy="first-trade-title"
+      className="max-w-sm rounded-2xl bg-cream p-8 text-center"
     >
-      <div className="relative bg-cream rounded-2xl shadow-xl max-w-sm w-full p-8 text-center">
         {/* Close button */}
         <button
           type="button"
@@ -45,10 +45,10 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
         </button>
 
         {/* Celebration emoji */}
-        <div className="text-6xl mb-4">🎉</div>
+        <div className="text-6xl mb-4" aria-hidden="true">🎉</div>
 
         {/* Title */}
-        <h2 className="font-display text-2xl font-bold text-ink mb-2">
+        <h2 id="first-trade-title" className="font-display text-2xl font-bold text-ink mb-2">
           First Trade Complete!
         </h2>
 
@@ -77,7 +77,6 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
             Keep exploring
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

@@ -1,10 +1,11 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Star, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDistance } from '@/lib/utils'
 import { Badge, Avatar, Button } from '@/components/ui'
 import type { Listing, UserProfile } from '@/types'
-import { CATEGORY_LABELS } from '@/types'
+import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/types'
 import { useAuth } from '@/providers/AuthProvider'
 
 export interface TradeCardProps {
@@ -14,14 +15,7 @@ export interface TradeCardProps {
   className?: string
 }
 
-const badgeVariant: Record<string, 'clay' | 'teal' | 'gold' | 'moss'> = {
-  goods: 'clay',
-  services: 'teal',
-  skills: 'gold',
-  outdoor: 'moss',
-}
-
-export function TradeCard({
+function TradeCardInner({
   listing,
   user,
   onOffer,
@@ -55,7 +49,7 @@ export function TradeCard({
           )}
         </div>
         <div className="absolute top-2 left-2">
-          <Badge variant={badgeVariant[listing.category]}>
+          <Badge variant={CATEGORY_COLORS[listing.category] as 'clay' | 'teal' | 'gold' | 'moss'}>
             {CATEGORY_LABELS[listing.category]}
           </Badge>
         </div>
@@ -127,3 +121,5 @@ export function TradeCard({
     </div>
   )
 }
+
+export const TradeCard = memo(TradeCardInner)

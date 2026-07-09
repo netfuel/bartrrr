@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { Button, Chip, Textarea } from '@/components/ui'
+import { Button, Chip, Textarea, Modal } from '@/components/ui'
 import { DECLINE_REASON_LABELS, type OfferDeclineReason } from '@/types'
 
 export interface DeclineModalProps {
@@ -19,22 +19,15 @@ export function DeclineModal({ onDecline, onClose }: DeclineModalProps) {
   const [note, setNote] = useState('')
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-ink/40"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-white rounded-t-xl sm:rounded-xl w-full max-w-md p-6 max-h-[80vh] overflow-y-auto">
+    <Modal onClose={onClose} align="sheet" labelledBy="decline-modal-title">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-lg font-semibold">
+          <h3 id="decline-modal-title" className="font-display text-lg font-semibold">
             Decline this offer?
           </h3>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-full hover:bg-sand-light transition-colors"
           >
             <X className="h-5 w-5 text-muted" />
@@ -80,7 +73,6 @@ export function DeclineModal({ onDecline, onClose }: DeclineModalProps) {
             Decline
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

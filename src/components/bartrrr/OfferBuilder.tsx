@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
-import { Button, Textarea, Chip } from '@/components/ui'
+import { Button, Textarea, Chip, Modal } from '@/components/ui'
 import { useListingsStore, useOffersStore, useNotificationsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 
@@ -62,21 +62,17 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-ink/40" onClick={onClose} />
-
-      {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-lg max-w-md w-full max-h-[85vh] overflow-y-auto p-6">
+    <Modal onClose={onClose} labelledBy="offer-builder-title">
         <button
           type="button"
           onClick={onClose}
+          aria-label="Close"
           className="absolute top-4 right-4 p-1 text-muted hover:text-ink transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="font-display text-lg font-semibold text-ink mb-1">
+        <h2 id="offer-builder-title" className="font-display text-lg font-semibold text-ink mb-1">
           Make an offer
         </h2>
         <p className="text-sm text-muted mb-5">
@@ -140,7 +136,6 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
         >
           Send offer
         </Button>
-      </div>
-    </div>
+    </Modal>
   )
 }

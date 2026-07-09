@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Package, MessageSquare, FileCheck, Plus, ArrowRight, History, Send } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
@@ -26,15 +26,20 @@ export default function DashboardPage() {
   const getUserById = useUsersStore((s) => s.getUserById)
   const getListingById = useListingsStore((s) => s.getListingById)
 
-  if (!currentUser) return null
-
-  const incoming = allOffers.filter((o) => o.toUserId === currentUser.id)
-  const outgoing = allOffers.filter((o) => o.fromUserId === currentUser.id)
-  const agreements = allAgreements.filter(
-    (a) => a.partyA.userId === currentUser.id || a.partyB.userId === currentUser.id,
+  const userId = currentUser?.id
+  const { incoming, outgoing, agreements, myListings } = useMemo(
+    () => ({
+      incoming: allOffers.filter((o) => o.toUserId === userId),
+      outgoing: allOffers.filter((o) => o.fromUserId === userId),
+      agreements: allAgreements.filter(
+        (a) => a.partyA.userId === userId || a.partyB.userId === userId,
+      ),
+      myListings: listings.filter((l) => l.userId === userId && l.status === 'active'),
+    }),
+    [allOffers, allAgreements, listings, userId],
   )
 
-  const myListings = listings.filter((l) => l.userId === currentUser.id && l.status === 'active')
+  if (!currentUser) return null
   const pendingIncoming = incoming.filter((o) => o.status === 'pending' || o.status === 'countered')
   const pendingOutgoing = outgoing.filter((o) => o.status === 'pending' || o.status === 'countered')
   const activeAgreements = agreements.filter((a) => a.status === 'pending_signatures' || a.status === 'active')
