@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Package, MessageSquare, FileCheck, Plus, ArrowRight, History, Send } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
-import { useListingsStore, useOffersStore, useAgreementsStore, useUsersStore } from '@/stores'
+import { useListingsStore, useUsersStore, useOffersForUser, useAgreementsForUser, useMyActiveListings } from '@/stores'
 import { Button, Badge, Avatar, Card, EmptyState } from '@/components/ui'
 import { TradeCard } from '@/components/bartrrr'
 
@@ -20,23 +20,19 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const { currentUser } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('listings')
-  const listings = useListingsStore((s) => s.listings)
-  const allOffers = useOffersStore((s) => s.offers)
-  const allAgreements = useAgreementsStore((s) => s.agreements)
   const getUserById = useUsersStore((s) => s.getUserById)
   const getListingById = useListingsStore((s) => s.getListingById)
 
   const userId = currentUser?.id
-  const { incoming, outgoing, agreements, myListings } = useMemo(
+  const userOffers = useOffersForUser(userId)
+  const agreements = useAgreementsForUser(userId)
+  const myListings = useMyActiveListings(userId)
+  const { incoming, outgoing } = useMemo(
     () => ({
-      incoming: allOffers.filter((o) => o.toUserId === userId),
-      outgoing: allOffers.filter((o) => o.fromUserId === userId),
-      agreements: allAgreements.filter(
-        (a) => a.partyA.userId === userId || a.partyB.userId === userId,
-      ),
-      myListings: listings.filter((l) => l.userId === userId && l.status === 'active'),
+      incoming: userOffers.filter((o) => o.toUserId === userId),
+      outgoing: userOffers.filter((o) => o.fromUserId === userId),
     }),
-    [allOffers, allAgreements, listings, userId],
+    [userOffers, userId],
   )
 
   if (!currentUser) return null

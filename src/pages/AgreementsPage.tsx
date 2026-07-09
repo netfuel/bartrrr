@@ -4,7 +4,7 @@ import { FileCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/ui'
 import { AgreementCard } from '@/components/bartrrr'
-import { useAgreementsStore, useUsersStore } from '@/stores'
+import { useAgreementsForUser, useUsersStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import type { AgreementStatus } from '@/types'
 
@@ -19,14 +19,11 @@ const tabFilter: Record<Tab, AgreementStatus[]> = {
 export default function AgreementsPage() {
   const [tab, setTab] = useState<Tab>('pending')
   const { currentUser } = useAuth()
-  const agreements = useAgreementsStore((s) => s.agreements)
+  const userAgreements = useAgreementsForUser(currentUser?.id)
   const getUserById = useUsersStore((s) => s.getUserById)
 
   if (!currentUser) return null
 
-  const userAgreements = agreements.filter(
-    (a) => a.partyA.userId === currentUser.id || a.partyB.userId === currentUser.id,
-  )
   const filtered = userAgreements.filter((a) => tabFilter[tab].includes(a.status))
 
   return (

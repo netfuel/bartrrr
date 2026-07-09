@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useNotificationsStore } from '@/stores'
+import { useNotificationsStore, useNotificationsForUser } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { Button } from '@/components/ui'
 
@@ -9,14 +9,14 @@ export interface NotificationDropdownProps {
 
 export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const { currentUser } = useAuth()
-  const notifications = useNotificationsStore((s) => s.notifications)
+  const notifications = useNotificationsForUser(currentUser?.id)
   const markAsRead = useNotificationsStore((s) => s.markAsRead)
   const markAllAsRead = useNotificationsStore((s) => s.markAllAsRead)
 
   if (!currentUser) return null
 
-  const userNotifications = notifications
-    .filter((n) => n.userId === currentUser.id)
+  // copy before sorting — the selector result is a cached array
+  const userNotifications = [...notifications]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 10)
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, Bell, Moon, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toggleDarkMode, isDarkMode } from '@/lib/utils/dark-mode'
-import { useNotificationsStore } from '@/stores'
+import { useUnreadCount } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { NotificationDropdown } from './NotificationDropdown'
 
@@ -14,7 +14,6 @@ export interface HeaderProps {
 export function Header({ className }: HeaderProps) {
   const navigate = useNavigate()
   const { currentUser } = useAuth()
-  const getUnreadCount = useNotificationsStore((s) => s.getUnreadCount)
   const [searchQuery, setSearchQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
   const [dark, setDark] = useState(isDarkMode)
@@ -25,7 +24,7 @@ export function Header({ className }: HeaderProps) {
     setDark(next)
   }
 
-  const unreadCount = currentUser ? getUnreadCount(currentUser.id) : 0
+  const unreadCount = useUnreadCount(currentUser?.id)
 
   const handleSearch = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchQuery.trim()) {

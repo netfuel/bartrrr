@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Avatar, Badge, EmptyState } from '@/components/ui'
-import { useOffersStore, useUsersStore, useListingsStore } from '@/stores'
+import { useOffersForUser, useUsersStore, useListingsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { MessageSquare } from 'lucide-react'
 
@@ -21,7 +21,7 @@ export default function OffersInboxPage() {
   const { currentUser } = useAuth()
   const getUserById = useUsersStore((s) => s.getUserById)
   const getListingById = useListingsStore((s) => s.getListingById)
-  const allOffers = useOffersStore((s) => s.offers)
+  const allOffers = useOffersForUser(currentUser?.id)
 
   if (!currentUser) return null
 

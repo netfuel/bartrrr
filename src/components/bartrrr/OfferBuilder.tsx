@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { Button, Textarea, Chip, Modal } from '@/components/ui'
-import { useListingsStore, useOffersStore, useNotificationsStore } from '@/stores'
+import { useListingsStore, useOffersStore, useNotificationsStore, useMyActiveListings } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 
 export interface OfferBuilderProps {
@@ -15,9 +15,7 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
   const navigate = useNavigate()
   const { currentUser } = useAuth()
   const listing = useListingsStore((s) => s.getListingById(listingId))
-  const myListings = useListingsStore((s) => s.listings).filter(
-    (l) => l.userId === currentUser?.id && l.status === 'active',
-  )
+  const myListings = useMyActiveListings(currentUser?.id)
   const createOffer = useOffersStore((s) => s.createOffer)
   const addNotification = useNotificationsStore((s) => s.addNotification)
 
