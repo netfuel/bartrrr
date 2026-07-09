@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Package, MessageSquare, FileCheck, Plus, ArrowRight, History, Send } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { useListingsStore, useUsersStore, useOffersForUser, useAgreementsForUser, useMyActiveListings } from '@/stores'
-import { Button, Badge, Avatar, Card, EmptyState } from '@/components/ui'
+import { Button, Badge, Avatar, Card, EmptyState, Tabs } from '@/components/ui'
 import { TradeCard } from '@/components/bartrrr'
 
 type Tab = 'listings' | 'incoming' | 'outgoing' | 'trades' | 'history'
@@ -69,34 +69,20 @@ export default function DashboardPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 overflow-x-auto mb-6 border-b border-sand-light pb-0">
-        {tabs.map((tab) => {
-          const badgeCount =
+      <Tabs
+        variant="underline"
+        label="Dashboard sections"
+        className="mb-6"
+        active={activeTab}
+        onChange={setActiveTab}
+        tabs={tabs.map((tab) => ({
+          ...tab,
+          count:
             tab.id === 'incoming' ? pendingIncoming.length :
             tab.id === 'outgoing' ? pendingOutgoing.length :
-            tab.id === 'trades' ? activeAgreements.length : 0
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors -mb-px ${
-                activeTab === tab.id
-                  ? 'border-clay text-clay'
-                  : 'border-transparent text-muted hover:text-ink'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-              {badgeCount > 0 && (
-                <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-clay text-white text-[10px] font-bold px-1">
-                  {badgeCount}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
+            tab.id === 'trades' ? activeAgreements.length : 0,
+        }))}
+      />
 
       {/* Tab content */}
 

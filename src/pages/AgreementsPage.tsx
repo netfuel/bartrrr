@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileCheck } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { EmptyState } from '@/components/ui'
+import { EmptyState, Tabs } from '@/components/ui'
 import { AgreementCard } from '@/components/bartrrr'
 import { useAgreementsForUser, useUsersStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
@@ -30,22 +29,17 @@ export default function AgreementsPage() {
     <div className="max-w-2xl mx-auto px-4 py-6">
       <h1 className="font-display text-2xl font-bold text-ink mb-4">Trade Agreements</h1>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-sand-light rounded-full p-1 mb-6">
-        {(['pending', 'active', 'completed'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={cn(
-              'flex-1 py-2 text-sm font-medium rounded-full transition-colors capitalize',
-              tab === t ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink-2',
-            )}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="Agreement status"
+        className="mb-6"
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'pending', label: 'Pending' },
+          { id: 'active', label: 'Active' },
+          { id: 'completed', label: 'Completed' },
+        ]}
+      />
 
       {filtered.length === 0 ? (
         <EmptyState

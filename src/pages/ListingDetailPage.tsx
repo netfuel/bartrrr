@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
-import { MapPin, Star, ArrowLeft, ChevronLeft, ChevronRight, Pencil, XCircle, RefreshCw, PartyPopper } from 'lucide-react'
+import { MapPin, Star, ChevronLeft, ChevronRight, Pencil, XCircle, RefreshCw, PartyPopper } from 'lucide-react'
 import { useState, useRef, useMemo } from 'react'
-import { Button, Badge, Avatar, ShareButton } from '@/components/ui'
+import { Button, Badge, Avatar, ShareButton, BackLink } from '@/components/ui'
 import { TradeCard, OfferBuilder } from '@/components/bartrrr'
 import { useListingsStore, useUsersStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
@@ -56,9 +56,7 @@ export default function ListingDetailPage() {
     <div className="max-w-3xl mx-auto pb-24">
       {/* Back button */}
       <div className="px-4 py-3">
-        <Link to="/browse" className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to browse
-        </Link>
+        <BackLink to="/browse">Back to browse</BackLink>
       </div>
 
       {/* Just-created banner */}

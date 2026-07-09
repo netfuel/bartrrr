@@ -1,8 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useState } from 'react'
 import { Star, MapPin, Calendar } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Avatar, Chip } from '@/components/ui'
+import { Avatar, Chip, Tabs } from '@/components/ui'
 import { TradeCard, ReviewCard } from '@/components/bartrrr'
 import { useUsersStore, useListingsStore, useReviewsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
@@ -63,22 +62,16 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-sand-light rounded-full p-1 mt-8 mb-6">
-        {(['portfolio', 'reviews'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={cn(
-              'flex-1 py-2 text-sm font-medium rounded-full transition-colors capitalize',
-              tab === t ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink-2',
-            )}
-          >
-            {t} {t === 'reviews' && reviews.length > 0 ? `(${reviews.length})` : ''}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="Profile sections"
+        className="mt-8 mb-6"
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'portfolio', label: 'Portfolio' },
+          { id: 'reviews', label: 'Reviews', count: reviews.length },
+        ]}
+      />
 
       {tab === 'portfolio' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

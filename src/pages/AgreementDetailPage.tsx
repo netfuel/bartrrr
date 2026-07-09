@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Calendar, MapPin, Info, CheckCircle, Handshake, PartyPopper } from 'lucide-react'
+import { Calendar, MapPin, Info, CheckCircle, Handshake, PartyPopper } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui'
+import { Button, BackLink } from '@/components/ui'
 import { AgreementCard, FirstTradeCelebration } from '@/components/bartrrr'
 import { useAgreementsStore, useUsersStore, useNotificationsStore } from '@/stores'
 import { useReviewsStore } from '@/stores'
@@ -98,13 +98,7 @@ export default function AgreementDetailPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <Link
-        to="/agreements"
-        className="inline-flex min-h-[44px] items-center gap-1.5 text-base text-muted hover:text-ink transition-colors mb-2"
-      >
-        <ArrowLeft className="h-5 w-5" />
-        Back to agreements
-      </Link>
+      <BackLink to="/agreements" className="mb-2">Back to agreements</BackLink>
 
       {/* Journey: agree → meet → done */}
       <div className="bg-white rounded-lg shadow-soft p-5 mb-4">

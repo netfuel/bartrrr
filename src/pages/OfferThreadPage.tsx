@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, ArrowLeftRight } from 'lucide-react'
-import { Button, Badge } from '@/components/ui'
+import { ArrowRight, ArrowLeftRight } from 'lucide-react'
+import { Button, Badge, BackLink } from '@/components/ui'
 import { OfferThread, OfferTimeline, DeclineModal, CounterOfferForm, MessageComposer } from '@/components/bartrrr'
 import { useOffersStore, useUsersStore, useListingsStore, useAgreementsStore, useNotificationsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
@@ -114,9 +114,7 @@ export default function OfferThreadPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-56">
-      <Link to="/offers" className="inline-flex min-h-[44px] items-center gap-1.5 text-base text-muted hover:text-ink transition-colors mb-2">
-        <ArrowLeft className="h-5 w-5" /> Back to offers
-      </Link>
+      <BackLink to="/offers" className="mb-2">Back to offers</BackLink>
 
       {/* The trade, in plain terms */}
       <div className="bg-white rounded-lg shadow-soft p-5 mb-4">

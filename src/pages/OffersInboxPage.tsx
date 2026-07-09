@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { cn } from '@/lib/utils'
-import { Avatar, Badge, EmptyState } from '@/components/ui'
+import { Avatar, Badge, EmptyState, Tabs } from '@/components/ui'
 import { useOffersForUser, useUsersStore, useListingsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { MessageSquare } from 'lucide-react'
@@ -33,22 +32,16 @@ export default function OffersInboxPage() {
     <div className="max-w-2xl mx-auto px-4 py-6">
       <h1 className="font-display text-2xl font-bold text-ink mb-4">My Offers</h1>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-sand-light rounded-full p-1 mb-6">
-        {(['incoming', 'outgoing'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={cn(
-              'flex-1 py-2 text-sm font-medium rounded-full transition-colors capitalize',
-              tab === t ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink-2',
-            )}
-          >
-            {t} ({t === 'incoming' ? incoming.length : outgoing.length})
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="Offer direction"
+        className="mb-6"
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'incoming', label: 'Incoming', count: incoming.length },
+          { id: 'outgoing', label: 'Outgoing', count: outgoing.length },
+        ]}
+      />
 
       {/* Offer list */}
       {offers.length === 0 ? (
