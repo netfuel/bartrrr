@@ -47,11 +47,13 @@ export const useListingsStore = create<ListingsState>((set, get) => ({
       status: 'active',
     }
     set((state) => ({ listings: [listing, ...state.listings] }))
-    // Persist to Supabase (fire and forget)
+    // Persist to Supabase (fire and forget). If a realtime event already
+    // delivered the server copy, drop the temp instead of swapping.
     svc.createListing(data).then((saved) => {
-      // Replace the temp listing with the Supabase-generated one (updates id)
       set((state) => ({
-        listings: state.listings.map((l) => (l.id === id ? saved : l)),
+        listings: state.listings.some((l) => l.id === saved.id)
+          ? state.listings.filter((l) => l.id !== id)
+          : state.listings.map((l) => (l.id === id ? saved : l)),
       }))
     }).catch(persistError("Couldn't save your new listing"))
     return id

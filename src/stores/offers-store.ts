@@ -71,10 +71,14 @@ export const useOffersStore = create<OffersState>((set, get) => ({
       body: 'Someone made you a trade offer. Tap to view.',
       url: `/offers/${id}`,
     })
-    // Persist to Supabase and replace local temp offer with real one
+    // Persist to Supabase and replace local temp offer with real one.
+    // If the realtime subscription already delivered the server copy,
+    // drop the temp instead of swapping — otherwise both would coexist.
     svc.createOffer(data).then((saved) => {
       set((state) => ({
-        offers: state.offers.map((o) => (o.id === id ? saved : o)),
+        offers: state.offers.some((o) => o.id === saved.id)
+          ? state.offers.filter((o) => o.id !== id)
+          : state.offers.map((o) => (o.id === id ? saved : o)),
       }))
     }).catch(persistError("Couldn't send your offer"))
     return id

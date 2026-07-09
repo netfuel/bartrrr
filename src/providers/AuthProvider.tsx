@@ -52,6 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Track realtime channels so we can tear them down on logout
   const offersChannelRef = useRef<RealtimeChannel | null>(null)
   const notifChannelRef = useRef<RealtimeChannel | null>(null)
+  // Which user the data load + realtime wiring currently belongs to.
+  // getSession and SIGNED_IN both fire on page load, and token refreshes
+  // re-emit SIGNED_IN — without this guard we double-load and re-wire.
+  const wiredUserIdRef = useRef<string | null>(null)
 
   const currentUser = currentUserId ? (getUserById(currentUserId) ?? null) : null
   const isAuthenticated = !!currentUserId && !!currentUser
@@ -99,7 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     notifChannelRef.current = svc.subscribeToNotifications(userId, (notif) => {
+      // Pass the server id through so a notification that also arrived via
+      // fetchNotifications isn't inserted twice.
       addNotification({
+        id: notif.id,
         userId: notif.userId,
         type: notif.type,
         title: notif.title,
@@ -107,6 +114,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: notif.data,
       })
     })
+  }
+
+  // ── One-time setup per logged-in user ─────────────────────────────────────
+  const initSession = async (userId: string) => {
+    if (wiredUserIdRef.current === userId) return
+    wiredUserIdRef.current = userId
+    storeLogin(userId)
+    await loadUserData(userId)
+    // A different user may have logged in while we were loading — don't
+    // wire realtime for a session that's no longer current.
+    if (wiredUserIdRef.current === userId) wireRealtime(userId)
+  }
+
+  const teardownSession = () => {
+    offersChannelRef.current?.unsubscribe()
+    notifChannelRef.current?.unsubscribe()
+    offersChannelRef.current = null
+    notifChannelRef.current = null
+    wiredUserIdRef.current = null
   }
 
   // ── Supabase auth lifecycle ───────────────────────────────────────────────
@@ -120,9 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for an existing session (e.g. page refresh)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        storeLogin(session.user.id)
-        await loadUserData(session.user.id)
-        wireRealtime(session.user.id)
+        await initSession(session.user.id)
       }
       setIsLoading(false)
     })
@@ -132,13 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        storeLogin(session.user.id)
-        await loadUserData(session.user.id)
-        wireRealtime(session.user.id)
+        await initSession(session.user.id)
         setIsLoading(false)
       } else if (event === 'SIGNED_OUT') {
-        offersChannelRef.current?.unsubscribe()
-        notifChannelRef.current?.unsubscribe()
+        teardownSession()
         storeLogout()
         setIsLoading(false)
       }
@@ -146,8 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       subscription.unsubscribe()
-      offersChannelRef.current?.unsubscribe()
-      notifChannelRef.current?.unsubscribe()
+      teardownSession()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

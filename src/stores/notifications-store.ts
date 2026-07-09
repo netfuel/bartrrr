@@ -3,6 +3,8 @@ import type { AppNotification, NotificationType } from '@/types'
 import { generateId } from '@/lib/utils'
 
 interface AddNotificationData {
+  /** Server id when known — lets realtime inserts dedupe against fetched rows */
+  id?: string
   userId: string
   type: NotificationType
   title: string
@@ -32,14 +34,19 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     get().notifications.filter((n) => n.userId === userId && !n.readAt).length,
 
   addNotification: (data) => {
-    const notification: AppNotification = {
-      id: generateId(),
-      ...data,
-      createdAt: new Date().toISOString(),
-    }
-    set((state) => ({
-      notifications: [notification, ...state.notifications],
-    }))
+    set((state) => {
+      // Same server notification can arrive via realtime AND the initial
+      // fetch — never insert the same id twice.
+      if (data.id && state.notifications.some((n) => n.id === data.id)) {
+        return state
+      }
+      const notification: AppNotification = {
+        ...data,
+        id: data.id ?? generateId(),
+        createdAt: new Date().toISOString(),
+      }
+      return { notifications: [notification, ...state.notifications] }
+    })
   },
 
   markAsRead: (id) =>
