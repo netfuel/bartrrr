@@ -1,0 +1,25 @@
+{
+  "name": "Bartrrr — Trade, don't buy",
+  "short_name": "Bartrrr",
+  "description": "Swap goods, skills, and services with your Memphis neighbors — no cash, just fair exchange.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8F3EC",
+  "theme_color": "#C05A35",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { MapPin, Star, ArrowLeft, ChevronLeft, ChevronRight, Pencil, XCircle, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
-import { Button, Badge, Avatar } from '@/components/ui'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
+import { MapPin, Star, ArrowLeft, ChevronLeft, ChevronRight, Pencil, XCircle, RefreshCw, PartyPopper } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Button, Badge, Avatar, ShareButton } from '@/components/ui'
 import { TradeCard, OfferBuilder } from '@/components/bartrrr'
 import { useListingsStore, useUsersStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
@@ -18,6 +18,7 @@ const badgeVariant: Record<string, 'clay' | 'teal' | 'gold' | 'moss'> = {
 export default function ListingDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentUser } = useAuth()
   const listing = useListingsStore((s) => s.getListingById(id || ''))
   const listings = useListingsStore((s) => s.listings)
@@ -27,6 +28,13 @@ export default function ListingDetailPage() {
   const user = listing ? getUserById(listing.userId) : undefined
   const [imageIndex, setImageIndex] = useState(0)
   const [showOfferBuilder, setShowOfferBuilder] = useState(false)
+  const galleryRef = useRef<HTMLDivElement>(null)
+  const justCreated = Boolean(location.state?.justCreated)
+
+  const scrollToImage = (i: number) => {
+    const el = galleryRef.current
+    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
+  }
 
   if (!listing || !user) {
     return (
@@ -51,22 +59,70 @@ export default function ListingDetailPage() {
         </Link>
       </div>
 
-      {/* Photo carousel */}
+      {/* Just-created banner */}
+      {justCreated && isOwner && (
+        <div className="animate-slide-up mx-4 mb-3 flex items-center gap-3 rounded-lg bg-teal-light p-4">
+          <PartyPopper className="h-6 w-6 text-teal shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-medium text-teal-dark">Your listing is live!</p>
+            <p className="text-small text-teal-dark/80">Share it so neighbors know what you're trading for.</p>
+          </div>
+          <ShareButton
+            title={listing.title}
+            text={`I'm trading "${listing.title}" on Bartrrr — looking for ${listing.seeking}. Come barter!`}
+            card={{
+              title: listing.title,
+              seeking: listing.seeking,
+              neighborhood: listing.location.neighborhood,
+              imageUrl: listing.images[0],
+            }}
+            variant="confirm"
+          />
+        </div>
+      )}
+
+      {/* Photo gallery — swipe on touch, arrows on desktop */}
       <div className="relative bg-clay-light aspect-[4/3] sm:aspect-[16/9] overflow-hidden sm:mx-4 sm:rounded-lg">
-        {listing.images[imageIndex] && (
-          <img src={listing.images[imageIndex]} alt={`${listing.title} photo ${imageIndex + 1}`} className="w-full h-full object-cover" />
-        )}
+        <div
+          ref={galleryRef}
+          onScroll={(e) => {
+            const el = e.currentTarget
+            const i = Math.round(el.scrollLeft / el.clientWidth)
+            if (i !== imageIndex) setImageIndex(i)
+          }}
+          className="no-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto"
+        >
+          {listing.images.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`${listing.title} photo ${i + 1}`}
+              className="h-full w-full shrink-0 snap-center object-cover"
+              draggable={false}
+            />
+          ))}
+        </div>
         {listing.images.length > 1 && (
           <>
-            <button type="button" onClick={() => setImageIndex((i) => i === 0 ? listing.images.length - 1 : i - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center">
-              <ChevronLeft className="h-4 w-4" />
+            <button
+              type="button"
+              aria-label="Previous photo"
+              onClick={() => scrollToImage(Math.max(0, imageIndex - 1))}
+              className="pressable absolute left-2 top-1/2 hidden -translate-y-1/2 sm:flex w-10 h-10 rounded-full bg-white/85 shadow-soft items-center justify-center"
+            >
+              <ChevronLeft className="h-5 w-5" />
             </button>
-            <button type="button" onClick={() => setImageIndex((i) => i === listing.images.length - 1 ? 0 : i + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center">
-              <ChevronRight className="h-4 w-4" />
+            <button
+              type="button"
+              aria-label="Next photo"
+              onClick={() => scrollToImage(Math.min(listing.images.length - 1, imageIndex + 1))}
+              className="pressable absolute right-2 top-1/2 hidden -translate-y-1/2 sm:flex w-10 h-10 rounded-full bg-white/85 shadow-soft items-center justify-center"
+            >
+              <ChevronRight className="h-5 w-5" />
             </button>
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
               {listing.images.map((_, i) => (
-                <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === imageIndex ? 'bg-white' : 'bg-white/40'}`} />
+                <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === imageIndex ? 'w-5 bg-white' : 'w-2 bg-white/40'}`} />
               ))}
             </div>
           </>
@@ -84,6 +140,18 @@ export default function ListingDetailPage() {
             </div>
             <h1 className="font-display text-2xl font-bold text-ink">{listing.title}</h1>
           </div>
+          <ShareButton
+            title={listing.title}
+            text={`Check out "${listing.title}" on Bartrrr — they're looking to trade for ${listing.seeking}.`}
+            card={{
+              title: listing.title,
+              seeking: listing.seeking,
+              neighborhood: listing.location.neighborhood,
+              imageUrl: listing.images[0],
+            }}
+            size="sm"
+            className="shrink-0 mt-1"
+          />
         </div>
 
         <div className="flex items-center gap-2 mt-2 text-sm text-muted">

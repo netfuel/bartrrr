@@ -79,7 +79,7 @@ export default function CreateListingPage() {
       }
     })
 
-    navigate(`/listing/${newId}`)
+    navigate(`/listing/${newId}`, { state: { justCreated: true } })
   }
 
   return (

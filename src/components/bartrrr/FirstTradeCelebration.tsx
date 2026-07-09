@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { X } from 'lucide-react'
 import confetti from 'canvas-confetti'
-import { Button } from '@/components/ui'
+import { Button, ShareButton } from '@/components/ui'
 
 interface FirstTradeCelebrationProps {
   userId: string
@@ -59,8 +59,17 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
 
         {/* Actions */}
         <div className="flex flex-col gap-3">
+          <ShareButton
+            title="My first Bartrrr trade!"
+            text="I just completed my first trade on Bartrrr — swapping with neighbors instead of buying. Come barter with us!"
+            url={window.location.origin}
+            label="Share the news"
+            variant="primary"
+            size="lg"
+            className="w-full"
+          />
           <Link to={`/profile/${userId}`} onClick={onClose}>
-            <Button variant="primary" size="lg" className="w-full">
+            <Button variant="secondary" size="lg" className="w-full">
               View your profile
             </Button>
           </Link>
