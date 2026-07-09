@@ -154,30 +154,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Public auth actions ───────────────────────────────────────────────────
 
+  // Demo-mode login: find by first name match in the mock users store
+  const offlineLogin = (username: string) => {
+    const user = useUsersStore.getState().users.find(
+      (u) => u.displayName.split(' ')[0].toLowerCase() === username,
+    )
+    if (user) storeLogin(user.id)
+  }
+
+  // A fetch that never reached Supabase (dead/paused project, no network) —
+  // as opposed to a real auth rejection like a wrong password.
+  const isNetworkError = (err: unknown) =>
+    err instanceof Error &&
+    (err.name === 'AuthRetryableFetchError' || err.message.includes('Failed to fetch'))
+
   const login = async (username: string) => {
     if (!supabase) {
-      // Offline fallback: find by first name match
-      const user = useUsersStore.getState().users.find(
-        (u) => u.displayName.split(' ')[0].toLowerCase() === username,
-      )
-      if (user) storeLogin(user.id)
+      offlineLogin(username)
       return
     }
     const email = `${username}@bartrrr.demo`
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password: 'bartrrr-demo-2024',
-    })
-    if (error) throw error
-    // onAuthStateChange handles the rest
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'bartrrr-demo-2024',
+      })
+      if (error) throw error
+      // onAuthStateChange handles the rest
+    } catch (err) {
+      if (isNetworkError(err)) {
+        console.warn('Supabase unreachable — falling back to demo mode.')
+        offlineLogin(username)
+        return
+      }
+      throw err
+    }
   }
 
   const logout = async () => {
     if (supabase) {
-      await supabase.auth.signOut()
-    } else {
-      storeLogout()
+      await supabase.auth.signOut().catch(() => {})
     }
+    // Always clear local state too: demo-mode logins have no Supabase
+    // session, so onAuthStateChange never fires for them.
+    storeLogout()
   }
 
   return (
