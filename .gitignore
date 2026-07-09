@@ -25,3 +25,6 @@ dist-ssr
 public/trees.mp4
 public/homes.mp4
 design/
+
+# Claude Code agent worktrees (full repo copies)
+.claude/worktrees/

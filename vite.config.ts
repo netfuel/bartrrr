@@ -10,4 +10,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    watch: {
+      // Agent worktrees and archives live inside the repo; watching them
+      // makes dev-server startup and HMR crawl.
+      ignored: ['**/.claude/**', '**/_archive/**'],
+    },
+  },
 })
