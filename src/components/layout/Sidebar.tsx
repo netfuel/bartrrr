@@ -36,10 +36,10 @@ export function Sidebar() {
             to={to}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                'pressable flex items-center gap-3 px-3 py-2.5 rounded-md text-[15px] font-medium transition-[background-color,color] duration-200',
                 isActive
-                  ? 'bg-clay-light text-clay'
-                  : 'text-ink-2 hover:bg-sand-light',
+                  ? 'bg-clay-light text-clay font-semibold'
+                  : 'text-ink-2 hover:bg-sand-light hover:translate-x-0.5',
               )
             }
           >

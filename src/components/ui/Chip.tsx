@@ -12,10 +12,11 @@ export function Chip({ label, selected = false, onToggle, className }: ChipProps
     <button
       type="button"
       onClick={onToggle}
+      aria-pressed={selected}
       className={cn(
-        'inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay',
+        'pressable inline-flex items-center min-h-[40px] rounded-full px-4 py-1.5 text-[15px] font-medium transition-[background-color,border-color,color,transform,box-shadow] duration-200',
         selected
-          ? 'bg-clay text-white'
+          ? 'bg-clay text-white shadow-soft'
           : 'bg-white border border-sand text-ink-2 hover:bg-sand-light hover:border-clay-mid',
         className,
       )}

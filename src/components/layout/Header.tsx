@@ -47,7 +47,7 @@ export function Header({ className }: HeaderProps) {
   return (
     <header
       className={cn(
-        'flex items-center gap-4 px-4 lg:px-6 py-3 bg-white border-b border-sand-light',
+        'sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 bg-white/90 backdrop-blur-md border-b border-sand-light',
         className,
       )}
     >
@@ -72,7 +72,7 @@ export function Header({ className }: HeaderProps) {
       {/* Dark mode toggle */}
       <button
         onClick={handleToggle}
-        className="p-2 rounded-full hover:bg-sand-light transition-colors text-muted hover:text-ink"
+        className="pressable flex h-11 w-11 items-center justify-center rounded-full hover:bg-sand-light transition-colors text-muted hover:text-ink"
         aria-label="Toggle dark mode"
       >
         {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -82,7 +82,7 @@ export function Header({ className }: HeaderProps) {
       <div ref={notifRef} className="relative">
         <button
           type="button"
-          className="relative p-2 rounded-full hover:bg-sand-light transition-colors"
+          className="pressable relative flex h-11 w-11 items-center justify-center rounded-full hover:bg-sand-light transition-colors"
           aria-label="Notifications"
           onClick={() => setShowNotifications(!showNotifications)}
         >

@@ -32,7 +32,7 @@ export function Toast({
     <div
       role="alert"
       className={cn(
-        'flex items-center gap-3 rounded-lg border px-4 py-3 shadow-md text-sm animate-in slide-in-from-top',
+        'animate-toast-in flex items-center gap-3 rounded-lg border px-4 py-3 shadow-lift text-[15px]',
         typeStyles[type],
         className,
       )}
@@ -41,7 +41,8 @@ export function Toast({
       <button
         type="button"
         onClick={onDismiss}
-        className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+        aria-label="Dismiss"
+        className="shrink-0 -m-2 p-2 opacity-60 hover:opacity-100 transition-opacity"
       >
         <X className="h-4 w-4" />
       </button>
