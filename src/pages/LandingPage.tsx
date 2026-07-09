@@ -253,6 +253,8 @@ export default function LandingPage() {
           muted
           loop
           playsInline
+          preload="metadata"
+          poster="/homes-poster.jpg"
           className="hero-video absolute inset-0 w-full h-full object-cover"
         >
           <source src="/homes.mp4" type="video/mp4" />
