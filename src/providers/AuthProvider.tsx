@@ -16,6 +16,7 @@ import { useListingsStore } from '@/stores/listings-store'
 import { useOffersStore } from '@/stores/offers-store'
 import { useAgreementsStore } from '@/stores/agreements-store'
 import { useNotificationsStore } from '@/stores/notifications-store'
+import { useReviewsStore } from '@/stores/reviews-store'
 import type { UserProfile } from '@/types'
 
 interface AuthContextValue {
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setOffers = useOffersStore((s) => s.setOffers)
   const setAgreements = useAgreementsStore((s) => s.setAgreements)
   const setNotifications = useNotificationsStore((s) => s.setNotifications)
+  const setReviews = useReviewsStore((s) => s.setReviews)
   const addNotification = useNotificationsStore((s) => s.addNotification)
 
   const [isLoading, setIsLoading] = useState(true)
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Track realtime channels so we can tear them down on logout
   const offersChannelRef = useRef<RealtimeChannel | null>(null)
   const notifChannelRef = useRef<RealtimeChannel | null>(null)
+  const agreementsChannelRef = useRef<RealtimeChannel | null>(null)
   // Which user the data load + realtime wiring currently belongs to.
   // getSession and SIGNED_IN both fire on page load, and token refreshes
   // re-emit SIGNED_IN — without this guard we double-load and re-wire.
@@ -63,18 +66,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Load all data from Supabase for a logged-in user ─────────────────────
   const loadUserData = async (userId: string) => {
     try {
-      const [dbUsers, dbListings, dbOffers, dbAgreements, dbNotifications] = await Promise.all([
+      const [dbUsers, dbListings, dbOffers, dbAgreements, dbNotifications, dbReviews] = await Promise.all([
         svc.fetchAllUsers(),
         svc.fetchListings(),
         svc.fetchOffers(userId),
         svc.fetchAgreements(userId),
         svc.fetchNotifications(userId),
+        svc.fetchAllReviews(),
       ])
       setUsers(dbUsers)
       setListings(dbListings)
       setOffers(dbOffers)
       setAgreements(dbAgreements)
       setNotifications(dbNotifications)
+      setReviews(dbReviews)
     } catch (err) {
       console.warn('[Bartr] Supabase data load failed — falling back to mock data', err)
     }
@@ -92,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Tear down existing channels
     offersChannelRef.current?.unsubscribe()
     notifChannelRef.current?.unsubscribe()
+    agreementsChannelRef.current?.unsubscribe()
 
     offersChannelRef.current = svc.subscribeToOffers(userId, (updatedOffer) => {
       // Merge the updated offer into the local store
@@ -99,6 +105,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         offers: s.offers.some((o) => o.id === updatedOffer.id)
           ? s.offers.map((o) => (o.id === updatedOffer.id ? updatedOffer : o))
           : [updatedOffer, ...s.offers],
+      }))
+    })
+
+    agreementsChannelRef.current = svc.subscribeToAgreements(userId, (updatedAgreement) => {
+      useAgreementsStore.setState((s) => ({
+        agreements: s.agreements.some((a) => a.id === updatedAgreement.id)
+          ? s.agreements.map((a) => (a.id === updatedAgreement.id ? updatedAgreement : a))
+          : [updatedAgreement, ...s.agreements],
       }))
     })
 
@@ -130,8 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const teardownSession = () => {
     offersChannelRef.current?.unsubscribe()
     notifChannelRef.current?.unsubscribe()
+    agreementsChannelRef.current?.unsubscribe()
     offersChannelRef.current = null
     notifChannelRef.current = null
+    agreementsChannelRef.current = null
     wiredUserIdRef.current = null
   }
 

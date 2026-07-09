@@ -52,6 +52,7 @@ export interface Database {
           notification_prefs?: Json
           joined_at?: string
         }
+        Relationships: []
       }
       listings: {
         Row: {
@@ -102,6 +103,7 @@ export interface Database {
           status?: 'active' | 'pending' | 'completed' | 'withdrawn'
           created_at?: string
         }
+        Relationships: []
       }
       offers: {
         Row: {
@@ -140,6 +142,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       offer_messages: {
         Row: {
@@ -169,6 +172,7 @@ export interface Database {
           items?: string[]
           created_at?: string
         }
+        Relationships: []
       }
       agreements: {
         Row: {
@@ -222,6 +226,7 @@ export interface Database {
           created_at?: string
           completed_at?: string | null
         }
+        Relationships: []
       }
       reviews: {
         Row: {
@@ -251,6 +256,7 @@ export interface Database {
           comment?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -319,6 +325,34 @@ export interface Database {
           agreement_id?: string | null
           created_at?: string
         }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+          created_at?: string
+        }
+        Relationships: []
       }
     }
     Views: Record<string, never>
@@ -335,3 +369,8 @@ export type OfferMessageRow = Database['public']['Tables']['offer_messages']['Ro
 export type AgreementRow = Database['public']['Tables']['agreements']['Row']
 export type ReviewRow = Database['public']['Tables']['reviews']['Row']
 export type NotificationRow = Database['public']['Tables']['notifications']['Row']
+export type PushSubscriptionRow = Database['public']['Tables']['push_subscriptions']['Row']
+
+export type UserUpdate = Database['public']['Tables']['users']['Update']
+export type ListingUpdate = Database['public']['Tables']['listings']['Update']
+export type AgreementUpdate = Database['public']['Tables']['agreements']['Update']

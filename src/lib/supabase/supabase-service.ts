@@ -12,12 +12,15 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './index'
 import type {
   AgreementRow,
+  AgreementUpdate,
   ListingRow,
+  ListingUpdate,
   NotificationRow,
   OfferMessageRow,
   OfferRow,
   ReviewRow,
   UserRow,
+  UserUpdate,
 } from './database.types'
 import type {
   AppNotification,
@@ -242,7 +245,7 @@ export async function updateListing(
     pending: 'pending',
     closed: 'withdrawn',
   }
-  const update: Record<string, unknown> = {}
+  const update: ListingUpdate = {}
   if (partial.title !== undefined) update.title = partial.title
   if (partial.description !== undefined) update.description = partial.description
   if (partial.category !== undefined) update.category = partial.category
@@ -306,7 +309,7 @@ export async function updateUser(
   partial: Partial<UserProfile>,
 ): Promise<void> {
   assertClient(supabase)
-  const update: Record<string, unknown> = {}
+  const update: UserUpdate = {}
   if (partial.username !== undefined) update.username = partial.username
   if (partial.displayName !== undefined) update.display_name = partial.displayName
   if (partial.avatarUrl !== undefined) update.avatar_url = partial.avatarUrl
@@ -545,7 +548,7 @@ export async function signAgreement(id: string, userId: string): Promise<void> {
     .single()
   if (fetchErr) throw fetchErr
 
-  const update: Record<string, unknown> = {}
+  const update: AgreementUpdate = {}
   if (agreement.party_a_user_id === userId) update.party_a_signed = true
   if (agreement.party_b_user_id === userId) update.party_b_signed = true
 
@@ -640,6 +643,17 @@ export async function fetchReviews(userId: string): Promise<Review[]> {
   return (data ?? []).map(mapReviewRow)
 }
 
+/** All reviews — profile pages show reviews for any user. */
+export async function fetchAllReviews(): Promise<Review[]> {
+  assertClient(supabase)
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(mapReviewRow)
+}
+
 export async function addReview(data: {
   agreementId: string
   reviewerId: string
@@ -664,6 +678,36 @@ export async function addReview(data: {
 }
 
 // ─── Realtime subscriptions ───────────────────────────────────────────────────
+
+/**
+ * Watch agreements where the user is either party — lets the UI update
+ * live when the other side signs or completes a trade.
+ */
+export function subscribeToAgreements(
+  userId: string,
+  callback: (agreement: TradeAgreement) => void,
+): RealtimeChannel {
+  if (!supabase) throw new Error('Supabase client not initialized')
+
+  const handle = (payload: { new: unknown }) => {
+    callback(mapAgreementRow(payload.new as AgreementRow))
+  }
+
+  return supabase
+    .channel(`agreements:${userId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'agreements', filter: `party_a_user_id=eq.${userId}` },
+      handle,
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'agreements', filter: `party_b_user_id=eq.${userId}` },
+      handle,
+    )
+    .subscribe()
+}
+
 
 /**
  * Subscribe to offer changes (inserts + updates) where userId is a party.
