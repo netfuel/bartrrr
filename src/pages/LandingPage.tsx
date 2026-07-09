@@ -10,6 +10,8 @@ import { useGSAP } from '@gsap/react'
 import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui'
+import { mockListings } from '@/data/mock-listings'
+import { CATEGORY_LABELS } from '@/types'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
@@ -118,6 +120,51 @@ const proofAvatars = [
   { initials: 'MS', bg: '#2A5240' },
   { initials: 'AC', bg: '#C88A2A' },
   { initials: 'PP', bg: '#3AABA6' },
+]
+
+// Real inventory for the "trading right now" strip
+const showcaseListings = mockListings
+  .filter((l) => l.status === 'active' && l.images[0])
+  .slice(0, 8)
+
+// Per-step card tints for "How it works"
+const stepTints = [
+  { card: 'bg-clay-light', num: 'text-clay' },
+  { card: 'bg-gold-light', num: 'text-gold' },
+  { card: 'bg-teal-light', num: 'text-teal-dark' },
+]
+
+const TESTIMONIALS = [
+  {
+    quote: 'I traded two hours of yard work for a stand mixer that runs better than the one I almost bought. Never opened my wallet once.',
+    name: 'Dave M.', neighborhood: 'East Memphis', initials: 'DM', bg: '#2A5240',
+    trade: 'Yard work ⇄ KitchenAid mixer',
+  },
+  {
+    quote: "My kids outgrew everything at once. One weekend on Bartrrr and their closets are full again — and another family got the crib they needed.",
+    name: 'Priya P.', neighborhood: 'Germantown', initials: 'PP', bg: '#3AABA6',
+    trade: 'Kids’ clothes ⇄ Crib',
+  },
+  {
+    quote: "I fix bikes. My neighbor bakes bread. We've been trading for three months now and I'm never buying bread again.",
+    name: 'Sam N.', neighborhood: 'Overton Square', initials: 'SN', bg: '#C88A2A',
+    trade: 'Bike repair ⇄ Sourdough',
+  },
+  {
+    quote: "My pension doesn't stretch like it used to. Trading my sewing for fresh produce has honestly changed my month-to-month.",
+    name: 'Nina R.', neighborhood: 'South Main Arts District', initials: 'NR', bg: '#C05A35',
+    trade: 'Alterations ⇄ Garden produce',
+  },
+  {
+    quote: 'Posted my old record player at lunch. By dinner I had guitar lessons lined up for my daughter.',
+    name: 'Jamie O.', neighborhood: 'Downtown Memphis', initials: 'JO', bg: '#7A9A3A',
+    trade: 'Record player ⇄ Guitar lessons',
+  },
+  {
+    quote: "It's the neighborly Memphis I remember growing up in — just easier to find.",
+    name: 'Alex C.', neighborhood: 'Cooper-Young', initials: 'AC', bg: '#1D6662',
+    trade: null,
+  },
 ]
 
 export default function LandingPage() {
@@ -326,6 +373,65 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ── Trading right now: real inventory strip ── */}
+      <section className="bg-cream py-24 overflow-hidden">
+        <div data-reveal className="max-w-5xl mx-auto px-6">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-clay mb-3">Live in Memphis</p>
+              <h2 className="font-display text-4xl lg:text-5xl font-bold text-ink">Trading right now</h2>
+            </div>
+            <Link to="/browse" className="text-sm font-medium text-clay underline underline-offset-4 shrink-0">
+              Browse all listings →
+            </Link>
+          </div>
+        </div>
+        <div
+          data-reveal-group
+          className="no-scrollbar flex snap-x gap-4 overflow-x-auto px-6 pb-2 lg:px-[max(1.5rem,calc((100vw-64rem)/2+1.5rem))]"
+        >
+          {showcaseListings.map((l) => (
+            <Link
+              key={l.id}
+              to="/browse"
+              className="group w-[260px] shrink-0 snap-start overflow-hidden rounded-lg bg-white shadow-soft transition-[box-shadow,transform] duration-300 ease-out-soft hover:shadow-lift hover:-translate-y-1"
+            >
+              <div className="relative h-36 overflow-hidden">
+                <img
+                  src={l.images[0]}
+                  alt={l.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover transition-transform duration-500 ease-out-soft group-hover:scale-105"
+                />
+                <span className="absolute top-2 left-2 rounded-sm bg-white/90 px-2 py-0.5 text-label text-ink-2 backdrop-blur-sm">
+                  {CATEGORY_LABELS[l.category]}
+                </span>
+              </div>
+              <div className="p-4">
+                <h3 className="font-display text-base font-semibold text-ink truncate">{l.title}</h3>
+                <p className="mt-0.5 text-small text-muted">{l.location.neighborhood}</p>
+                <div className="mt-3 rounded-md bg-forest-light p-2.5">
+                  <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-forest">Looking for</p>
+                  <p className="text-small leading-snug text-forest-dark line-clamp-2">{l.seeking}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+          {/* End cap: pull toward signup */}
+          <Link
+            to="/auth/signup"
+            className="flex w-[260px] shrink-0 snap-start flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-clay-mid bg-clay-light/40 p-6 text-center transition-colors hover:bg-clay-light"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-clay text-white">
+              <ArrowRight className="h-5 w-5" />
+            </span>
+            <span className="font-display text-lg font-semibold text-clay-dark">Your listing here</span>
+            <span className="text-small text-ink-2">Post something and see what neighbors offer.</span>
+          </Link>
+        </div>
+      </section>
+
       {/* ── Editorial photo split ── */}
       <section className="flex flex-col lg:flex-row min-h-[75vh]">
         {/* Photo */}
@@ -374,15 +480,23 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          <div data-reveal-group className="grid sm:grid-cols-3 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-sand-light">
-            {steps.map((step) => (
-              <div key={step.num} className="flex flex-col gap-5 px-0 sm:px-10 py-8 sm:py-0 first:pl-0 last:pr-0">
-                <span className="font-display text-5xl font-bold text-sand leading-none">{step.num}</span>
-                <div className="w-8 h-8 rounded-full bg-clay-light text-clay flex items-center justify-center">
+          <div data-reveal-group className="grid sm:grid-cols-3 gap-4">
+            {steps.map((step, i) => (
+              <div
+                key={step.num}
+                className={cn(
+                  'flex flex-col gap-5 rounded-xl p-8 transition-transform duration-300 ease-out-soft hover:-translate-y-1',
+                  stepTints[i].card,
+                )}
+              >
+                <span className={cn('font-display text-6xl font-bold leading-none opacity-90', stepTints[i].num)}>
+                  {step.num}
+                </span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink-2">
                   {step.icon}
                 </div>
                 <h3 className="font-display text-xl font-semibold text-ink">{step.title}</h3>
-                <p className="text-sm text-muted leading-relaxed">{step.desc}</p>
+                <p className="text-[15px] text-ink-2 leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -409,6 +523,42 @@ export default function LandingPage() {
                 <h3 className="font-display text-xl font-semibold text-ink mb-2">{title}</h3>
                 <p className="text-[15px] text-muted leading-relaxed">{desc}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Neighbors are talking: testimonial wall ── */}
+      <section className="bg-white px-6 py-24">
+        <div className="max-w-5xl mx-auto">
+          <div data-reveal className="text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-widest text-clay mb-3">Neighbors are talking</p>
+            <h2 className="font-display text-4xl lg:text-5xl font-bold text-ink">Real trades, real people</h2>
+          </div>
+
+          <div data-reveal-group className="columns-1 sm:columns-2 lg:columns-3 gap-4">
+            {TESTIMONIALS.map((t) => (
+              <figure key={t.name} className="mb-4 break-inside-avoid rounded-lg bg-cream p-6 shadow-soft">
+                <blockquote className="text-[15px] leading-relaxed text-ink-2">“{t.quote}”</blockquote>
+                {t.trade && (
+                  <p className="mt-3 inline-block rounded-full bg-forest-light px-3 py-1 text-small font-medium text-forest-dark">
+                    {t.trade}
+                  </p>
+                )}
+                <figcaption className="mt-4 flex items-center gap-3">
+                  <span
+                    style={{ backgroundColor: t.bg }}
+                    aria-hidden="true"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white"
+                  >
+                    {t.initials}
+                  </span>
+                  <span>
+                    <span className="block text-[15px] font-semibold text-ink">{t.name}</span>
+                    <span className="block text-small text-muted">{t.neighborhood}</span>
+                  </span>
+                </figcaption>
+              </figure>
             ))}
           </div>
         </div>
