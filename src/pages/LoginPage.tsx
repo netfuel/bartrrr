@@ -24,7 +24,7 @@ export default function LoginPage() {
     setIsLoggingIn(true)
     setLoginError(null)
     try {
-      await login(selectedUser.username)
+      await login(selectedUser.displayName.split(' ')[0].toLowerCase())
       navigate(returnTo)
     } catch (err) {
       console.error('Login failed:', err)

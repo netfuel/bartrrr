@@ -156,8 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string) => {
     if (!supabase) {
-      // Offline fallback: find by username in the mock users store
-      const user = useUsersStore.getState().users.find((u) => u.username === username)
+      // Offline fallback: find by first name match
+      const user = useUsersStore.getState().users.find(
+        (u) => u.displayName.split(' ')[0].toLowerCase() === username,
+      )
       if (user) storeLogin(user.id)
       return
     }

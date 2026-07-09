@@ -3,7 +3,7 @@ const KEY = 'bartrrr-dark-mode'
 function getPreference(): boolean {
   const stored = localStorage.getItem(KEY)
   if (stored !== null) return stored === 'true'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
+  return false // default to light mode until the user explicitly changes it
 }
 
 function applyDark(dark: boolean) {
