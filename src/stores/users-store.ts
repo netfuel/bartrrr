@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { UserProfile } from '@/types'
 import { mockUsers } from '@/data/mock-users'
 import * as svc from '@/lib/supabase/supabase-service'
+import { persistError } from './persist'
 
 interface UsersState {
   users: UserProfile[]
@@ -28,9 +29,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       users: state.users.map((u) => (u.id === id ? { ...u, ...data } : u)),
     }))
     // Dual-write to Supabase (fire and forget)
-    svc.updateUser(id, data).catch((err) =>
-      console.warn('[Bartr] Failed to persist user update to Supabase', err),
-    )
+    svc.updateUser(id, data).catch(persistError("Couldn't save your profile changes"))
   },
 
   incrementTradeCount: (userId) =>

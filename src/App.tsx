@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { PageShell, ProtectedRoute } from '@/components/layout'
+import { Toaster } from '@/components/ui'
 
 // Route-level code splitting: each page loads on demand, keeping heavy
 // deps (mapbox-gl on Browse, gsap on Landing, confetti on Agreements)
@@ -33,6 +34,8 @@ function RouteFallback() {
 
 export default function App() {
   return (
+    <>
+    <Toaster />
     <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* Public routes (no shell) */}
@@ -62,5 +65,6 @@ export default function App() {
         </Route>
       </Routes>
     </Suspense>
+    </>
   )
 }

@@ -3,6 +3,7 @@ import type { TradeAgreement } from '@/types'
 import { mockAgreements } from '@/data/mock-agreements'
 import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
+import { persistError } from './persist'
 import { sendPushNotification } from '@/lib/push'
 
 interface CreateAgreementData {
@@ -53,9 +54,7 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
       set((state) => ({
         agreements: state.agreements.map((a) => (a.id === id ? saved : a)),
       }))
-    }).catch((err) =>
-      console.warn('[Bartr] Failed to persist agreement to Supabase', err),
-    )
+    }).catch(persistError("Couldn't create the trade agreement"))
     return id
   },
 
@@ -76,9 +75,7 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
         return updated
       }),
     }))
-    svc.signAgreement(id, userId).catch((err) =>
-      console.warn('[Bartr] Failed to sign agreement in Supabase', err),
-    )
+    svc.signAgreement(id, userId).catch(persistError("Couldn't sign the agreement"))
     // Notify the other party
     const ag = get().agreements.find((a) => a.id === id)
     if (ag) {
@@ -103,8 +100,6 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
           : a,
       ),
     }))
-    svc.completeAgreement(id).catch((err) =>
-      console.warn('[Bartr] Failed to complete agreement in Supabase', err),
-    )
+    svc.completeAgreement(id).catch(persistError("Couldn't mark the trade complete"))
   },
 }))

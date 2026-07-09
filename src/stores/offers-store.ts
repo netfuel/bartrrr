@@ -3,6 +3,7 @@ import type { Offer, OfferMessage, OfferDeclineReason } from '@/types'
 import { mockOffers } from '@/data/mock-offers'
 import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
+import { persistError } from './persist'
 import { sendPushNotification } from '@/lib/push'
 
 interface CreateOfferData {
@@ -75,9 +76,7 @@ export const useOffersStore = create<OffersState>((set, get) => ({
       set((state) => ({
         offers: state.offers.map((o) => (o.id === id ? saved : o)),
       }))
-    }).catch((err) =>
-      console.warn('[Bartr] Failed to persist new offer to Supabase', err),
-    )
+    }).catch(persistError("Couldn't send your offer"))
     return id
   },
 
@@ -95,9 +94,7 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         return { ...o, status: 'accepted' as const, messages: [...o.messages, msg] }
       }),
     }))
-    svc.acceptOffer(offerId, userId).catch((err) =>
-      console.warn('[Bartr] Failed to accept offer in Supabase', err),
-    )
+    svc.acceptOffer(offerId, userId).catch(persistError("Couldn't accept the offer"))
     // Notify the original offer sender
     const offer = get().offers.find((o) => o.id === offerId)
     if (offer) {
@@ -125,9 +122,7 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         return { ...o, status: 'declined' as const, messages: [...o.messages, msg] }
       }),
     }))
-    svc.declineOffer(offerId, userId, reason, note).catch((err) =>
-      console.warn('[Bartr] Failed to decline offer in Supabase', err),
-    )
+    svc.declineOffer(offerId, userId, reason, note).catch(persistError("Couldn't decline the offer"))
   },
 
   counterOffer: (offerId, userId, content, items) => {
@@ -150,9 +145,7 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         }
       }),
     }))
-    svc.counterOffer(offerId, userId, content, items).catch((err) =>
-      console.warn('[Bartr] Failed to counter offer in Supabase', err),
-    )
+    svc.counterOffer(offerId, userId, content, items).catch(persistError("Couldn't send your counter-offer"))
     // Notify the other party
     const counterOffer = get().offers.find((o) => o.id === offerId)
     if (counterOffer) {
@@ -180,8 +173,6 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         return { ...o, messages: [...o.messages, msg] }
       }),
     }))
-    svc.addOfferMessage(offerId, fromUserId, content).catch((err) =>
-      console.warn('[Bartr] Failed to persist message to Supabase', err),
-    )
+    svc.addOfferMessage(offerId, fromUserId, content).catch(persistError("Couldn't send your message"))
   },
 }))

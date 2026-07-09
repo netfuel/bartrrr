@@ -3,6 +3,7 @@ import type { Listing, Category, ListingCondition } from '@/types'
 import { mockListings } from '@/data/mock-listings'
 import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
+import { persistError } from './persist'
 
 interface NewListingData {
   title: string
@@ -52,9 +53,7 @@ export const useListingsStore = create<ListingsState>((set, get) => ({
       set((state) => ({
         listings: state.listings.map((l) => (l.id === id ? saved : l)),
       }))
-    }).catch((err) =>
-      console.warn('[Bartr] Failed to persist new listing to Supabase', err),
-    )
+    }).catch(persistError("Couldn't save your new listing"))
     return id
   },
 
@@ -64,9 +63,7 @@ export const useListingsStore = create<ListingsState>((set, get) => ({
         l.id === id ? { ...l, ...data } : l,
       ),
     }))
-    svc.updateListing(id, data).catch((err) =>
-      console.warn('[Bartr] Failed to persist listing update to Supabase', err),
-    )
+    svc.updateListing(id, data).catch(persistError("Couldn't save your listing changes"))
   },
 
   withdrawListing: (id) => {
@@ -75,9 +72,7 @@ export const useListingsStore = create<ListingsState>((set, get) => ({
         l.id === id ? { ...l, status: 'closed' as const } : l,
       ),
     }))
-    svc.updateListing(id, { status: 'closed' }).catch((err) =>
-      console.warn('[Bartr] Failed to withdraw listing in Supabase', err),
-    )
+    svc.updateListing(id, { status: 'closed' }).catch(persistError("Couldn't withdraw your listing"))
   },
 
   renewListing: (id) => {
@@ -89,8 +84,6 @@ export const useListingsStore = create<ListingsState>((set, get) => ({
           : l,
       ),
     }))
-    svc.updateListing(id, { status: 'active' }).catch((err) =>
-      console.warn('[Bartr] Failed to renew listing in Supabase', err),
-    )
+    svc.updateListing(id, { status: 'active' }).catch(persistError("Couldn't renew your listing"))
   },
 }))
