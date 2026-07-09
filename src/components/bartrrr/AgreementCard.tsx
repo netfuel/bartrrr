@@ -15,8 +15,8 @@ export interface AgreementCardProps {
 const statusLabels: Record<string, string> = {
   draft: 'Draft',
   under_review: 'Under Review',
-  pending_signatures: 'Pending Signatures',
-  active: 'Active',
+  pending_signatures: 'Waiting for signatures',
+  active: 'Ready to swap',
   completed: 'Completed',
   cancelled: 'Cancelled',
   disputed: 'Disputed',
@@ -41,22 +41,39 @@ export function AgreementCard({
   className,
 }: AgreementCardProps) {
   const bothSigned = agreement.partyA.signed && agreement.partyB.signed
-  const currentParty =
-    currentUserId === agreement.partyA.userId ? 'A' : 'B'
-  const hasSigned =
-    currentParty === 'A' ? agreement.partyA.signed : agreement.partyB.signed
+  const isPartyA = currentUserId === agreement.partyA.userId
+  const isParticipant = currentUserId === agreement.partyA.userId || currentUserId === agreement.partyB.userId
+  const hasSigned = isPartyA ? agreement.partyA.signed : agreement.partyB.signed
+
+  // Speak from the reader's perspective when they're part of the trade
+  const you = isPartyA
+    ? { user: partyA, item: agreement.partyA.item, signed: agreement.partyA.signed }
+    : { user: partyB, item: agreement.partyB.item, signed: agreement.partyB.signed }
+  const them = isPartyA
+    ? { user: partyB, item: agreement.partyB.item, signed: agreement.partyB.signed }
+    : { user: partyA, item: agreement.partyA.item, signed: agreement.partyA.signed }
+
+  const rows = isParticipant
+    ? [
+        { label: 'You give', giver: you.user, item: you.item },
+        { label: 'You get', giver: them.user, item: them.item },
+      ]
+    : [
+        { label: `${partyA.displayName} provides`, giver: partyA, item: agreement.partyA.item },
+        { label: `${partyB.displayName} provides`, giver: partyB, item: agreement.partyB.item },
+      ]
 
   return (
     <div
       className={cn(
-        'rounded-lg p-6 overflow-hidden',
+        'rounded-lg p-6 overflow-hidden shadow-soft',
         bothSigned ? 'bg-teal-light' : 'bg-forest-light',
         className,
       )}
     >
       {/* Status badge */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display text-lg font-semibold text-ink">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="font-display text-xl font-semibold text-ink">
           Trade Agreement
         </h3>
         <Badge variant={statusBadgeVariant[agreement.status]}>
@@ -64,80 +81,64 @@ export function AgreementCard({
         </Badge>
       </div>
 
-      {/* Trade direction rows */}
+      {/* Trade rows */}
       <div className="space-y-3">
-        {/* Party A gives */}
-        <div className="flex items-center gap-3 bg-white/60 rounded-md p-3">
-          <Avatar
-            src={partyA.avatarUrl}
-            name={partyA.displayName}
-            userId={partyA.id}
-            size="md"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted">{partyA.displayName} provides</p>
-            <p className="text-sm font-medium text-ink truncate">
-              {agreement.partyA.item}
-            </p>
+        {rows.map(({ label, giver, item }) => (
+          <div key={label} className="flex items-center gap-3 bg-white/70 rounded-md p-4">
+            <Avatar
+              src={giver.avatarUrl}
+              name={giver.displayName}
+              userId={giver.id}
+              size="lg"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-label text-muted">{label}</p>
+              <p className="text-base font-medium text-ink truncate">{item}</p>
+            </div>
+            <ArrowLeftRight className="h-5 w-5 text-forest shrink-0" />
           </div>
-          <ArrowLeftRight className="h-4 w-4 text-forest shrink-0" />
-          <Avatar
-            src={partyB.avatarUrl}
-            name={partyB.displayName}
-            userId={partyB.id}
-            size="md"
-          />
-        </div>
-
-        {/* Party B gives */}
-        <div className="flex items-center gap-3 bg-white/60 rounded-md p-3">
-          <Avatar
-            src={partyB.avatarUrl}
-            name={partyB.displayName}
-            userId={partyB.id}
-            size="md"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted">{partyB.displayName} provides</p>
-            <p className="text-sm font-medium text-ink truncate">
-              {agreement.partyB.item}
-            </p>
-          </div>
-          <ArrowLeftRight className="h-4 w-4 text-forest shrink-0" />
-          <Avatar
-            src={partyA.avatarUrl}
-            name={partyA.displayName}
-            userId={partyA.id}
-            size="md"
-          />
-        </div>
+        ))}
       </div>
 
       {/* Signature status */}
-      <div className="flex items-center gap-4 mt-4 text-xs">
-        <span className={cn('flex items-center gap-1', agreement.partyA.signed ? 'text-teal-dark' : 'text-muted')}>
-          {agreement.partyA.signed && <Check className="h-3 w-3" />}
-          {partyA.displayName}: {agreement.partyA.signed ? 'Signed' : 'Pending'}
-        </span>
-        <span className={cn('flex items-center gap-1', agreement.partyB.signed ? 'text-teal-dark' : 'text-muted')}>
-          {agreement.partyB.signed && <Check className="h-3 w-3" />}
-          {partyB.displayName}: {agreement.partyB.signed ? 'Signed' : 'Pending'}
-        </span>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-5 text-[15px]">
+        {[
+          { user: partyA, signed: agreement.partyA.signed },
+          { user: partyB, signed: agreement.partyB.signed },
+        ].map(({ user, signed }) => (
+          <span
+            key={user.id}
+            className={cn('flex items-center gap-1.5', signed ? 'text-teal-dark font-medium' : 'text-muted')}
+          >
+            {signed && <Check className="h-4 w-4" />}
+            {currentUserId === user.id ? 'You' : user.displayName.split(' ')[0]}
+            {signed ? ' signed' : ' — not signed yet'}
+          </span>
+        ))}
       </div>
 
       {/* CTA */}
-      {!bothSigned && !hasSigned && onSign && (
-        <div className="mt-4">
-          <Button variant="confirm" onClick={onSign} className="w-full">
-            Sign agreement
+      {!bothSigned && !hasSigned && onSign && isParticipant && (
+        <div className="mt-5">
+          <Button variant="confirm" size="lg" onClick={onSign} className="w-full">
+            <Check className="h-5 w-5" /> I agree to this trade
           </Button>
+          <p className="text-small text-muted text-center mt-2">
+            Signing just means you both agree to the terms above.
+          </p>
         </div>
       )}
 
+      {!bothSigned && hasSigned && (
+        <p className="mt-5 text-center text-[15px] text-ink-2">
+          You've signed. Waiting for {them.user.displayName.split(' ')[0]} to sign.
+        </p>
+      )}
+
       {bothSigned && (
-        <div className="mt-4 flex items-center justify-center gap-2 text-teal-dark font-semibold text-sm">
-          <Check className="h-4 w-4" />
-          Agreement confirmed
+        <div className="mt-5 flex items-center justify-center gap-2 text-teal-dark font-semibold text-base animate-scale-in">
+          <Check className="h-5 w-5" />
+          You both agreed — time to swap!
         </div>
       )}
     </div>

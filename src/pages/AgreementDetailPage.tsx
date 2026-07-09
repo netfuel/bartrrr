@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Calendar, MapPin, Info, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Info, CheckCircle, Handshake, PartyPopper } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui'
 import { AgreementCard, FirstTradeCelebration } from '@/components/bartrrr'
 import { useAgreementsStore, useUsersStore, useNotificationsStore } from '@/stores'
@@ -20,12 +21,13 @@ export default function AgreementDetailPage() {
   const addReview = useReviewsStore((s) => s.addReview)
   const hasReviewed = useReviewsStore((s) => s.hasReviewed)
   const reviews = useReviewsStore((s) => s.reviews)
+  const [showCelebration, setShowCelebration] = useState(false)
 
   if (!agreement || !currentUser) {
     return (
       <div className="p-8 text-center">
         <p className="text-muted">Agreement not found.</p>
-        <Link to="/agreements" className="text-clay text-sm mt-2 inline-block">Back to agreements</Link>
+        <Link to="/agreements" className="text-clay text-base mt-2 inline-block">Back to agreements</Link>
       </div>
     )
   }
@@ -39,10 +41,16 @@ export default function AgreementDetailPage() {
     : agreement.partyA.userId
   const otherParty = getUserById(otherPartyId)
 
-  const [showCelebration, setShowCelebration] = useState(false)
-
   const alreadyReviewed = hasReviewed(agreement.id, currentUser.id)
   const agreementReviews = reviews.filter((r) => r.agreementId === agreement.id)
+
+  // Where this trade is in its journey: agree → meet & swap → done
+  const journeyStep = agreement.status === 'completed' ? 2 : agreement.status === 'active' ? 1 : 0
+  const journey = [
+    { label: 'You both agree', icon: Handshake },
+    { label: 'Meet & swap', icon: MapPin },
+    { label: 'Done!', icon: PartyPopper },
+  ]
 
   const handleSign = () => {
     signAgreement(agreement.id, currentUser.id)
@@ -92,14 +100,54 @@ export default function AgreementDetailPage() {
     <div className="max-w-2xl mx-auto px-4 py-6">
       <Link
         to="/agreements"
-        className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink transition-colors mb-4"
+        className="inline-flex min-h-[44px] items-center gap-1.5 text-base text-muted hover:text-ink transition-colors mb-2"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-5 w-5" />
         Back to agreements
       </Link>
 
+      {/* Journey: agree → meet → done */}
+      <div className="bg-white rounded-lg shadow-soft p-5 mb-4">
+        <div className="flex items-center">
+          {journey.map(({ label, icon: Icon }, i) => (
+            <div key={label} className={cn('flex items-center', i > 0 && 'flex-1')}>
+              {i > 0 && (
+                <div
+                  className={cn(
+                    'h-0.5 flex-1 mx-2',
+                    i <= journeyStep ? 'bg-teal' : 'bg-sand',
+                  )}
+                />
+              )}
+              <div className="flex flex-col items-center gap-1.5 shrink-0">
+                <div
+                  className={cn(
+                    'flex items-center justify-center w-10 h-10 rounded-full transition-colors',
+                    i < journeyStep
+                      ? 'bg-teal text-white'
+                      : i === journeyStep
+                        ? 'bg-forest text-white'
+                        : 'bg-sand-light text-muted',
+                  )}
+                >
+                  {i < journeyStep ? <CheckCircle className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                </div>
+                <p
+                  className={cn(
+                    'text-xs font-medium whitespace-nowrap',
+                    i <= journeyStep ? 'text-ink' : 'text-muted',
+                  )}
+                >
+                  {label}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Disclaimer */}
-      <div className="flex items-start gap-2 bg-gold-light rounded-lg p-3 mb-6 text-xs text-gold leading-relaxed">
+      <div className="flex items-start gap-2.5 bg-gold-light rounded-lg p-4 mb-6 text-small text-gold leading-relaxed">
         <Info className="h-4 w-4 shrink-0 mt-0.5" />
         <p>
           This is a voluntary, non-legally-binding agreement between two parties
@@ -118,16 +166,16 @@ export default function AgreementDetailPage() {
 
       {/* Exchange details */}
       {(agreement.exchangeDate || agreement.exchangeLocation || agreement.specialInstructions) && (
-        <div className="mt-6 bg-white rounded-lg p-4 border border-sand-light space-y-3">
-          <h3 className="font-display text-base font-semibold text-ink">Exchange Details</h3>
+        <div className="mt-6 bg-white rounded-lg p-5 shadow-soft space-y-3">
+          <h3 className="font-display text-lg font-semibold text-ink">When & where</h3>
           {agreement.exchangeMethod && (
-            <div className="text-sm">
+            <div className="text-[15px]">
               <span className="text-muted">Method: </span>
               <span className="text-ink capitalize">{agreement.exchangeMethod.replace(/_/g, ' ')}</span>
             </div>
           )}
           {agreement.exchangeDate && (
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-[15px]">
               <Calendar className="h-4 w-4 text-muted" />
               <span className="text-ink">
                 {new Date(agreement.exchangeDate).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
@@ -135,13 +183,13 @@ export default function AgreementDetailPage() {
             </div>
           )}
           {agreement.exchangeLocation && (
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-[15px]">
               <MapPin className="h-4 w-4 text-muted" />
               <span className="text-ink">{agreement.exchangeLocation}</span>
             </div>
           )}
           {agreement.specialInstructions && (
-            <div className="text-sm">
+            <div className="text-[15px]">
               <span className="text-muted">Notes: </span>
               <span className="text-ink-2">{agreement.specialInstructions}</span>
             </div>
@@ -151,11 +199,13 @@ export default function AgreementDetailPage() {
 
       {/* Mark as complete (when both signed) */}
       {agreement.status === 'active' && (
-        <div className="mt-6 bg-teal-light rounded-lg p-4 text-center">
-          <CheckCircle className="h-8 w-8 text-teal mx-auto mb-2" />
-          <p className="text-sm font-medium text-teal-dark mb-3">Both parties have signed. Ready to complete?</p>
-          <Button variant="confirm" onClick={handleComplete}>
-            Mark trade as complete
+        <div className="mt-6 bg-teal-light rounded-lg p-6 text-center animate-fade-up">
+          <CheckCircle className="h-10 w-10 text-teal mx-auto mb-3" />
+          <p className="text-base font-medium text-teal-dark mb-4">
+            You both agreed. Once you've met and swapped, mark it complete.
+          </p>
+          <Button variant="confirm" size="lg" onClick={handleComplete}>
+            We made the trade
           </Button>
         </div>
       )}
@@ -163,7 +213,7 @@ export default function AgreementDetailPage() {
       {/* Review section */}
       {agreement.status === 'completed' && (
         <div className="mt-6">
-          <h3 className="font-display text-base font-semibold text-ink mb-3">Reviews</h3>
+          <h3 className="font-display text-lg font-semibold text-ink mb-3">Reviews</h3>
 
           {agreementReviews.map((review) => {
             const reviewer = getUserById(review.reviewerId)

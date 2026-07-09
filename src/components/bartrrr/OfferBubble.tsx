@@ -18,9 +18,9 @@ export function OfferBubble({
   const showAsConfirmed = isConfirmed || isAccept
 
   return (
-    <div className={cn('flex flex-col gap-1 max-w-[80%]', isOwn ? 'ml-auto items-end' : 'items-start')}>
+    <div className={cn('animate-fade-up flex flex-col gap-1 max-w-[80%]', isOwn ? 'ml-auto items-end' : 'items-start')}>
       {/* Sender label */}
-      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted px-1">
+      <p className="text-label text-muted px-1">
         {isOwn ? 'You' : senderName}
         {message.type === 'counter' && ' · Counter'}
         {message.type === 'offer' && ' · Offer'}
@@ -29,7 +29,7 @@ export function OfferBubble({
       {/* Bubble */}
       <div
         className={cn(
-          'px-4 py-3 text-sm leading-relaxed',
+          'px-4 py-3 text-[15px] leading-relaxed shadow-soft',
           showAsConfirmed
             ? 'bg-teal-light border border-teal rounded-[18px_18px_18px_4px]'
             : isOwn
@@ -44,7 +44,7 @@ export function OfferBubble({
               <span
                 key={i}
                 className={cn(
-                  'inline-block rounded-full px-2.5 py-0.5 text-xs font-medium mr-1.5 mb-1',
+                  'inline-block rounded-full px-2.5 py-0.5 text-small font-medium mr-1.5 mb-1',
                   showAsConfirmed
                     ? 'bg-teal/10 text-teal-dark'
                     : isOwn
@@ -64,7 +64,7 @@ export function OfferBubble({
         {/* Timestamp */}
         <p
           className={cn(
-            'text-[10px] mt-1.5',
+            'text-[11px] mt-1.5',
             showAsConfirmed
               ? 'text-teal-dark/60'
               : isOwn

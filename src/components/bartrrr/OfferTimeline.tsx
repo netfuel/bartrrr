@@ -101,17 +101,18 @@ export function OfferTimeline({ offer, className }: OfferTimelineProps) {
           <div className="flex flex-col items-center gap-1">
             <div
               className={cn(
-                'flex items-center justify-center w-7 h-7 rounded-full',
+                'flex items-center justify-center w-9 h-9 rounded-full',
                 statusColors[step.status],
+                step.status === 'waiting' && 'animate-pulse',
               )}
             >
               {step.icon}
             </div>
-            <p className="text-[10px] font-medium text-ink-2 whitespace-nowrap">
+            <p className="text-xs font-medium text-ink-2 whitespace-nowrap">
               {step.label}
             </p>
             {step.timestamp && (
-              <p className="text-[9px] text-muted">
+              <p className="text-[11px] text-muted">
                 {new Date(step.timestamp).toLocaleDateString([], {
                   month: 'short',
                   day: 'numeric',
@@ -124,7 +125,7 @@ export function OfferTimeline({ offer, className }: OfferTimelineProps) {
           {i < steps.length - 1 && (
             <div
               className={cn(
-                'h-0.5 w-8 mx-1 mt-[-18px]',
+                'h-0.5 w-10 mx-1.5 mt-[-22px]',
                 lineColors[steps[i + 1].status],
               )}
             />

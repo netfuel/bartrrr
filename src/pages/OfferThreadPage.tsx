@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowLeftRight } from 'lucide-react'
 import { Button, Badge } from '@/components/ui'
 import { OfferThread, OfferTimeline, DeclineModal, CounterOfferForm, MessageComposer } from '@/components/bartrrr'
 import { useOffersStore, useUsersStore, useListingsStore, useAgreementsStore, useNotificationsStore } from '@/stores'
@@ -29,7 +29,7 @@ export default function OfferThreadPage() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted">Offer not found.</p>
-        <Link to="/offers" className="text-clay text-sm mt-2 inline-block">Back to offers</Link>
+        <Link to="/offers" className="text-clay text-base mt-2 inline-block">Back to offers</Link>
       </div>
     )
   }
@@ -40,20 +40,28 @@ export default function OfferThreadPage() {
   if (!fromUser || !toUser) return null
 
   const otherUserId = currentUser.id === offer.fromUserId ? offer.toUserId : offer.fromUserId
+  const otherUser = currentUser.id === offer.fromUserId ? toUser : fromUser
   const lastMessage = offer.messages[offer.messages.length - 1]
   const isWaiting = lastMessage?.fromUserId === currentUser.id && (offer.status === 'pending' || offer.status === 'countered')
   const canCounter = offer.round < offer.maxRounds
   const isActive = offer.status === 'pending' || offer.status === 'countered'
 
+  // The trade in plain terms: the offer-maker gives the proposed items,
+  // the listing owner gives the listed item (mirrors handleAccept below).
+  const latestOfferMsg = [...offer.messages].reverse().find((m) => m.type === 'offer' || m.type === 'counter')
+  const offeredItems = latestOfferMsg?.items?.join(', ') || 'Offered items'
+  const listedItem = listing?.title || 'Listed item'
+  const iAmOfferMaker = currentUser.id === offer.fromUserId
+  const youGive = iAmOfferMaker ? offeredItems : listedItem
+  const youGet = iAmOfferMaker ? listedItem : offeredItems
+
   const handleAccept = () => {
     acceptOffer(offer.id, currentUser.id)
 
-    // Extract items from latest offer/counter message
-    const latestOfferMsg = [...offer.messages].reverse().find((m) => m.type === 'offer' || m.type === 'counter')
     const agreementId = createAgreement({
       offerId: offer.id,
-      partyA: { userId: offer.fromUserId, item: latestOfferMsg?.items?.join(', ') || 'Offered items' },
-      partyB: { userId: offer.toUserId, item: listing?.title || 'Listed item' },
+      partyA: { userId: offer.fromUserId, item: offeredItems },
+      partyB: { userId: offer.toUserId, item: listedItem },
     })
 
     if (listing) updateListing(listing.id, { status: 'pending' })
@@ -105,41 +113,65 @@ export default function OfferThreadPage() {
   const agreement = getAgreementByOfferId(offer.id)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-48">
-      <Link to="/offers" className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink transition-colors mb-4">
-        <ArrowLeft className="h-4 w-4" /> Back to offers
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-56">
+      <Link to="/offers" className="inline-flex min-h-[44px] items-center gap-1.5 text-base text-muted hover:text-ink transition-colors mb-2">
+        <ArrowLeft className="h-5 w-5" /> Back to offers
       </Link>
 
-      {/* Listing context card */}
-      {listing && (
-        <Link
-          to={`/listing/${listing.id}`}
-          className="flex items-center gap-3 p-3 bg-white rounded-lg border border-sand-light mb-6 hover:border-sand transition-colors"
-        >
-          {listing.images[0] && (
-            <img src={listing.images[0]} alt={listing.title} className="w-14 h-14 rounded-md object-cover" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-ink truncate">{listing.title}</p>
-            <p className="text-xs text-muted">{listing.location.neighborhood}</p>
-          </div>
+      {/* The trade, in plain terms */}
+      <div className="bg-white rounded-lg shadow-soft p-5 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-label text-muted">The trade so far</p>
           <Badge variant={offer.status === 'accepted' ? 'teal' : offer.status === 'declined' ? 'clay' : 'gold'}>
             {offer.status}
           </Badge>
-        </Link>
-      )}
-
-      {/* Status timeline */}
-      <div className="bg-white rounded-lg border border-sand-light px-4 py-3 mb-4 overflow-x-auto">
-        <OfferTimeline offer={offer} />
+        </div>
+        <div className="flex items-stretch gap-3">
+          <div className="flex-1 rounded-md bg-clay-light/50 p-4">
+            <p className="text-label text-clay mb-1.5">You give</p>
+            <p className="text-base font-medium text-ink leading-snug">{youGive}</p>
+          </div>
+          <div className="flex items-center text-muted shrink-0">
+            <ArrowLeftRight className="h-5 w-5" />
+          </div>
+          <div className="flex-1 rounded-md bg-forest-light/60 p-4">
+            <p className="text-label text-forest mb-1.5">You get</p>
+            <p className="text-base font-medium text-ink leading-snug">{youGet}</p>
+          </div>
+        </div>
+        {listing && (
+          <Link
+            to={`/listing/${listing.id}`}
+            className="mt-4 flex items-center gap-3 rounded-md border border-sand-light p-2.5 hover:border-sand transition-colors"
+          >
+            {listing.images[0] && (
+              <img src={listing.images[0]} alt={listing.title} className="w-12 h-12 rounded-md object-cover" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-medium text-ink truncate">{listing.title}</p>
+              <p className="text-small text-muted">{listing.location.neighborhood}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted shrink-0" />
+          </Link>
+        )}
       </div>
 
-      {/* Thread */}
+      {/* Where things stand */}
+      <div className="bg-white rounded-lg shadow-soft px-5 py-4 mb-6 overflow-x-auto">
+        <OfferTimeline offer={offer} />
+        <p className="text-small text-muted mt-3">
+          Round {offer.round} of {offer.maxRounds}
+          {isActive && !isWaiting && ' — your move: accept, suggest a change, or pass.'}
+          {isActive && isWaiting && ` — waiting for ${otherUser.displayName.split(' ')[0]} to respond.`}
+        </p>
+      </div>
+
+      {/* Conversation */}
       <OfferThread offer={offer} currentUserId={currentUser.id} fromUser={fromUser} toUser={toUser} />
 
       {/* Counter offer form (inline) */}
       {showCounterForm && (
-        <div className="mt-4">
+        <div className="mt-4 animate-fade-up">
           <CounterOfferForm
             onSubmit={handleCounter}
             onCancel={() => setShowCounterForm(false)}
@@ -148,11 +180,11 @@ export default function OfferThreadPage() {
       )}
 
       {/* Action bar */}
-      <div className="fixed bottom-16 lg:bottom-0 left-0 lg:left-60 right-0 bg-white border-t border-sand-light p-4 z-30">
+      <div className="fixed bottom-16 lg:bottom-0 left-0 lg:left-60 right-0 bg-white/95 backdrop-blur-md border-t border-sand-light p-4 z-30">
         <div className="max-w-2xl mx-auto space-y-3">
           {/* Message composer for active offers */}
           {isActive && (
-            <MessageComposer onSend={handleSendMessage} placeholder="Send a message..." />
+            <MessageComposer onSend={handleSendMessage} placeholder={`Message ${otherUser.displayName.split(' ')[0]}...`} />
           )}
 
           {/* Action buttons */}
@@ -160,26 +192,26 @@ export default function OfferThreadPage() {
             {isActive ? (
               isWaiting ? (
                 <Button variant="ghost" disabled className="flex-1">
-                  Waiting for response...
+                  Waiting for {otherUser.displayName.split(' ')[0]} to respond…
                 </Button>
               ) : (
                 <>
                   <Button variant="ghost" className="flex-1" onClick={() => setShowDeclineModal(true)}>
-                    Decline
+                    No thanks
                   </Button>
                   {canCounter && (
                     <Button variant="outline" className="flex-1" onClick={() => setShowCounterForm(!showCounterForm)}>
-                      Counter
+                      Suggest a change
                     </Button>
                   )}
                   <Button variant="confirm" className="flex-1" onClick={handleAccept}>
-                    Accept
+                    Accept trade
                   </Button>
                 </>
               )
             ) : offer.status === 'accepted' && agreement ? (
               <Link to={`/agreements/${agreement.id}`} className="flex-1">
-                <Button variant="confirm" className="w-full">View Agreement</Button>
+                <Button variant="confirm" className="w-full">View agreement</Button>
               </Link>
             ) : (
               <Button variant="ghost" disabled className="flex-1">
