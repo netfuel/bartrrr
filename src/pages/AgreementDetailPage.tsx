@@ -27,7 +27,7 @@ export default function AgreementDetailPage() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted">Agreement not found.</p>
-        <Link to="/agreements" className="text-clay text-base mt-2 inline-block">Back to agreements</Link>
+        <Link to="/agreements" className="text-ink underline underline-offset-4 text-base mt-2 inline-block">Back to agreements</Link>
       </div>
     )
   }
@@ -141,7 +141,7 @@ export default function AgreementDetailPage() {
       </div>
 
       {/* Disclaimer */}
-      <div className="flex items-start gap-2.5 bg-gold-light rounded-lg p-4 mb-6 text-small text-gold leading-relaxed">
+      <div className="flex items-start gap-2.5 bg-gold-light rounded-none p-4 mb-6 text-small text-gold leading-relaxed">
         <Info className="h-4 w-4 shrink-0 mt-0.5" />
         <p>
           This is a voluntary, non-legally-binding agreement between two parties
@@ -193,7 +193,7 @@ export default function AgreementDetailPage() {
 
       {/* Mark as complete (when both signed) */}
       {agreement.status === 'active' && (
-        <div className="mt-6 bg-teal-light rounded-lg p-6 text-center animate-fade-up">
+        <div className="mt-6 bg-teal-light rounded-none p-6 text-center animate-fade-up">
           <CheckCircle className="h-10 w-10 text-teal mx-auto mb-3" />
           <p className="text-base font-medium text-teal-dark mb-4">
             You both agreed. Once you've met and swapped, mark it complete.

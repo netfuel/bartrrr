@@ -66,7 +66,7 @@ export function AgreementCard({
   return (
     <div
       className={cn(
-        'rounded-lg p-6 overflow-hidden shadow-soft',
+        'rounded-none p-6 overflow-hidden ',
         bothSigned ? 'bg-teal-light' : 'bg-forest-light',
         className,
       )}
@@ -84,7 +84,7 @@ export function AgreementCard({
       {/* Trade rows */}
       <div className="space-y-3">
         {rows.map(({ label, giver, item }) => (
-          <div key={label} className="flex items-center gap-3 bg-white/70 rounded-md p-4">
+          <div key={label} className="flex items-center gap-3 bg-white/70 rounded-none p-4">
             <Avatar
               src={giver.avatarUrl}
               name={giver.displayName}

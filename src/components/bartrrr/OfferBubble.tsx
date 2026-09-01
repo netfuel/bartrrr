@@ -30,7 +30,7 @@ function OfferBubbleInner({
       {/* Bubble */}
       <div
         className={cn(
-          'px-4 py-3 text-[15px] leading-relaxed shadow-soft',
+          'px-4 py-3 text-[15px] leading-relaxed ',
           showAsConfirmed
             ? 'bg-teal-light border border-teal-dark rounded-none'
             : isOwn

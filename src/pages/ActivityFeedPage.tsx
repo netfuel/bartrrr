@@ -98,7 +98,7 @@ export default function ActivityFeedPage() {
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
           <Rss className="h-5 w-5 text-clay" />
-          <h1 className="font-display text-xl font-bold text-ink">
+          <h1 className="text-[20px] font-medium tracking-tight text-ink">
             What's happening in {currentUser.neighborhood}
           </h1>
         </div>

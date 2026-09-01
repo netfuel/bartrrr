@@ -43,7 +43,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <h1 className="font-display text-2xl font-bold text-ink mb-1">
+      <h1 className="text-heading-page text-ink mb-1">
         Welcome back, {currentUser.displayName.split(' ')[0]}
       </h1>
       <p className="text-sm text-muted mb-6">{currentUser.neighborhood}</p>
@@ -51,19 +51,19 @@ export default function DashboardPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <Card className="p-4 text-center">
-          <p className="font-display text-2xl font-bold text-clay">{myListings.length}</p>
+          <p className="text-heading-page text-clay">{myListings.length}</p>
           <p className="text-xs text-muted">Active listings</p>
         </Card>
         <Card className="p-4 text-center">
-          <p className="font-display text-2xl font-bold text-gold">{pendingIncoming.length}</p>
+          <p className="text-heading-page text-gold">{pendingIncoming.length}</p>
           <p className="text-xs text-muted">Incoming offers</p>
         </Card>
         <Card className="p-4 text-center">
-          <p className="font-display text-2xl font-bold text-teal">{activeAgreements.length}</p>
+          <p className="text-heading-page text-teal">{activeAgreements.length}</p>
           <p className="text-xs text-muted">Active trades</p>
         </Card>
         <Card className="p-4 text-center">
-          <p className="font-display text-2xl font-bold text-forest">{currentUser.tradeCount}</p>
+          <p className="text-heading-page text-forest">{currentUser.tradeCount}</p>
           <p className="text-xs text-muted">Trades completed</p>
         </Card>
       </div>

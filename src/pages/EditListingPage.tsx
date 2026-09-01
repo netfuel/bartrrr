@@ -27,7 +27,7 @@ export default function EditListingPage() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted">Listing not found or you don't have permission to edit it.</p>
-        <Link to="/browse" className="text-clay text-sm mt-2 inline-block">Back to browse</Link>
+        <Link to="/browse" className="text-ink underline underline-offset-4 text-sm mt-2 inline-block">Back to browse</Link>
       </div>
     )
   }
@@ -55,7 +55,7 @@ export default function EditListingPage() {
         Back to listing
       </Link>
 
-      <h1 className="font-display text-2xl font-bold text-ink mb-6">Edit Listing</h1>
+      <h1 className="text-heading-page text-ink mb-6">Edit Listing</h1>
 
       <div className="space-y-6">
         <Input

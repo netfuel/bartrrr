@@ -29,7 +29,7 @@ export default function OfferThreadPage() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted">Offer not found.</p>
-        <Link to="/offers" className="text-clay text-base mt-2 inline-block">Back to offers</Link>
+        <Link to="/offers" className="text-ink underline underline-offset-4 text-base mt-2 inline-block">Back to offers</Link>
       </div>
     )
   }
@@ -125,14 +125,14 @@ export default function OfferThreadPage() {
           </Badge>
         </div>
         <div className="flex items-stretch gap-3">
-          <div className="flex-1 rounded-md bg-clay-light/50 p-4">
+          <div className="flex-1 rounded-none bg-clay-light/50 p-4">
             <p className="text-label text-clay mb-1.5">You give</p>
             <p className="text-base font-medium text-ink leading-snug">{youGive}</p>
           </div>
           <div className="flex items-center text-muted shrink-0">
             <ArrowLeftRight className="h-5 w-5" />
           </div>
-          <div className="flex-1 rounded-md bg-forest-light/60 p-4">
+          <div className="flex-1 rounded-none bg-forest-light/60 p-4">
             <p className="text-label text-forest mb-1.5">You get</p>
             <p className="text-base font-medium text-ink leading-snug">{youGet}</p>
           </div>
@@ -140,10 +140,10 @@ export default function OfferThreadPage() {
         {listing && (
           <Link
             to={`/listing/${listing.id}`}
-            className="mt-4 flex items-center gap-3 rounded-md border border-sand-light p-2.5 hover:border-sand transition-colors"
+            className="mt-4 flex items-center gap-3 rounded-none border border-sand-light p-2.5 hover:border-sand transition-colors"
           >
             {listing.images[0] && (
-              <img src={listing.images[0]} alt={listing.title} className="w-12 h-12 rounded-md object-cover" />
+              <img src={listing.images[0]} alt={listing.title} className="w-12 h-12 rounded-none object-cover" />
             )}
             <div className="flex-1 min-w-0">
               <p className="text-[15px] font-medium text-ink truncate">{listing.title}</p>

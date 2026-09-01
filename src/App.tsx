@@ -27,7 +27,7 @@ const ActivityFeedPage = lazy(() => import('@/pages/ActivityFeedPage'))
 function RouteFallback() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-clay" />
+      <Loader2 className="h-8 w-8 animate-spin text-ink" strokeWidth={1.5} />
     </div>
   )
 }

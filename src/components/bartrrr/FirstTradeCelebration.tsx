@@ -32,7 +32,7 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
     <Modal
       onClose={onClose}
       labelledBy="first-trade-title"
-      className="max-w-sm rounded-2xl bg-cream p-8 text-center"
+      className="max-w-sm rounded-none bg-cream p-8 text-center"
     >
         {/* Close button */}
         <button
@@ -48,7 +48,7 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
         <div className="text-6xl mb-4" aria-hidden="true">🎉</div>
 
         {/* Title */}
-        <h2 id="first-trade-title" className="font-display text-2xl font-bold text-ink mb-2">
+        <h2 id="first-trade-title" className="text-heading-page text-ink mb-2">
           First Trade Complete!
         </h2>
 

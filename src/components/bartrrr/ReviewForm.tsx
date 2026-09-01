@@ -16,7 +16,7 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
 
   if (submitted) {
     return (
-      <div className="bg-teal-light rounded-lg p-4 text-center">
+      <div className="bg-teal-light rounded-none p-4 text-center">
         <p className="text-sm font-medium text-teal-dark">Thanks for your review!</p>
       </div>
     )

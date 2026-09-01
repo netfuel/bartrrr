@@ -116,7 +116,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
         <p className="text-sm text-forest-mid max-w-xs mb-3">
           Add your Mapbox token to enable the interactive map with listing pins.
         </p>
-        <code className="text-xs bg-forest/10 text-forest px-3 py-2 rounded-md">
+        <code className="text-xs bg-forest/10 text-forest px-3 py-2 rounded-none">
           VITE_MAPBOX_TOKEN=pk.your_token
         </code>
         <p className="text-xs text-forest-mid mt-2">in .env.local</p>
@@ -143,7 +143,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
               <img
                 src={selectedListing.images[0]}
                 alt={selectedListing.title}
-                className="w-16 h-16 rounded-lg object-cover shrink-0"
+                className="w-16 h-16 rounded-none object-cover shrink-0"
               />
             )}
             <div className="flex-1 min-w-0">

@@ -29,7 +29,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   }
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg border border-sand-light shadow-lg z-50 overflow-hidden">
+    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-none border border-sand-light z-50 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-sand-light">
         <p className="text-sm font-semibold text-ink">Notifications</p>
         {unreadCount > 0 && (

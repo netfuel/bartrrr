@@ -86,9 +86,9 @@ export default function OnboardingPage() {
                 key={s}
                 className={`h-2 rounded-full transition-all duration-300 ease-out-soft ${
                   s === step
-                    ? 'w-10 bg-clay'
+                    ? 'w-10 bg-ink'
                     : stepIndex > i
-                      ? 'w-5 bg-clay-mid'
+                      ? 'w-5 bg-ink/40'
                       : 'w-5 bg-sand'
                 }`}
               />
@@ -105,10 +105,10 @@ export default function OnboardingPage() {
           {/* ── Step 1: Welcome ── */}
           {step === 'welcome' && (
             <div className="text-center">
-              <div className="w-20 h-20 rounded-full bg-clay-light flex items-center justify-center mx-auto mb-6 animate-scale-in">
-                <Sparkles className="h-9 w-9 text-clay" />
+              <div className="w-20 h-20 rounded-full border border-ink flex items-center justify-center mx-auto mb-6 animate-scale-in">
+                <Sparkles className="h-9 w-9 text-ink" strokeWidth={1.5} />
               </div>
-              <h1 className="text-display text-ink mb-4">
+              <h1 className="text-heading-page text-ink mb-4">
                 Welcome, {currentUser.displayName.split(' ')[0]}!
               </h1>
               <p className="text-lg text-ink-2 mb-2">
@@ -134,7 +134,7 @@ export default function OnboardingPage() {
               <div className="w-14 h-14 rounded-full bg-forest-light flex items-center justify-center mb-4">
                 <MapPin className="h-7 w-7 text-forest" />
               </div>
-              <h2 className="font-display text-3xl font-bold text-ink mb-2">
+              <h2 className="text-heading-page text-ink mb-2">
                 Where do you live?
               </h2>
               <p className="text-base text-muted mb-6">
@@ -148,10 +148,10 @@ export default function OnboardingPage() {
                     type="button"
                     onClick={() => setNeighborhood(n)}
                     aria-pressed={neighborhood === n}
-                    className={`pressable min-h-[56px] p-3 rounded-lg border-2 text-[15px] font-medium text-left transition-colors ${
+                    className={`pressable min-h-[56px] p-3 rounded-none border-2 text-[15px] font-medium text-left transition-colors ${
                       neighborhood === n
-                        ? 'border-clay bg-clay-light text-clay'
-                        : 'border-sand-light hover:border-sand text-ink'
+                        ? 'border-ink bg-ink text-cream'
+                        : 'border-sand hover:border-ink text-ink'
                     }`}
                   >
                     {n}
@@ -179,7 +179,7 @@ export default function OnboardingPage() {
           {/* ── Step 3: Interests ── */}
           {step === 'interests' && (
             <div>
-              <h2 className="font-display text-3xl font-bold text-ink mb-2">
+              <h2 className="text-heading-page text-ink mb-2">
                 What are you looking for?
               </h2>
               <p className="text-base text-muted mb-6">
@@ -232,7 +232,7 @@ export default function OnboardingPage() {
               <div className="w-20 h-20 rounded-full bg-teal-light flex items-center justify-center mx-auto mb-6 animate-scale-in">
                 <CheckCircle className="h-9 w-9 text-teal" />
               </div>
-              <h2 className="text-display text-ink mb-3">
+              <h2 className="text-heading-page text-ink mb-3">
                 You're all set!
               </h2>
               <p className="text-base text-muted mb-1">

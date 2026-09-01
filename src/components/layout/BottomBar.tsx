@@ -20,7 +20,7 @@ export function BottomBar() {
             to={to}
             className={({ isActive }) =>
               cn(
-                'pressable group flex flex-col items-center gap-0.5 min-w-[56px] min-h-[48px] justify-center rounded-lg',
+                'pressable group flex flex-col items-center gap-0.5 min-w-[56px] min-h-[48px] justify-center rounded-none',
                 isPrimary
                   ? ''
                   : isActive

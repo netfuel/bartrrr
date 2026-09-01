@@ -32,7 +32,7 @@ export default function ProfilePage() {
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
         <Avatar src={user.avatarUrl} name={user.displayName} userId={user.id} size="xl" />
         <div className="flex-1">
-          <h1 className="font-display text-2xl font-bold text-ink">{user.displayName}</h1>
+          <h1 className="text-heading-page text-ink">{user.displayName}</h1>
           <div className="flex items-center justify-center sm:justify-start gap-3 mt-1 text-sm text-muted">
             <span className="flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5" />

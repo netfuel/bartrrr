@@ -84,7 +84,7 @@ function TradeCardInner({
         </div>
 
         {/* Seeking section — forest-light bg per §6.3 */}
-        <div className="mt-3 bg-forest-light rounded-md p-3">
+        <div className="mt-3 bg-forest-light rounded-none p-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-forest mb-1">
             Looking for
           </p>

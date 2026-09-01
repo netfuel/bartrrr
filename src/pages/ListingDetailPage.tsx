@@ -45,7 +45,7 @@ export default function ListingDetailPage() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted">Listing not found.</p>
-        <Link to="/browse" className="text-clay text-sm mt-2 inline-block">Back to browse</Link>
+        <Link to="/browse" className="text-ink underline underline-offset-4 text-sm mt-2 inline-block">Back to browse</Link>
       </div>
     )
   }
@@ -61,7 +61,7 @@ export default function ListingDetailPage() {
 
       {/* Just-created banner */}
       {justCreated && isOwner && (
-        <div className="animate-slide-up mx-4 mb-3 flex items-center gap-3 rounded-lg bg-teal-light p-4">
+        <div className="animate-slide-up mx-4 mb-3 flex items-center gap-3 rounded-none bg-teal-light p-4">
           <PartyPopper className="h-6 w-6 text-teal shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-base font-medium text-teal-dark">Your listing is live!</p>
@@ -82,7 +82,7 @@ export default function ListingDetailPage() {
       )}
 
       {/* Photo gallery — swipe on touch, arrows on desktop */}
-      <div className="relative bg-clay-light aspect-[4/3] sm:aspect-[16/9] overflow-hidden sm:mx-4 sm:rounded-lg">
+      <div className="relative bg-clay-light aspect-[4/3] sm:aspect-[16/9] overflow-hidden sm:mx-4 ">
         <div
           ref={galleryRef}
           onScroll={(e) => {
@@ -115,7 +115,7 @@ export default function ListingDetailPage() {
               type="button"
               aria-label="Previous photo"
               onClick={() => scrollToImage(Math.max(0, imageIndex - 1))}
-              className="pressable absolute left-2 top-1/2 hidden -translate-y-1/2 sm:flex w-10 h-10 rounded-full bg-white/85 shadow-soft items-center justify-center"
+              className="pressable absolute left-2 top-1/2 hidden -translate-y-1/2 sm:flex w-10 h-10 rounded-full border border-ink bg-cream/90 items-center justify-center"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -123,13 +123,13 @@ export default function ListingDetailPage() {
               type="button"
               aria-label="Next photo"
               onClick={() => scrollToImage(Math.min(listing.images.length - 1, imageIndex + 1))}
-              className="pressable absolute right-2 top-1/2 hidden -translate-y-1/2 sm:flex w-10 h-10 rounded-full bg-white/85 shadow-soft items-center justify-center"
+              className="pressable absolute right-2 top-1/2 hidden -translate-y-1/2 sm:flex w-10 h-10 rounded-full border border-ink bg-cream/90 items-center justify-center"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
               {listing.images.map((_, i) => (
-                <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === imageIndex ? 'w-5 bg-white' : 'w-2 bg-white/40'}`} />
+                <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === imageIndex ? 'w-5 bg-cream' : 'w-2 bg-cream/50'}`} />
               ))}
             </div>
           </>
@@ -145,7 +145,7 @@ export default function ListingDetailPage() {
               {listing.condition && <Badge variant="closed">{listing.condition.replace('_', ' ')}</Badge>}
               {listing.status === 'closed' && <Badge variant="closed">Closed</Badge>}
             </div>
-            <h1 className="font-display text-2xl font-bold text-ink">{listing.title}</h1>
+            <h1 className="text-heading-page text-ink">{listing.title}</h1>
           </div>
           <ShareButton
             title={listing.title}
@@ -170,7 +170,7 @@ export default function ListingDetailPage() {
 
         <p className="mt-4 text-sm text-ink-2 leading-relaxed">{listing.description}</p>
 
-        <div className="mt-6 bg-forest-light rounded-lg p-4">
+        <div className="mt-6 bg-forest-light rounded-none p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-forest mb-1">Looking for</p>
           <p className="text-sm text-forest-dark leading-relaxed">{listing.seeking}</p>
         </div>

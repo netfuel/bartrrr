@@ -118,7 +118,7 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
 
         {/* Summary */}
         {allItems.length > 0 && (
-          <div className="mt-4 bg-forest-light rounded-md p-3">
+          <div className="mt-4 bg-forest-light rounded-none p-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-forest mb-1">
               Your offer
             </p>

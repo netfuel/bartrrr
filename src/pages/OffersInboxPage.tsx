@@ -30,7 +30,7 @@ export default function OffersInboxPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <h1 className="font-display text-2xl font-bold text-ink mb-4">My Offers</h1>
+      <h1 className="text-heading-page text-ink mb-4">My Offers</h1>
 
       <Tabs
         label="Offer direction"

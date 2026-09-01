@@ -49,7 +49,7 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
-      <h1 className="font-display text-2xl font-bold text-ink mb-6">Settings</h1>
+      <h1 className="text-heading-page text-ink mb-6">Settings</h1>
 
       {/* Profile section */}
       <section className="border border-ink bg-cream p-6 mb-6">

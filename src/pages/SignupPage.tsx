@@ -80,7 +80,7 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="text-center mb-8 animate-fade-up">
           <Link to="/">
-            <span className="font-display text-4xl font-bold text-clay">Bartrrr</span>
+            <span className="text-[20px] font-medium lowercase tracking-tight text-ink">bartrrr</span>
           </Link>
           <p className="text-base text-muted mt-2">Join your neighbors. Start trading.</p>
         </div>
@@ -91,7 +91,7 @@ export default function SignupPage() {
           {/* ── Idle: ask for location ── */}
           {geoState === 'idle' && (
             <div className="border border-ink bg-cream p-8 text-center space-y-5">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-clay-light text-clay">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border border-ink text-ink">
                 <MapPin className="h-7 w-7" />
               </div>
               <div>
@@ -106,7 +106,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => setGeoState('manual')}
-                className="inline-flex min-h-[44px] items-center text-base text-clay underline underline-offset-4"
+                className="inline-flex min-h-[44px] items-center text-base text-ink underline underline-offset-4"
               >
                 Enter zip code manually
               </button>
@@ -116,7 +116,7 @@ export default function SignupPage() {
           {/* ── Checking ── */}
           {geoState === 'checking' && (
             <div className="border border-ink bg-cream p-10 text-center space-y-4">
-              <Loader2 className="h-10 w-10 text-clay animate-spin mx-auto" />
+              <Loader2 className="h-10 w-10 text-ink animate-spin mx-auto" strokeWidth={1.5} />
               <p className="text-base text-muted">Checking your location…</p>
             </div>
           )}
@@ -143,7 +143,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => { setGeoState('manual'); setDetectedZip(null) }}
-                className="inline-flex min-h-[44px] items-center text-base text-clay underline underline-offset-4"
+                className="inline-flex min-h-[44px] items-center text-base text-ink underline underline-offset-4"
               >
                 Try a different zip code
               </button>
@@ -201,9 +201,9 @@ export default function SignupPage() {
                       type="button"
                       onClick={() => setSelectedUserId(user.id)}
                       aria-pressed={selectedUserId === user.id}
-                      className={`pressable w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors text-left ${
+                      className={`pressable w-full flex items-center gap-3 p-4 rounded-none border-2 transition-colors text-left ${
                         selectedUserId === user.id
-                          ? 'border-clay bg-clay-light'
+                          ? 'border-ink bg-sand-light'
                           : 'border-sand-light hover:border-sand'
                       }`}
                     >
@@ -236,7 +236,7 @@ export default function SignupPage() {
         </p>
         <p className="text-center text-base text-muted mt-2">
           Already have an account?{' '}
-          <Link to="/auth/login" className="text-clay font-medium underline-offset-4 hover:underline">Log in</Link>
+          <Link to="/auth/login" className="text-ink font-medium underline underline-offset-4">Log in</Link>
         </p>
       </div>
     </div>

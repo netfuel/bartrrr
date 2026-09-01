@@ -42,8 +42,8 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/">
-            <span className="font-display text-3xl font-bold text-clay">
-              Bartrrr
+            <span className="text-[20px] font-medium lowercase tracking-tight text-ink">
+              bartrrr
             </span>
           </Link>
           <p className="text-sm text-muted mt-1">Welcome back, neighbor.</p>
@@ -63,9 +63,9 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setSelectedUserId(user.id)}
                   aria-pressed={selectedUserId === user.id}
-                  className={`pressable w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                  className={`pressable w-full flex items-center gap-3 p-3 rounded-none border transition-colors text-left ${
                     selectedUserId === user.id
-                      ? 'border-clay bg-clay-light'
+                      ? 'border-ink bg-sand-light'
                       : 'border-sand-light hover:border-sand'
                   }`}
                 >

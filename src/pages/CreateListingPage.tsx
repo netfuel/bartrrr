@@ -88,14 +88,14 @@ export default function CreateListingPage() {
         <Link to="/browse" className="p-2 rounded-full hover:bg-sand-light transition-colors">
           <ArrowLeft className="h-5 w-5 text-muted" />
         </Link>
-        <h1 className="font-display text-xl font-bold text-ink">Post a listing</h1>
+        <h1 className="text-[20px] font-medium tracking-tight text-ink">Post a listing</h1>
       </div>
 
       {/* Progress */}
       <div className="flex items-center gap-2 mb-8">
         {steps.map((s, i) => (
           <div key={s} className="flex items-center gap-2 flex-1">
-            <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0', i < step ? 'bg-teal text-white' : i === step ? 'bg-clay text-white' : 'bg-sand-light text-muted')}>
+            <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0', i < step ? 'bg-teal text-white' : i === step ? 'bg-ink text-cream' : 'bg-sand-light text-muted')}>
               {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
             </div>
             {i < steps.length - 1 && <div className={cn('h-0.5 flex-1', i < step ? 'bg-teal' : 'bg-sand-light')} />}
@@ -125,7 +125,7 @@ export default function CreateListingPage() {
             {/* Image previews */}
             <div className="grid grid-cols-3 gap-3">
               {images.map((url, i) => (
-                <div key={url} className="relative aspect-square rounded-lg overflow-hidden bg-sand-light">
+                <div key={url} className="relative aspect-square rounded-none overflow-hidden bg-sand-light">
                   <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
@@ -137,7 +137,7 @@ export default function CreateListingPage() {
                 </div>
               ))}
               {images.length === 0 && (
-                <div className="aspect-square rounded-lg border-2 border-dashed border-sand flex flex-col items-center justify-center gap-1 text-muted">
+                <div className="aspect-square rounded-none border border-dashed border-ink/50 flex flex-col items-center justify-center gap-1 text-muted">
                   <Camera className="h-6 w-6" />
                   <span className="text-xs">No photos yet</span>
                 </div>
@@ -187,7 +187,7 @@ export default function CreateListingPage() {
               {images.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
                   {images.map((url) => (
-                    <img key={url} src={url} alt="" className="w-20 h-20 rounded-md object-cover shrink-0" />
+                    <img key={url} src={url} alt="" className="w-20 h-20 rounded-none object-cover shrink-0" />
                   ))}
                 </div>
               )}
@@ -205,7 +205,7 @@ export default function CreateListingPage() {
                 <p className="text-xs text-muted">Category</p>
                 <p className="text-sm text-ink">{category ? CATEGORY_LABELS[category] : '—'}</p>
               </div>
-              <div className="bg-forest-light rounded-md p-3">
+              <div className="bg-forest-light rounded-none p-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-forest mb-0.5">Looking for</p>
                 <p className="text-sm text-forest-dark">{seeking}</p>
               </div>
