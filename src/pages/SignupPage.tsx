@@ -90,7 +90,7 @@ export default function SignupPage() {
 
           {/* ── Idle: ask for location ── */}
           {geoState === 'idle' && (
-            <div className="bg-white rounded-xl p-8 shadow-lift text-center space-y-5">
+            <div className="border border-ink bg-cream p-8 text-center space-y-5">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-clay-light text-clay">
                 <MapPin className="h-7 w-7" />
               </div>
@@ -115,7 +115,7 @@ export default function SignupPage() {
 
           {/* ── Checking ── */}
           {geoState === 'checking' && (
-            <div className="bg-white rounded-xl p-10 shadow-lift text-center space-y-4">
+            <div className="border border-ink bg-cream p-10 text-center space-y-4">
               <Loader2 className="h-10 w-10 text-clay animate-spin mx-auto" />
               <p className="text-base text-muted">Checking your location…</p>
             </div>
@@ -123,7 +123,7 @@ export default function SignupPage() {
 
           {/* ── Outside service area ── */}
           {geoState === 'outside' && (
-            <div className="bg-white rounded-xl p-8 shadow-lift text-center space-y-5">
+            <div className="border border-ink bg-cream p-8 text-center space-y-5">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sand-light text-muted">
                 <AlertCircle className="h-7 w-7" />
               </div>
@@ -152,7 +152,7 @@ export default function SignupPage() {
 
           {/* ── Permission denied: manual entry ── */}
           {(geoState === 'denied' || geoState === 'manual') && (
-            <div className="bg-white rounded-xl p-8 shadow-lift space-y-5">
+            <div className="border border-ink bg-cream p-8 space-y-5">
               <p className="text-base text-muted text-center leading-relaxed">
                 {geoState === 'denied'
                   ? 'Location access was denied. Enter your zip code to check availability.'
@@ -183,7 +183,7 @@ export default function SignupPage() {
 
           {/* ── Allowed: show user picker ── */}
           {geoState === 'allowed' && (
-            <div className="bg-white rounded-xl p-8 shadow-lift space-y-5">
+            <div className="border border-ink bg-cream p-8 space-y-5">
               <div className="flex items-center gap-2 text-teal-dark text-base font-medium">
                 <CheckCircle2 className="h-5 w-5 shrink-0" />
                 <span>

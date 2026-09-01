@@ -1,39 +1,47 @@
 /* Fonts are loaded via <link> in index.html (preconnected, non-blocking) */
 @import 'tailwindcss';
 
+/*
+ * Oakâme-adapted design system: sunlit warm-stone canvas, walnut ink,
+ * hairline borders, bimodal type scale. Chromatic tokens survive as a
+ * muted Provençal functional layer (status colors in app flows only).
+ */
 @theme {
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  --color-clay: #C05A35;
-  --color-clay-light: #F5E8E1;
-  --color-clay-mid: #E8A88C;
-  --color-clay-dark: #7A3318;
+  /* Canvas + ink */
+  --color-linen: #f6f1eb;
+  --color-cream: #f6f1eb;        /* legacy alias — page + card surface */
+  --color-ink: #403a34;          /* walnut ink: headings, borders, UI */
+  --color-ink-2: #333333;        /* charcoal note: body copy */
+  --color-muted: #555555;        /* slate whisper: metadata */
 
-  --color-forest: #2A5240;
-  --color-forest-light: #E2EDE8;
-  --color-forest-mid: #6A9E87;
-  --color-forest-dark: #162E24;
+  /* Warm neutrals for subtle app fills */
+  --color-sand: #d8cfc3;
+  --color-sand-light: #efe9e1;
 
-  --color-teal: #3AABA6;
-  --color-teal-light: #DFF3F2;
-  --color-teal-dark: #1D6662;
+  /* Functional chroma — desaturated toward the linen/walnut family.
+     Marketing pages stay monochrome; app flows use these for status. */
+  --color-clay: #9c5b3c;
+  --color-clay-light: #efe3da;
+  --color-clay-mid: #c79a7f;
+  --color-clay-dark: #6e3e28;
 
-  --color-gold: #C88A2A;
-  --color-gold-light: #FAF0DC;
+  --color-forest: #4a5240;
+  --color-forest-light: #e7e8e0;
+  --color-forest-mid: #8a927e;
+  --color-forest-dark: #2e3428;
 
-  --color-moss: #7A9A3A;
-  --color-moss-light: #EAF0DB;
+  --color-teal: #5f7c74;
+  --color-teal-light: #e3eae7;
+  --color-teal-dark: #3d544d;
 
-  --color-sand: #D4B896;
-  --color-sand-light: #F5EDE0;
+  --color-gold: #a8823c;
+  --color-gold-light: #f0e7d4;
 
-  --color-cream: #F8F3EC;
-
-  --color-ink: #1A1714;
-  --color-ink-2: #3D3830;
-
-  --color-muted: #8A8278;
+  --color-moss: #7c8248;
+  --color-moss-light: #e9ead9;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -46,10 +54,10 @@
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
 
-  /* Warm layered elevation (ink-tinted, never pure black) */
-  --shadow-soft: 0 1px 2px rgba(26, 23, 20, 0.04), 0 2px 8px rgba(26, 23, 20, 0.05);
-  --shadow-lift: 0 2px 4px rgba(26, 23, 20, 0.05), 0 8px 24px rgba(26, 23, 20, 0.09);
-  --shadow-float: 0 4px 8px rgba(26, 23, 20, 0.06), 0 16px 40px rgba(26, 23, 20, 0.14);
+  /* Transitional app elevation (marketing surfaces are shadowless) */
+  --shadow-soft: 0 1px 2px rgba(64, 58, 52, 0.05), 0 2px 8px rgba(64, 58, 52, 0.06);
+  --shadow-lift: 0 2px 4px rgba(64, 58, 52, 0.06), 0 8px 24px rgba(64, 58, 52, 0.1);
+  --shadow-float: 0 4px 8px rgba(64, 58, 52, 0.07), 0 16px 40px rgba(64, 58, 52, 0.15);
 
   --animate-fade-up: fade-up 0.45s var(--ease-out-soft) both;
   --animate-fade-in: fade-in 0.3s var(--ease-out-soft) both;
@@ -85,8 +93,8 @@
 }
 
 :root {
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -106,58 +114,77 @@ html {
 
 body {
   font-family: var(--font-body);
+  font-feature-settings: 'ss01' on, 'cv11' on, 'tnum' on;
   color: var(--color-ink);
   background-color: var(--color-cream);
-  font-size: 16px;
-  line-height: 1.6;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: -0.004em;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }
 
-/* Font family defaults — sizes handled by Tailwind utilities */
+/* One face across the system — display is a size, not a family */
 h1, h2, .font-display {
   font-family: var(--font-display);
 }
 
 /* One consistent, visible focus ring everywhere */
 :focus-visible {
-  outline: 2px solid var(--color-clay);
+  outline: 2px solid var(--color-ink);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 ::selection {
-  background-color: var(--color-clay-mid);
+  background-color: var(--color-sand);
   color: var(--color-ink);
 }
 
-/* Opt-in typography utility classes (CLAUDE.md §5.3) */
+/* ── Bimodal type utilities (museum label ↔ wall statement) ── */
+
+/* Hero display word: monumental, weight does not carry it — size does */
 .text-display {
   font-family: var(--font-display);
-  font-size: clamp(32px, 5vw, 40px);
-  font-weight: 700;
-  line-height: 1.12;
-  letter-spacing: -0.01em;
+  font-size: clamp(3.5rem, 13vw, 12.5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.056em;
+}
+
+/* Full-bleed uppercase section opener, wraps 2–4 tight lines */
+.text-heading-editorial {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 4.5vw, 3.75rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+/* Tracked-out museum label (floored at 12px for legibility) */
+.text-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.083em;
 }
 
 .text-small {
   font-size: 14px;
 }
 
-.text-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+/* 1px walnut hairline — the only divider in the system */
+.hairline {
+  border-top: 1px solid var(--color-ink);
 }
 
 /* Press feedback for anything tappable */
 .pressable {
-  transition: transform 0.15s var(--ease-spring), box-shadow 0.2s var(--ease-out-soft);
+  transition: transform 0.15s var(--ease-spring), background-color 0.2s var(--ease-out-soft), color 0.2s var(--ease-out-soft);
 }
 .pressable:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 /* Staggered list entrances: apply animate-fade-up + stagger-N */
@@ -196,59 +223,5 @@ h1, h2, .font-display {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* Dark mode base */
-.dark {
-  color-scheme: dark;
-
-  /* Backgrounds */
-  --color-cream: #1C1916;
-  --color-sand-light: #2A2520;
-  --color-sand: #3D3528;
-  --color-white: #252018;    /* used for card backgrounds */
-
-  /* Text */
-  --color-ink: #F2EDE6;
-  --color-ink-2: #C8BFB3;
-  --color-muted: #7A7068;
-
-  /* Brand colors — slightly desaturated/lighter for dark bg */
-  --color-clay: #D4714A;
-  --color-clay-light: #2E1E14;
-  --color-clay-mid: #C0865E;
-  --color-clay-dark: #E8A07A;
-
-  --color-forest: #3D7060;
-  --color-forest-light: #152820;
-  --color-forest-mid: #7AADA0;
-  --color-forest-dark: #A8CCBF;
-
-  --color-teal: #4ABFBA;
-  --color-teal-light: #0F2E2C;
-  --color-teal-dark: #7DDBD6;
-
-  --color-gold: #D4962E;
-  --color-gold-light: #2A2010;
-
-  --color-moss: #8AAA44;
-  --color-moss-light: #1A2210;
-
-  /* Deeper shadows on dark backgrounds */
-  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-float: 0 4px 8px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.55);
-
-  /* Override bg-white for cards in dark mode */
-  & .bg-white {
-    background-color: #252018;
-  }
-  & .border-white\/10 {
-    border-color: rgba(255,255,255,0.1);
-  }
-  & .shadow-sm,
-  & .shadow-md {
-    --tw-shadow-color: rgba(0,0,0,0.4);
   }
 }

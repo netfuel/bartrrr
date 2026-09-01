@@ -50,7 +50,7 @@ export default function LoginPage() {
         </div>
 
         {/* User picker */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
+        <div className="border border-ink bg-cream p-6">
           <p className="text-sm font-medium text-ink-2 mb-3">
             Choose a user to log in as:
           </p>

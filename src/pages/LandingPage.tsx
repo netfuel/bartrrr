@@ -1,13 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ArrowRight, Repeat, MapPin, Shield, Star, Handshake, ShieldCheck,
-  Sparkles, MessageCircle, ChevronDown, Check,
+  Repeat, MapPin, Shield, Star, Handshake, ShieldCheck,
+  Sparkles, MessageCircle, ChevronDown,
 } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui'
 import { mockListings } from '@/data/mock-listings'
@@ -30,19 +29,19 @@ const TICKER = [
 const steps = [
   {
     num: '01',
-    icon: <MapPin className="h-5 w-5" />,
+    icon: <MapPin className="h-5 w-5" strokeWidth={1.5} />,
     title: 'List what you have',
     desc: "Post items, skills, or services. Add photos and say what you'd like in return.",
   },
   {
     num: '02',
-    icon: <Repeat className="h-5 w-5" />,
+    icon: <Repeat className="h-5 w-5" strokeWidth={1.5} />,
     title: 'Make an offer',
     desc: 'Spot something you like? Propose a swap. Negotiate until the deal feels right.',
   },
   {
     num: '03',
-    icon: <Shield className="h-5 w-5" />,
+    icon: <Shield className="h-5 w-5" strokeWidth={1.5} />,
     title: 'Swap with confidence',
     desc: 'Sign a trade agreement, meet up, exchange. Rate your neighbor afterward.',
   },
@@ -110,16 +109,8 @@ const faqs = [
 
 const stats = [
   { stat: '1,200+', value: 1200, suffix: '+', label: 'Trades completed' },
-  { stat: '4.8 ★', value: 4.8, suffix: ' ★', label: 'Average rating' },
+  { stat: '4.8', value: 4.8, suffix: '', label: 'Average rating' },
   { stat: '47', value: 47, suffix: '', label: 'Neighborhoods active' },
-]
-
-// Social-proof avatar cluster (initials, brand tones)
-const proofAvatars = [
-  { initials: 'JO', bg: '#C05A35' },
-  { initials: 'MS', bg: '#2A5240' },
-  { initials: 'AC', bg: '#C88A2A' },
-  { initials: 'PP', bg: '#3AABA6' },
 ]
 
 // Real inventory for the "trading right now" strip
@@ -127,79 +118,61 @@ const showcaseListings = mockListings
   .filter((l) => l.status === 'active' && l.images[0])
   .slice(0, 8)
 
-// Per-step card tints for "How it works"
-const stepTints = [
-  { card: 'bg-clay-light', num: 'text-clay' },
-  { card: 'bg-gold-light', num: 'text-gold' },
-  { card: 'bg-teal-light', num: 'text-teal-dark' },
-]
-
 const TESTIMONIALS = [
   {
     quote: 'I traded two hours of yard work for a stand mixer that runs better than the one I almost bought. Never opened my wallet once.',
-    name: 'Dave M.', neighborhood: 'East Memphis', initials: 'DM', bg: '#2A5240',
+    name: 'Dave M.', neighborhood: 'East Memphis', initials: 'DM',
     trade: 'Yard work ⇄ KitchenAid mixer',
   },
   {
     quote: "My kids outgrew everything at once. One weekend on Bartrrr and their closets are full again — and another family got the crib they needed.",
-    name: 'Priya P.', neighborhood: 'Germantown', initials: 'PP', bg: '#3AABA6',
+    name: 'Priya P.', neighborhood: 'Germantown', initials: 'PP',
     trade: 'Kids’ clothes ⇄ Crib',
   },
   {
     quote: "I fix bikes. My neighbor bakes bread. We've been trading for three months now and I'm never buying bread again.",
-    name: 'Sam N.', neighborhood: 'Overton Square', initials: 'SN', bg: '#C88A2A',
+    name: 'Sam N.', neighborhood: 'Overton Square', initials: 'SN',
     trade: 'Bike repair ⇄ Sourdough',
   },
   {
     quote: "My pension doesn't stretch like it used to. Trading my sewing for fresh produce has honestly changed my month-to-month.",
-    name: 'Nina R.', neighborhood: 'South Main Arts District', initials: 'NR', bg: '#C05A35',
+    name: 'Nina R.', neighborhood: 'South Main Arts District', initials: 'NR',
     trade: 'Alterations ⇄ Garden produce',
   },
   {
     quote: 'Posted my old record player at lunch. By dinner I had guitar lessons lined up for my daughter.',
-    name: 'Jamie O.', neighborhood: 'Downtown Memphis', initials: 'JO', bg: '#7A9A3A',
+    name: 'Jamie O.', neighborhood: 'Downtown Memphis', initials: 'JO',
     trade: 'Record player ⇄ Guitar lessons',
   },
   {
     quote: "It's the neighborly Memphis I remember growing up in — just easier to find.",
-    name: 'Alex C.', neighborhood: 'Cooper-Young', initials: 'AC', bg: '#1D6662',
+    name: 'Alex C.', neighborhood: 'Cooper-Young', initials: 'AC',
     trade: null,
   },
 ]
 
 export default function LandingPage() {
   const container = useRef<HTMLDivElement>(null)
-  const [navSolid, setNavSolid] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   useGSAP(
     () => {
-      // Nav turns solid once the hero is mostly scrolled past
-      ScrollTrigger.create({
-        start: 'top -72',
-        onUpdate: (self) => setNavSolid(self.progress > 0 || self.scroll() > 72),
-        onToggle: (self) => setNavSolid(self.isActive),
-      })
-
       const mm = gsap.matchMedia()
       mm.add('(prefers-reduced-motion: no-preference)', () => {
         // ── Hero entrance ──
         gsap
           .timeline({ defaults: { ease: 'power3.out' } })
-          .from('.hero-badge', { y: 24, autoAlpha: 0, duration: 0.6 })
+          .from('.hero-eyebrow', { y: 16, autoAlpha: 0, duration: 0.6 })
           .from('.hero-line > span', {
             yPercent: 115,
-            duration: 0.9,
-            stagger: 0.12,
+            duration: 1,
+            stagger: 0.14,
             ease: 'power4.out',
           }, '-=0.3')
-          .from('.hero-sub', { y: 24, autoAlpha: 0, duration: 0.6 }, '-=0.45')
-          .from('.hero-cta', { y: 20, autoAlpha: 0, duration: 0.5, stagger: 0.08 }, '-=0.35')
-          .from('.hero-proof', { y: 16, autoAlpha: 0, duration: 0.6 }, '-=0.2')
 
         // Slow hero video drift
         gsap.to('.hero-video', {
-          scale: 1.08,
+          scale: 1.06,
           ease: 'none',
           scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
         })
@@ -215,13 +188,12 @@ export default function LandingPage() {
           })
         })
 
-        // Staggered grids (how-it-works steps, feature cards, FAQ items)
         gsap.utils.toArray<HTMLElement>('[data-reveal-group]').forEach((group) => {
           gsap.from(group.children, {
-            y: 36,
+            y: 32,
             autoAlpha: 0,
             duration: 0.7,
-            stagger: 0.1,
+            stagger: 0.08,
             ease: 'power3.out',
             scrollTrigger: { trigger: group, start: 'top 85%' },
           })
@@ -261,40 +233,36 @@ export default function LandingPage() {
   )
 
   return (
-    <div ref={container} className="min-h-screen overflow-x-hidden">
+    <div ref={container} className="min-h-screen overflow-x-hidden bg-cream text-ink">
 
-      {/* ── Sticky nav ── */}
-      <nav
-        className={cn(
-          'fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 transition-all duration-300',
-          navSolid
-            ? 'bg-cream/95 backdrop-blur-md border-b border-sand-light shadow-soft'
-            : 'bg-transparent border-b border-transparent',
-        )}
-      >
-        <a href="#top" className={cn('font-display text-2xl font-bold transition-colors duration-300', navSolid ? 'text-clay' : 'text-white')}>
-          Bartrrr
+      {/* ── Top bar: typography + one hairline, nothing else ── */}
+      <nav className="flex items-center justify-between gap-4 border-b border-ink px-5 py-4 lg:px-8">
+        <a href="#top" className="text-[18px] font-medium lowercase tracking-tight">
+          bartrrr
         </a>
-        <div className={cn('hidden md:flex items-center gap-8 text-[15px] font-medium transition-colors duration-300', navSolid ? 'text-ink-2' : 'text-white/80')}>
-          <a href="#how" className="hover:opacity-70 transition-opacity">How it works</a>
-          <a href="#features" className="hover:opacity-70 transition-opacity">Features</a>
-          <a href="#faq" className="hover:opacity-70 transition-opacity">FAQ</a>
+        <div className="hidden md:flex items-center gap-7">
+          <a href="#listings" className="text-label hover:opacity-60 transition-opacity">En stock</a>
+          <a href="#how" className="text-label hover:opacity-60 transition-opacity">How it works</a>
+          <a href="#faq" className="text-label hover:opacity-60 transition-opacity">FAQ</a>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/auth/login">
-            <Button variant="ghost" size="sm" className={cn('transition-colors duration-300', !navSolid && 'text-white hover:bg-white/10')}>
-              Log in
-            </Button>
+          <Link
+            to="/auth/login"
+            className="pressable text-label rounded-full border border-ink px-5 py-2 hover:bg-ink hover:text-cream transition-colors"
+          >
+            Log in
           </Link>
-          <Link to="/auth/signup">
-            <Button variant="primary" size="sm">Get started</Button>
+          <Link
+            to="/auth/signup"
+            className="pressable text-label bg-ink px-6 py-2.5 text-cream hover:bg-ink-2 transition-colors"
+          >
+            Get started
           </Link>
         </div>
       </nav>
 
-      {/* ── Hero ── */}
-      <section id="top" className="hero relative flex flex-col items-center justify-center text-center min-h-[92vh] px-6 pt-28 pb-16 overflow-hidden">
-        {/* Video background */}
+      {/* ── Hero: the photograph is the page ── */}
+      <section id="top" className="hero relative h-[82vh] overflow-hidden">
         <video
           autoPlay
           muted
@@ -302,260 +270,208 @@ export default function LandingPage() {
           playsInline
           preload="metadata"
           poster="/homes-poster.jpg"
-          className="hero-video absolute inset-0 w-full h-full object-cover"
+          className="hero-video absolute inset-0 h-full w-full object-cover"
         >
           <source src="/homes.mp4" type="video/mp4" />
         </video>
-        {/* Warm dark overlay */}
-        <div className="absolute inset-0 bg-ink/55" />
+        {/* Minimal legibility scrim, bottom third only */}
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-ink/50 to-transparent" />
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col items-center">
-          {/* Memphis badge */}
-          <div className="hero-badge inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/25 bg-white/10 text-white/80 text-xs font-semibold uppercase tracking-widest mb-8 backdrop-blur-sm">
-            <MapPin className="h-3 w-3" /> Memphis, TN
-          </div>
-
-          <h1 className="font-display font-bold text-white leading-[0.95] mb-7"
-            style={{ fontSize: 'clamp(3.5rem, 10vw, 7.5rem)' }}>
+        <div className="absolute bottom-8 left-5 lg:left-8 z-10 text-cream">
+          <p className="hero-eyebrow text-label mb-3 opacity-90">Memphis, Tennessee</p>
+          <h1 className="text-display">
             <span className="hero-line block overflow-hidden"><span className="block">Trade,</span></span>
             <span className="hero-line block overflow-hidden"><span className="block">don't buy.</span></span>
           </h1>
-
-          <p className="hero-sub text-lg text-white/70 max-w-sm leading-relaxed mb-9">
-            Swap goods, skills, and services with your Memphis neighbors — no cash, no awkward pricing, just fair exchange.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link to="/auth/signup" className="hero-cta">
-              <Button variant="primary" size="lg">
-                Start trading free <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/browse" className="hero-cta">
-              <Button variant="ghost" size="lg" className="text-white border border-white/30 hover:bg-white/10">See live listings</Button>
-            </Link>
-          </div>
-
-          <p className="hero-cta mt-4 flex items-center gap-1.5 text-small text-white/60">
-            <Check className="h-4 w-4" /> Free forever · No credit card · Just neighbors
-          </p>
-
-          {/* Dynamic social proof */}
-          <div className="hero-proof mt-10 flex items-center gap-3 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm pl-2 pr-5 py-2">
-            <div className="flex -space-x-2.5">
-              {proofAvatars.map(({ initials, bg }) => (
-                <span
-                  key={initials}
-                  style={{ backgroundColor: bg }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/70 text-[11px] font-bold text-white"
-                >
-                  {initials}
-                </span>
-              ))}
-            </div>
-            <p className="text-small text-white/85 text-left leading-snug">
-              <span className="font-semibold text-white">1,200+ trades</span> by Memphis neighbors
-              <span className="block text-white/60">★★★★★ 4.8 average rating</span>
-            </p>
-          </div>
         </div>
       </section>
 
+      {/* ── CTA band ── */}
+      <section className="border-b border-ink">
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-5 py-10 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <p className="max-w-[50ch] text-[20px] leading-[1.4] tracking-[-0.004em] text-ink-2">
+            Swap goods, skills, and services with your Memphis neighbors — no cash,
+            no awkward pricing, just fair exchange.
+          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link to="/auth/signup">
+              <Button variant="primary" size="lg" className="text-label px-8">Start trading free</Button>
+            </Link>
+            <Link to="/browse">
+              <Button variant="outline" size="lg" className="text-label px-8">See live listings</Button>
+            </Link>
+          </div>
+        </div>
+        <p className="mx-auto max-w-[1400px] px-5 pb-8 lg:px-8 text-label text-muted">
+          1,200+ trades &nbsp;·&nbsp; 4.8 average rating &nbsp;·&nbsp; Free forever
+        </p>
+      </section>
+
       {/* ── Ticker ── */}
-      <div className="overflow-hidden bg-ink py-3.5 select-none">
+      <div className="select-none overflow-hidden border-b border-ink py-3">
         <div className="flex whitespace-nowrap animate-ticker">
           {[...TICKER, ...TICKER].map((item, i) => (
-            <span key={i} className="text-xs font-semibold uppercase tracking-widest text-muted px-6">
-              {item} <span className="text-clay mx-2">·</span>
+            <span key={i} className="text-label px-6 text-ink">
+              {item} <span className="mx-2 opacity-40">·</span>
             </span>
           ))}
         </div>
       </div>
 
       {/* ── Trading right now: real inventory strip ── */}
-      <section className="bg-cream py-24 overflow-hidden">
-        <div data-reveal className="max-w-5xl mx-auto px-6">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 gap-4">
+      <section id="listings" className="scroll-mt-8 border-b border-ink py-20 overflow-hidden">
+        <div data-reveal className="mx-auto max-w-[1400px] px-5 lg:px-8">
+          <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-clay mb-3">Live in Memphis</p>
-              <h2 className="font-display text-4xl lg:text-5xl font-bold text-ink">Trading right now</h2>
+              <p className="text-label mb-4 text-muted">En stock — live in Memphis</p>
+              <h2 className="text-heading-editorial">Trading<br />right now</h2>
             </div>
-            <Link to="/browse" className="text-sm font-medium text-clay underline underline-offset-4 shrink-0">
-              Browse all listings →
+            <Link to="/browse" className="text-label underline underline-offset-4 hover:opacity-60 transition-opacity shrink-0">
+              Browse all →
             </Link>
           </div>
         </div>
         <div
           data-reveal-group
-          className="no-scrollbar flex snap-x gap-4 overflow-x-auto px-6 pb-2 lg:px-[max(1.5rem,calc((100vw-64rem)/2+1.5rem))]"
+          className="no-scrollbar flex snap-x gap-5 overflow-x-auto px-5 lg:px-[max(2rem,calc((100vw-1400px)/2+2rem))]"
         >
           {showcaseListings.map((l) => (
             <Link
               key={l.id}
               to="/browse"
-              className="group w-[260px] shrink-0 snap-start overflow-hidden rounded-lg bg-white shadow-soft transition-[box-shadow,transform] duration-300 ease-out-soft hover:shadow-lift hover:-translate-y-1"
+              className="group w-[280px] shrink-0 snap-start border border-ink"
             >
-              <div className="relative h-36 overflow-hidden">
+              <div className="relative aspect-[4/3] overflow-hidden border-b border-ink">
                 <img
                   src={l.images[0]}
                   alt={l.title}
                   loading="lazy"
                   decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-500 ease-out-soft group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-700 ease-out-soft group-hover:scale-[1.04]"
                 />
-                <span className="absolute top-2 left-2 rounded-sm bg-white/90 px-2 py-0.5 text-label text-ink-2 backdrop-blur-sm">
-                  {CATEGORY_LABELS[l.category]}
-                </span>
               </div>
-              <div className="p-4">
-                <h3 className="font-display text-base font-semibold text-ink truncate">{l.title}</h3>
-                <p className="mt-0.5 text-small text-muted">{l.location.neighborhood}</p>
-                <div className="mt-3 rounded-md bg-forest-light p-2.5">
-                  <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-forest">Looking for</p>
-                  <p className="text-small leading-snug text-forest-dark line-clamp-2">{l.seeking}</p>
+              <div className="p-5">
+                <p className="text-label mb-2 text-muted">{CATEGORY_LABELS[l.category]} · {l.location.neighborhood}</p>
+                <h3 className="truncate text-[20px] font-medium tracking-tight">{l.title}</h3>
+                <div className="mt-4 border-t border-ink pt-3">
+                  <p className="text-label mb-1">Looking for</p>
+                  <p className="line-clamp-2 text-[14px] leading-snug text-muted">{l.seeking}</p>
                 </div>
               </div>
             </Link>
           ))}
-          {/* End cap: pull toward signup */}
+          {/* End cap */}
           <Link
             to="/auth/signup"
-            className="flex w-[260px] shrink-0 snap-start flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-clay-mid bg-clay-light/40 p-6 text-center transition-colors hover:bg-clay-light"
+            className="pressable flex w-[280px] shrink-0 snap-start flex-col items-start justify-end gap-3 border border-ink p-5 hover:bg-ink hover:text-cream transition-colors"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-clay text-white">
-              <ArrowRight className="h-5 w-5" />
-            </span>
-            <span className="font-display text-lg font-semibold text-clay-dark">Your listing here</span>
-            <span className="text-small text-ink-2">Post something and see what neighbors offer.</span>
+            <span className="text-display !text-[64px] leading-none">→</span>
+            <span className="text-[20px] font-medium tracking-tight">Your listing here</span>
+            <span className="text-label opacity-60">Post something. See offers.</span>
           </Link>
         </div>
       </section>
 
-      {/* ── Editorial photo split ── */}
-      <section className="flex flex-col lg:flex-row min-h-[75vh]">
-        {/* Photo */}
-        <div className="editorial-photo relative lg:w-[55%] h-[65vw] max-h-[520px] lg:max-h-none lg:h-auto overflow-hidden">
+      {/* ── Editorial statement ── */}
+      <section className="border-b border-ink">
+        <div data-reveal className="mx-auto max-w-[1400px] px-5 py-24 lg:px-8">
+          <p className="text-label mb-8 text-muted">Why Bartrrr</p>
+          <h2 className="text-heading-editorial max-w-[24ch]">
+            Your neighbor has exactly what you need.
+          </h2>
+          <div className="mt-14 grid gap-8 lg:grid-cols-2">
+            <p className="text-label lg:text-right lg:pr-16">From handyman help to homemade meals</p>
+            <p className="max-w-[50ch] text-[18px] leading-[1.5] text-ink-2">
+              Memphis neighbors are already trading every day. Bartrrr makes it official —
+              a place to list what you have, find what you need, and agree on a fair swap
+              without a dollar changing hands.
+            </p>
+          </div>
+        </div>
+        <div className="editorial-photo relative h-[60vh] overflow-hidden border-t border-ink">
           <img
             src={PHOTOS.editorial}
             alt="Neighbors exchanging"
             loading="lazy"
             decoding="async"
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            className="absolute inset-0 h-full w-full object-cover"
           />
-          {/* Subtle warm vignette */}
-          <div className="absolute inset-0 bg-gradient-to-br from-clay/10 to-ink/30" />
-        </div>
-
-        {/* Quote */}
-        <div data-reveal className="lg:w-[45%] bg-cream flex flex-col justify-center px-8 py-14 lg:px-16 lg:py-20">
-          <p className="text-xs font-semibold uppercase tracking-widest text-clay mb-8">Why Bartrrr</p>
-          <blockquote className="font-display text-3xl lg:text-[2.6rem] font-bold text-ink leading-[1.1] mb-7">
-            "Your neighbor has exactly what you need."
-          </blockquote>
-          <p className="text-muted leading-relaxed max-w-xs">
-            From handyman help to homemade meals, Memphis neighbors are already trading every day. Bartrrr makes it official.
-          </p>
-          <div className="mt-10 pt-8 border-t border-sand-light flex items-center gap-6">
-            {stats.slice(0, 2).map((s) => (
-              <div key={s.label}>
-                <p className="font-display text-2xl font-bold text-clay">{s.stat}</p>
-                <p className="text-xs text-muted mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
       {/* ── How it works ── */}
-      <section id="how" className="bg-white px-6 py-24 scroll-mt-16">
-        <div className="max-w-5xl mx-auto">
-          <div data-reveal className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-16 gap-4">
+      <section id="how" className="scroll-mt-8 border-b border-ink">
+        <div className="mx-auto max-w-[1400px] px-5 py-24 lg:px-8">
+          <div data-reveal className="mb-16 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-clay mb-3">Simple by design</p>
-              <h2 className="font-display text-4xl lg:text-5xl font-bold text-ink">How it works</h2>
+              <p className="text-label mb-4 text-muted">Simple by design</p>
+              <h2 className="text-heading-editorial">How it works</h2>
             </div>
-            <Link to="/browse" className="text-sm font-medium text-clay underline underline-offset-4 shrink-0">
+            <Link to="/browse" className="text-label underline underline-offset-4 hover:opacity-60 transition-opacity shrink-0">
               See live listings →
             </Link>
           </div>
 
-          <div data-reveal-group className="grid sm:grid-cols-3 gap-4">
-            {steps.map((step, i) => (
-              <div
-                key={step.num}
-                className={cn(
-                  'flex flex-col gap-5 rounded-xl p-8 transition-transform duration-300 ease-out-soft hover:-translate-y-1',
-                  stepTints[i].card,
-                )}
-              >
-                <span className={cn('font-display text-6xl font-bold leading-none opacity-90', stepTints[i].num)}>
-                  {step.num}
-                </span>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink-2">
-                  {step.icon}
-                </div>
-                <h3 className="font-display text-xl font-semibold text-ink">{step.title}</h3>
-                <p className="text-[15px] text-ink-2 leading-relaxed">{step.desc}</p>
+          <div data-reveal-group className="grid border-t border-l border-ink sm:grid-cols-3">
+            {steps.map((step) => (
+              <div key={step.num} className="flex flex-col gap-6 border-b border-r border-ink p-8 lg:p-10">
+                <span className="text-[60px] font-normal leading-none tracking-[-0.056em]">{step.num}</span>
+                <div className="text-ink">{step.icon}</div>
+                <h3 className="text-[20px] font-medium tracking-tight">{step.title}</h3>
+                <p className="text-[18px] leading-[1.5] text-ink-2">{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Features grid ── */}
-      <section id="features" className="bg-cream px-6 py-24 scroll-mt-16">
-        <div className="max-w-5xl mx-auto">
-          <div data-reveal className="text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-widest text-clay mb-3">Everything you need</p>
-            <h2 className="font-display text-4xl lg:text-5xl font-bold text-ink">Built for fair trades</h2>
+      {/* ── Features: hairline grid ── */}
+      <section className="border-b border-ink">
+        <div className="mx-auto max-w-[1400px] px-5 py-24 lg:px-8">
+          <div data-reveal className="mb-16">
+            <p className="text-label mb-4 text-muted">Everything you need</p>
+            <h2 className="text-heading-editorial">Built for<br />fair trades</h2>
           </div>
 
-          <div data-reveal-group className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div data-reveal-group className="grid border-t border-l border-ink sm:grid-cols-2 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, desc }) => (
-              <div
-                key={title}
-                className="group rounded-lg bg-white p-7 shadow-soft transition-[box-shadow,transform] duration-300 ease-out-soft hover:shadow-lift hover:-translate-y-1"
-              >
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-sand-light text-ink-2 transition-colors duration-300 group-hover:bg-clay-light group-hover:text-clay">
-                  <Icon className="h-5 w-5" strokeWidth={1.75} />
-                </div>
-                <h3 className="font-display text-xl font-semibold text-ink mb-2">{title}</h3>
-                <p className="text-[15px] text-muted leading-relaxed">{desc}</p>
+              <div key={title} className="group border-b border-r border-ink p-8 transition-colors duration-300 hover:bg-sand-light">
+                <Icon className="mb-6 h-5 w-5" strokeWidth={1.5} />
+                <h3 className="mb-3 text-[20px] font-medium tracking-tight">{title}</h3>
+                <p className="text-[18px] leading-[1.5] text-ink-2">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Neighbors are talking: testimonial wall ── */}
-      <section className="bg-white px-6 py-24">
-        <div className="max-w-5xl mx-auto">
-          <div data-reveal className="text-center mb-14">
-            <p className="text-xs font-semibold uppercase tracking-widest text-clay mb-3">Neighbors are talking</p>
-            <h2 className="font-display text-4xl lg:text-5xl font-bold text-ink">Real trades, real people</h2>
+      {/* ── Neighbors are talking ── */}
+      <section className="border-b border-ink">
+        <div className="mx-auto max-w-[1400px] px-5 py-24 lg:px-8">
+          <div data-reveal className="mb-16">
+            <p className="text-label mb-4 text-muted">Neighbors are talking</p>
+            <h2 className="text-heading-editorial">Real trades,<br />real people</h2>
           </div>
 
-          <div data-reveal-group className="columns-1 sm:columns-2 lg:columns-3 gap-4">
+          <div data-reveal-group className="columns-1 gap-5 sm:columns-2 lg:columns-3">
             {TESTIMONIALS.map((t) => (
-              <figure key={t.name} className="mb-4 break-inside-avoid rounded-lg bg-cream p-6 shadow-soft">
-                <blockquote className="text-[15px] leading-relaxed text-ink-2">“{t.quote}”</blockquote>
+              <figure key={t.name} className="mb-5 break-inside-avoid border border-ink p-6">
+                <blockquote className="text-[18px] leading-[1.5] text-ink-2">“{t.quote}”</blockquote>
                 {t.trade && (
-                  <p className="mt-3 inline-block rounded-full bg-forest-light px-3 py-1 text-small font-medium text-forest-dark">
+                  <p className="text-label mt-4 inline-block rounded-full border border-ink px-4 py-1.5">
                     {t.trade}
                   </p>
                 )}
-                <figcaption className="mt-4 flex items-center gap-3">
+                <figcaption className="mt-5 flex items-center gap-3 border-t border-ink pt-4">
                   <span
-                    style={{ backgroundColor: t.bg }}
                     aria-hidden="true"
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-ink text-[12px] font-medium"
                   >
                     {t.initials}
                   </span>
                   <span>
-                    <span className="block text-[15px] font-semibold text-ink">{t.name}</span>
-                    <span className="block text-small text-muted">{t.neighborhood}</span>
+                    <span className="block text-[14px] font-medium">{t.name}</span>
+                    <span className="text-label block text-muted">{t.neighborhood}</span>
                   </span>
                 </figcaption>
               </figure>
@@ -564,28 +480,23 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Atmospheric stats ── */}
-      <section className="relative py-28 px-6">
-        <img src={PHOTOS.statsBg} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-ink/80" />
-
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <p data-reveal className="text-clay-mid text-xs font-semibold uppercase tracking-widest mb-5">Growing every day</p>
-          <h2 data-reveal className="font-display font-bold text-white leading-tight mb-14"
-            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
-            Your neighbors are<br />already trading.
-          </h2>
-          <div data-reveal-group className="grid sm:grid-cols-3 gap-4">
+      {/* ── Stats over photograph ── */}
+      <section className="relative border-b border-ink py-28">
+        <img src={PHOTOS.statsBg} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-ink/60" />
+        <div className="relative z-10 mx-auto max-w-[1400px] px-5 lg:px-8 text-cream">
+          <p data-reveal className="text-label mb-14 opacity-80">Growing every day</p>
+          <div data-reveal-group className="grid gap-10 sm:grid-cols-3">
             {stats.map((item) => (
-              <div key={item.label} className="bg-white/8 backdrop-blur-sm border border-white/15 rounded-2xl px-8 py-7">
+              <div key={item.label}>
                 <p
                   data-count={item.value}
                   data-suffix={item.suffix}
-                  className="font-display text-4xl font-bold text-clay-mid mb-1"
+                  className="text-[clamp(3.5rem,8vw,7.5rem)] font-normal leading-none tracking-[-0.056em]"
                 >
                   {item.stat}
                 </p>
-                <p className="text-sm text-white/60">{item.label}</p>
+                <p className="text-label mt-4 opacity-80">{item.label}</p>
               </div>
             ))}
           </div>
@@ -593,27 +504,28 @@ export default function LandingPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section id="faq" className="bg-white px-6 py-24 scroll-mt-16">
-        <div className="max-w-2xl mx-auto">
-          <div data-reveal className="text-center mb-14">
-            <p className="text-xs font-semibold uppercase tracking-widest text-clay mb-3">Good questions</p>
-            <h2 className="font-display text-4xl lg:text-5xl font-bold text-ink">Before you ask</h2>
+      <section id="faq" className="scroll-mt-8 border-b border-ink">
+        <div className="mx-auto max-w-[1400px] px-5 py-24 lg:px-8">
+          <div data-reveal className="mb-16">
+            <p className="text-label mb-4 text-muted">Good questions</p>
+            <h2 className="text-heading-editorial">Before you ask</h2>
           </div>
 
-          <div data-reveal-group className="space-y-3">
+          <div data-reveal-group className="border-t border-ink">
             {faqs.map(({ q, a }, i) => {
               const open = openFaq === i
               return (
-                <div key={q} className="rounded-lg border border-sand-light bg-cream overflow-hidden">
+                <div key={q} className="border-b border-ink">
                   <button
                     type="button"
                     aria-expanded={open}
                     onClick={() => setOpenFaq(open ? null : i)}
-                    className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+                    className="flex w-full items-center justify-between gap-6 py-6 text-left"
                   >
-                    <span className="text-base font-semibold text-ink">{q}</span>
+                    <span className="text-[20px] font-medium tracking-tight">{q}</span>
                     <ChevronDown
-                      className={cn('h-5 w-5 shrink-0 text-muted transition-transform duration-300 ease-out-soft', open && 'rotate-180 text-clay')}
+                      strokeWidth={1.5}
+                      className={cn('h-5 w-5 shrink-0 transition-transform duration-300 ease-out-soft', open && 'rotate-180')}
                     />
                   </button>
                   <div
@@ -623,54 +535,41 @@ export default function LandingPage() {
                     )}
                   >
                     <div className="overflow-hidden">
-                      <p className="px-6 pb-6 text-[15px] text-ink-2 leading-relaxed">{a}</p>
+                      <p className="max-w-[60ch] pb-8 text-[18px] leading-[1.5] text-ink-2">{a}</p>
                     </div>
                   </div>
                 </div>
               )
             })}
           </div>
-
-          <p data-reveal className="mt-10 text-center text-[15px] text-muted">
-            Still curious?{' '}
-            <Link to="/browse" className="text-clay font-medium underline underline-offset-4">
-              Browse live listings
-            </Link>{' '}
-            and see what neighbors are trading right now.
-          </p>
         </div>
       </section>
 
-      {/* ── CTA ── */}
-      <section className="px-6 py-24 bg-forest text-white text-center">
-        <div data-reveal>
-          <p className="text-xs font-semibold uppercase tracking-widest text-forest-mid mb-5">Memphis neighbors</p>
-          <h2 className="font-display text-4xl lg:text-5xl font-bold mb-5 leading-tight">
-            Ready to swap?
-          </h2>
-          <p className="text-forest-mid mb-10 max-w-sm mx-auto leading-relaxed">
-            List something you have. Find something you need. Keep it in the neighborhood.
-          </p>
-          <Link to="/auth/signup">
-            <Button variant="confirm" size="lg">Get started — it's free</Button>
-          </Link>
-          <p className="mt-4 text-small text-forest-mid">Free forever. No credit card.</p>
+      {/* ── Final statement + CTA ── */}
+      <section className="border-b border-ink">
+        <div data-reveal className="mx-auto max-w-[1400px] px-5 py-28 lg:px-8">
+          <p className="text-label mb-6 text-muted">Memphis neighbors</p>
+          <h2 className="text-display mb-12">Ready<br />to swap?</h2>
+          <div className="flex flex-wrap items-center gap-6">
+            <Link to="/auth/signup">
+              <Button variant="primary" size="lg" className="text-label px-10">Get started — it's free</Button>
+            </Link>
+            <p className="text-label text-muted">Free forever · No credit card</p>
+          </div>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="px-6 py-10 bg-ink">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="font-display text-lg font-bold text-clay-mid">Bartrrr</span>
-          <div className="flex items-center gap-6 text-xs text-muted">
-            <Link to="/browse" className="hover:text-clay-mid transition-colors">Browse</Link>
-            <Link to="/auth/signup" className="hover:text-clay-mid transition-colors">Sign up</Link>
-            <Link to="/auth/login" className="hover:text-clay-mid transition-colors">Log in</Link>
-          </div>
-          <p className="text-xs text-muted">
-            Trade, don't buy. &copy; {new Date().getFullYear()}
-          </p>
+      <footer className="mx-auto flex max-w-[1400px] flex-col items-start justify-between gap-6 px-5 py-10 sm:flex-row sm:items-center lg:px-8">
+        <span className="text-[18px] font-medium lowercase tracking-tight">bartrrr</span>
+        <div className="flex items-center gap-7">
+          <Link to="/browse" className="text-label hover:opacity-60 transition-opacity">Browse</Link>
+          <Link to="/auth/signup" className="text-label hover:opacity-60 transition-opacity">Sign up</Link>
+          <Link to="/auth/login" className="text-label hover:opacity-60 transition-opacity">Log in</Link>
         </div>
+        <p className="text-label text-muted">
+          Trade, don't buy · © {new Date().getFullYear()}
+        </p>
       </footer>
 
     </div>

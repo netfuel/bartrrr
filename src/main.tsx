@@ -4,10 +4,6 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './providers/AuthProvider'
 import App from './App'
 import './styles/globals.css'
-import { initDarkMode } from '@/lib/utils/dark-mode'
-
-initDarkMode()
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

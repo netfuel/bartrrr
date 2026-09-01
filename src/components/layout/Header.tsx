@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Bell, Moon, Sun } from 'lucide-react'
+import { Search, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { toggleDarkMode, isDarkMode } from '@/lib/utils/dark-mode'
 import { useUnreadCount } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { NotificationDropdown } from './NotificationDropdown'
@@ -16,13 +15,7 @@ export function Header({ className }: HeaderProps) {
   const { currentUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
-  const [dark, setDark] = useState(isDarkMode)
   const notifRef = useRef<HTMLDivElement>(null)
-
-  const handleToggle = () => {
-    const next = toggleDarkMode()
-    setDark(next)
-  }
 
   const unreadCount = useUnreadCount(currentUser?.id)
 
@@ -46,12 +39,12 @@ export function Header({ className }: HeaderProps) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 bg-white/90 backdrop-blur-md border-b border-sand-light',
+        'sticky top-0 z-30 flex items-center gap-4 px-4 lg:px-6 py-3 bg-cream/95 backdrop-blur-sm border-b border-ink',
         className,
       )}
     >
       {/* Mobile logo */}
-      <span className="lg:hidden font-display text-xl font-bold text-clay">
+      <span className="lg:hidden text-[18px] font-medium lowercase tracking-tight text-ink">
         Bartrrr
       </span>
 
@@ -65,18 +58,9 @@ export function Header({ className }: HeaderProps) {
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleSearch}
           placeholder="Search listings, neighborhoods..."
-          className="w-full rounded-full border border-sand bg-cream pl-9 pr-4 py-2.5 text-[15px] placeholder:text-muted hover:border-clay-mid focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition-colors"
+          className="w-full rounded-full border border-ink bg-cream pl-9 pr-4 py-2.5 text-[15px] placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ink transition-colors"
         />
       </div>
-
-      {/* Dark mode toggle */}
-      <button
-        onClick={handleToggle}
-        className="pressable flex h-11 w-11 items-center justify-center rounded-full hover:bg-sand-light transition-colors text-muted hover:text-ink"
-        aria-label="Toggle dark mode"
-      >
-        {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
 
       {/* Notifications */}
       <div ref={notifRef} className="relative">

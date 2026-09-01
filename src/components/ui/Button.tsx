@@ -11,12 +11,13 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean
 }
 
+/* Square filled controls, pill outlines with exact color-inversion hover */
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-clay text-white shadow-soft hover:bg-clay-dark hover:shadow-lift',
-  confirm: 'bg-teal text-white shadow-soft hover:bg-teal-dark hover:shadow-lift',
-  secondary: 'bg-forest text-white shadow-soft hover:bg-forest-dark hover:shadow-lift',
-  outline: 'border-2 border-clay text-clay bg-transparent hover:bg-clay-light',
-  ghost: 'text-ink bg-transparent hover:bg-sand-light',
+  primary: 'rounded-none bg-ink text-cream hover:bg-ink-2',
+  confirm: 'rounded-none bg-forest text-cream hover:bg-forest-dark',
+  secondary: 'rounded-none bg-teal text-cream hover:bg-teal-dark',
+  outline: 'rounded-full border border-ink text-ink bg-transparent hover:bg-ink hover:text-cream',
+  ghost: 'rounded-full text-ink bg-transparent hover:bg-sand-light',
 }
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -43,7 +44,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'pressable inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-[background-color,box-shadow,transform] duration-200 ease-out-soft disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
+          'pressable inline-flex items-center justify-center gap-2 font-medium transition-[background-color,color,transform] duration-200 ease-out-soft disabled:opacity-50 disabled:cursor-not-allowed',
           variantStyles[variant],
           sizeStyles[size],
           className,
