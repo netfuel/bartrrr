@@ -65,7 +65,7 @@ export default function OffersInboxPage() {
               <Link
                 key={offer.id}
                 to={`/offers/${offer.id}`}
-                className="flex items-start gap-3 p-4 bg-white rounded-lg border border-sand-light hover:border-sand transition-colors"
+                className="flex items-start gap-3 p-4 border border-ink bg-cream transition-colors hover:bg-sand-light"
               >
                 <Avatar
                   src={otherUser?.avatarUrl}

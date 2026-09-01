@@ -17,11 +17,11 @@ export function Sidebar() {
   const { currentUser } = useAuth()
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-sand-light z-40">
+    <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-cream border-r border-ink z-40">
       {/* Logo */}
       <div className="px-6 py-6">
         <NavLink to="/" className="flex items-center gap-2">
-          <span className="font-display text-2xl font-bold text-clay">
+          <span className="text-[20px] font-medium lowercase tracking-tight text-ink">
             Bartrrr
           </span>
         </NavLink>
@@ -38,7 +38,7 @@ export function Sidebar() {
               cn(
                 'pressable flex items-center gap-3 px-3 py-2.5 rounded-md text-[15px] font-medium transition-[background-color,color] duration-200',
                 isActive
-                  ? 'bg-clay-light text-clay font-semibold'
+                  ? 'bg-ink text-cream font-medium'
                   : 'text-ink-2 hover:bg-sand-light hover:translate-x-0.5',
               )
             }
@@ -50,7 +50,7 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="px-3 py-4 border-t border-sand-light">
+      <div className="px-3 py-4 border-t border-ink">
         <div className="flex items-center gap-3 px-3">
           <Avatar
             name={currentUser?.displayName || 'User'}

@@ -12,7 +12,7 @@ const navItems = [
 
 export function BottomBar() {
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-sand-light z-40 safe-area-pb">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-cream/95 backdrop-blur-sm border-t border-ink z-40 safe-area-pb">
       <div className="flex items-center justify-around px-2 py-1">
         {navItems.map(({ to, label, icon: Icon, isPrimary }) => (
           <NavLink
@@ -24,14 +24,14 @@ export function BottomBar() {
                 isPrimary
                   ? ''
                   : isActive
-                    ? 'text-clay'
+                    ? 'text-ink'
                     : 'text-muted',
               )
             }
           >
             {({ isActive }) =>
               isPrimary ? (
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-clay text-white -mt-4 shadow-lift transition-transform duration-200 ease-spring group-active:scale-95">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-ink text-cream -mt-4 border border-cream transition-transform duration-200 ease-spring group-active:scale-95">
                   <Icon className="h-6 w-6" />
                 </div>
               ) : (
@@ -39,7 +39,7 @@ export function BottomBar() {
                   <span
                     className={cn(
                       'flex items-center justify-center rounded-full px-3 py-0.5 transition-[background-color,transform] duration-200 ease-spring',
-                      isActive && 'bg-clay-light scale-105',
+                      isActive && 'bg-ink text-cream scale-105',
                     )}
                   >
                     <Icon className="h-5 w-5" />

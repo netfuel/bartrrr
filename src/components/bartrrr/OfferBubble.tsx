@@ -32,10 +32,10 @@ function OfferBubbleInner({
         className={cn(
           'px-4 py-3 text-[15px] leading-relaxed shadow-soft',
           showAsConfirmed
-            ? 'bg-teal-light border border-teal rounded-[18px_18px_18px_4px]'
+            ? 'bg-teal-light border border-teal-dark rounded-none'
             : isOwn
-              ? 'bg-clay text-white rounded-[18px_18px_4px_18px]'
-              : 'bg-cream border border-sand rounded-[18px_18px_18px_4px]',
+              ? 'bg-ink text-cream rounded-none'
+              : 'bg-cream border border-ink rounded-none',
         )}
       >
         {/* Items offered */}

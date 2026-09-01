@@ -176,7 +176,7 @@ export default function ListingDetailPage() {
         </div>
 
         {/* Owner profile */}
-        <Link to={`/profile/${user.username}`} className="flex items-center gap-3 mt-6 p-3 bg-white rounded-lg border border-sand-light hover:border-sand transition-colors">
+        <Link to={`/profile/${user.username}`} className="flex items-center gap-3 mt-6 p-3 border border-ink bg-cream transition-colors hover:bg-sand-light">
           <Avatar src={user.avatarUrl} name={user.displayName} userId={user.id} size="lg" />
           <div className="flex-1">
             <p className="text-sm font-medium text-ink">{user.displayName}</p>
@@ -207,7 +207,7 @@ export default function ListingDetailPage() {
       </div>
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-16 lg:bottom-0 left-0 lg:left-60 right-0 bg-white border-t border-sand-light p-4 z-30">
+      <div className="fixed bottom-16 lg:bottom-0 left-0 lg:left-60 right-0 bg-cream border-t border-ink p-4 z-30">
         <div className="max-w-3xl mx-auto">
           {isOwner ? (
             <div className="flex gap-3">

@@ -183,7 +183,7 @@ export default function CreateListingPage() {
         {step === 3 && (
           <>
             <h2 className="font-display text-lg font-semibold">Review your listing</h2>
-            <div className="bg-white rounded-lg p-4 border border-sand-light space-y-3">
+            <div className="border border-ink bg-cream p-4 space-y-3">
               {images.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
                   {images.map((url) => (

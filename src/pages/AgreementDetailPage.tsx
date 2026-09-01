@@ -101,7 +101,7 @@ export default function AgreementDetailPage() {
       <BackLink to="/agreements" className="mb-2">Back to agreements</BackLink>
 
       {/* Journey: agree → meet → done */}
-      <div className="bg-white rounded-lg shadow-soft p-5 mb-4">
+      <div className="border border-ink bg-cream p-5 mb-4">
         <div className="flex items-center">
           {journey.map(({ label, icon: Icon }, i) => (
             <div key={label} className={cn('flex items-center', i > 0 && 'flex-1')}>
@@ -160,7 +160,7 @@ export default function AgreementDetailPage() {
 
       {/* Exchange details */}
       {(agreement.exchangeDate || agreement.exchangeLocation || agreement.specialInstructions) && (
-        <div className="mt-6 bg-white rounded-lg p-5 shadow-soft space-y-3">
+        <div className="mt-6 border border-ink bg-cream p-5 space-y-3">
           <h3 className="font-display text-lg font-semibold text-ink">When & where</h3>
           {agreement.exchangeMethod && (
             <div className="text-[15px]">

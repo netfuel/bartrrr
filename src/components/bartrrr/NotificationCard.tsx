@@ -20,7 +20,7 @@ export function NotificationCard({
   return (
     <div
       className={cn(
-        'flex gap-3 p-4 rounded-lg bg-white border transition-colors',
+        'flex gap-3 p-4 rounded-none bg-cream border transition-colors',
         notification.readAt ? 'border-sand-light' : 'border-clay-mid bg-clay-light/30',
         className,
       )}

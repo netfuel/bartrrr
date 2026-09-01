@@ -130,7 +130,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
 
       {/* Listing preview card on pin click */}
       {selectedListing && (
-        <div className="absolute bottom-4 left-4 right-4 bg-white rounded-xl shadow-lg border border-sand-light p-3 z-10">
+        <div className="absolute bottom-4 left-4 right-4 bg-cream rounded-none border border-ink p-3 z-10">
           <button
             type="button"
             className="absolute top-2 right-2 text-muted hover:text-ink text-xs"

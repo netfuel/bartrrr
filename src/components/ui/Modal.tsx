@@ -68,8 +68,8 @@ export function Modal({ onClose, labelledBy, align = 'center', className, childr
         aria-modal="true"
         aria-labelledby={labelledBy}
         className={cn(
-          'animate-scale-in relative w-full max-w-md max-h-[85vh] overflow-y-auto bg-white p-6 shadow-float focus:outline-none',
-          align === 'sheet' ? 'rounded-t-xl sm:rounded-xl' : 'rounded-xl',
+          'animate-scale-in relative w-full max-w-md max-h-[85vh] overflow-y-auto border border-ink bg-cream p-6 focus:outline-none',
+          'rounded-none',
           className,
         )}
       >

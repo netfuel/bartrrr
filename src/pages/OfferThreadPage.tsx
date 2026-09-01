@@ -117,7 +117,7 @@ export default function OfferThreadPage() {
       <BackLink to="/offers" className="mb-2">Back to offers</BackLink>
 
       {/* The trade, in plain terms */}
-      <div className="bg-white rounded-lg shadow-soft p-5 mb-4">
+      <div className="border border-ink bg-cream p-5 mb-4">
         <div className="flex items-center justify-between mb-4">
           <p className="text-label text-muted">The trade so far</p>
           <Badge variant={offer.status === 'accepted' ? 'teal' : offer.status === 'declined' ? 'clay' : 'gold'}>
@@ -155,7 +155,7 @@ export default function OfferThreadPage() {
       </div>
 
       {/* Where things stand */}
-      <div className="bg-white rounded-lg shadow-soft px-5 py-4 mb-6 overflow-x-auto">
+      <div className="border border-ink bg-cream px-5 py-4 mb-6 overflow-x-auto">
         <OfferTimeline offer={offer} />
         <p className="text-small text-muted mt-3">
           Round {offer.round} of {offer.maxRounds}
@@ -178,7 +178,7 @@ export default function OfferThreadPage() {
       )}
 
       {/* Action bar */}
-      <div className="fixed bottom-16 lg:bottom-0 left-0 lg:left-60 right-0 bg-white/95 backdrop-blur-md border-t border-sand-light p-4 z-30">
+      <div className="fixed bottom-16 lg:bottom-0 left-0 lg:left-60 right-0 bg-cream/95 backdrop-blur-sm border-t border-ink p-4 z-30">
         <div className="max-w-2xl mx-auto space-y-3">
           {/* Message composer for active offers */}
           {isActive && (

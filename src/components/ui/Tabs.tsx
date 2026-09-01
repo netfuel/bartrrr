@@ -53,8 +53,8 @@ export function Tabs<T extends string>({
       onKeyDown={handleKeyDown}
       className={cn(
         variant === 'pill'
-          ? 'flex gap-1 bg-sand-light rounded-full p-1'
-          : 'flex gap-1 overflow-x-auto border-b border-sand-light',
+          ? 'flex gap-1 border border-ink rounded-full p-1'
+          : 'flex gap-1 overflow-x-auto border-b border-ink',
         className,
       )}
     >
@@ -74,12 +74,12 @@ export function Tabs<T extends string>({
               variant === 'pill'
                 ? cn(
                     'flex-1 min-h-[40px] rounded-full px-3',
-                    isActive ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink-2',
+                    isActive ? 'bg-ink text-cream' : 'text-ink hover:bg-sand-light',
                   )
                 : cn(
                     'min-h-[44px] px-3 border-b-2 -mb-px',
                     isActive
-                      ? 'border-clay text-clay'
+                      ? 'border-ink text-ink'
                       : 'border-transparent text-muted hover:text-ink',
                   ),
             )}

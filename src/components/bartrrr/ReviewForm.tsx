@@ -29,7 +29,7 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-sand-light p-4 space-y-3">
+    <div className="border border-ink bg-cream p-4 space-y-3">
       <p className="text-sm font-medium text-ink">
         How was your trade with {revieweeName}?
       </p>

@@ -32,7 +32,7 @@ export function Toast({
     <div
       role="alert"
       className={cn(
-        'animate-toast-in flex items-center gap-3 rounded-lg border px-4 py-3 shadow-lift text-[15px]',
+        'animate-toast-in flex items-center gap-3 rounded-none border px-4 py-3 text-[15px]',
         typeStyles[type],
         className,
       )}

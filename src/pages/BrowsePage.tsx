@@ -54,7 +54,7 @@ export default function BrowsePage() {
   return (
     <div className="flex flex-col h-[calc(100vh-57px)]">
       {/* Filters bar */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-sand-light overflow-x-auto">
+      <div className="flex items-center gap-3 px-4 py-3 bg-cream border-b border-ink overflow-x-auto">
         {/* View toggle (mobile) */}
         <div className="flex items-center rounded-full border border-sand overflow-hidden shrink-0 lg:hidden">
           <button

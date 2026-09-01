@@ -28,7 +28,7 @@ function TradeCardInner({
   return (
     <div
       className={cn(
-        'rounded-lg bg-white shadow-sm overflow-hidden hover:shadow-md transition-shadow',
+        'border border-ink bg-cream overflow-hidden transition-colors hover:bg-sand-light',
         className,
       )}
     >

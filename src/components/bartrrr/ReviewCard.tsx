@@ -9,7 +9,7 @@ export interface ReviewCardProps {
 
 export function ReviewCard({ review, reviewer }: ReviewCardProps) {
   return (
-    <div className="bg-white rounded-lg border border-sand-light p-4 mb-3">
+    <div className="border border-ink bg-cream p-4 mb-3">
       <div className="flex items-center gap-3 mb-2">
         <Avatar
           name={reviewer.displayName}

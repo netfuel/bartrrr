@@ -32,8 +32,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            'min-h-[48px] rounded-md border border-sand bg-white px-4 py-2.5 text-base font-body text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay',
+            'min-h-[48px] rounded-none border border-ink bg-cream px-4 py-2.5 text-base font-body text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-200',
+            'focus:outline-none focus:ring-1 focus:ring-ink',
             error && 'border-clay text-clay focus:ring-clay',
             className,
           )}

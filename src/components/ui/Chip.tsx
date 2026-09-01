@@ -16,8 +16,8 @@ export function Chip({ label, selected = false, onToggle, className }: ChipProps
       className={cn(
         'pressable inline-flex items-center min-h-[40px] rounded-full px-4 py-1.5 text-[15px] font-medium transition-[background-color,border-color,color,transform,box-shadow] duration-200',
         selected
-          ? 'bg-clay text-white shadow-soft'
-          : 'bg-white border border-sand text-ink-2 hover:bg-sand-light hover:border-clay-mid',
+          ? 'bg-ink text-cream border border-ink'
+          : 'bg-transparent border border-ink text-ink hover:bg-ink hover:text-cream',
         className,
       )}
     >
