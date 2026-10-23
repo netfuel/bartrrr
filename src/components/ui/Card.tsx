@@ -17,7 +17,7 @@ export function Card({ children, padding = true, interactive = false, className,
         'border border-ink bg-cream overflow-hidden',
         padding && 'p-6',
         interactive &&
-          'pressable cursor-pointer transition-[background-color,transform] duration-200 ease-out-soft hover:bg-sand-light hover:-translate-y-0.5',
+          'pressable cursor-pointer transition-[background-color,transform] duration-300 ease-out-soft hover:bg-sand-light',
         className,
       )}
     >

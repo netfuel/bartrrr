@@ -14,10 +14,10 @@ export function Chip({ label, selected = false, onToggle, className }: ChipProps
       onClick={onToggle}
       aria-pressed={selected}
       className={cn(
-        'pressable inline-flex items-center min-h-[40px] rounded-full px-4 py-1.5 text-[15px] font-medium transition-[background-color,border-color,color,transform,box-shadow] duration-200',
+        'pressable inline-flex shrink-0 items-center whitespace-nowrap min-h-[40px] rounded-full px-4 py-1.5 text-[15px] font-medium transition-[background-color,border-color,color,transform] duration-200',
         selected
           ? 'bg-ink text-cream border border-ink'
-          : 'bg-transparent border border-ink text-ink hover:bg-ink hover:text-cream',
+          : 'bg-transparent border border-ink/30 text-ink hover:border-ink hover:bg-sand-light',
         className,
       )}
     >

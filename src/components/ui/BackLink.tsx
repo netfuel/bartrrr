@@ -14,11 +14,11 @@ export function BackLink({ to, children, className }: BackLinkProps) {
     <Link
       to={to}
       className={cn(
-        'inline-flex min-h-[44px] items-center gap-1.5 text-base text-muted hover:text-ink transition-colors',
+        'group inline-flex min-h-[44px] items-center gap-2 text-label text-muted hover:text-ink transition-colors',
         className,
       )}
     >
-      <ArrowLeft className="h-5 w-5" />
+      <ArrowLeft className="h-4 w-4 transition-transform duration-300 ease-out-soft group-hover:-translate-x-1" />
       {children}
     </Link>
   )

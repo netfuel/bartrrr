@@ -1,9 +1,10 @@
+// Initials fallbacks draw from the earth palette (all clear AA with cream text)
 const AVATAR_COLORS = [
-  '#C05A35',
-  '#2A5240',
-  '#3AABA6',
-  '#C88A2A',
-  '#7A9A3A',
+  '#9c5b3c', // clay
+  '#4a5240', // forest
+  '#4d6a62', // teal
+  '#86662a', // gold
+  '#5f6532', // moss
 ]
 
 export function hashToColor(id: string): string {

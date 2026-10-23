@@ -2,20 +2,23 @@
 @import 'tailwindcss';
 
 /*
- * Oakâme-adapted design system: sunlit warm-stone canvas, walnut ink,
- * hairline borders, bimodal type scale. Chromatic tokens survive as a
- * muted Provençal functional layer (status colors in app flows only).
+ * Editorial design system: sunlit linen canvas, walnut ink, hairline
+ * borders, bimodal type scale. Fraunces (soft optical serif) carries the
+ * statements; Inter carries the interface. Chromatic tokens are a muted
+ * earth layer — clay is the single accent, the rest mark status.
+ * Every text-on-surface pairing below clears WCAG AA (4.5:1).
  */
 @theme {
-  --font-display: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
   --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
   /* Canvas + ink */
   --color-linen: #f6f1eb;
   --color-cream: #f6f1eb;        /* legacy alias — page + card surface */
+  --color-paper: #fbf8f3;        /* raised surface: fields, documents */
   --color-ink: #403a34;          /* walnut ink: headings, borders, UI */
   --color-ink-2: #333333;        /* charcoal note: body copy */
-  --color-muted: #555555;        /* slate whisper: metadata */
+  --color-muted: #6b625a;        /* warm whisper: metadata (5.3:1 on linen) */
 
   /* Warm neutrals for subtle app fills */
   --color-sand: #d8cfc3;
@@ -33,14 +36,14 @@
   --color-forest-mid: #8a927e;
   --color-forest-dark: #2e3428;
 
-  --color-teal: #5f7c74;
+  --color-teal: #4d6a62;
   --color-teal-light: #e3eae7;
   --color-teal-dark: #3d544d;
 
-  --color-gold: #a8823c;
+  --color-gold: #86662a;
   --color-gold-light: #f0e7d4;
 
-  --color-moss: #7c8248;
+  --color-moss: #5f6532;
   --color-moss-light: #e9ead9;
 
   --radius-sm: 8px;
@@ -48,6 +51,9 @@
   --radius-lg: 18px;
   --radius-xl: 28px;
   --radius-pill: 9999px;
+
+  /* Rhythm: one page gutter + section cadence shared by every surface */
+  --spacing-gutter: 1.25rem;
 
   /* Motion vocabulary */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -93,7 +99,7 @@
 }
 
 :root {
-  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   --radius-sm: 8px;
@@ -124,16 +130,35 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* One face across the system — display is a size, not a family */
+/* Statements in Fraunces: soft, optical-sized, never heavier than 500 */
 h1, h2, .font-display {
   font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 50, 'WONK' 0;
+  font-feature-settings: 'ss01' off, 'tnum' off, 'lnum' on;
+  letter-spacing: -0.015em;
+}
+h1.font-semibold, h2.font-semibold, h3.font-display.font-semibold, .font-display.font-semibold {
+  font-weight: 500;
+}
+/* The serif's italic is the system's emphasis voice */
+.font-display em, h1 em, h2 em, .serif-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-variation-settings: 'SOFT' 100, 'WONK' 1;
 }
 
-/* One consistent, visible focus ring everywhere */
+/* One consistent, visible focus ring everywhere — clay so it reads
+   against walnut hairlines and filled ink controls alike */
 :focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-clay);
+  outline-offset: 3px;
   border-radius: 2px;
+}
+
+/* Interface icons share one hairline stroke weight */
+svg.lucide {
+  stroke-width: 1.5px;
 }
 
 ::selection {
@@ -146,29 +171,49 @@ h1, h2, .font-display {
 /* Hero display word: monumental, weight does not carry it — size does */
 .text-display {
   font-family: var(--font-display);
-  font-size: clamp(3.5rem, 13vw, 12.5rem);
-  font-weight: 400;
-  line-height: 1.1;
-  letter-spacing: -0.056em;
+  font-size: clamp(4.25rem, 17.5vw, 12.5rem);
+  font-weight: 350;
+  font-variation-settings: 'SOFT' 100, 'WONK' 0;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
 }
 
-/* Full-bleed uppercase section opener, wraps 2–4 tight lines */
+/* Section opener: sentence case, wraps 2–3 lines, italic for emphasis */
 .text-heading-editorial {
   font-family: var(--font-display);
-  font-size: clamp(2.5rem, 4.5vw, 3.75rem);
-  font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
+  font-size: clamp(2.5rem, 5.2vw, 4.75rem);
+  font-weight: 380;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 
 /* App page titles: the 40px scale step, sentence case */
 .text-heading-page {
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  font-weight: 500;
-  line-height: 1.25;
-  letter-spacing: -0.04em;
+  font-size: clamp(2rem, 4.4vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+/* In-page section title (cards, panels, modals): the 22px step */
+.text-heading-section {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 450;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+}
+
+/* Editorial numerals for stats and counters */
+.text-numeral {
+  font-family: var(--font-display);
+  font-weight: 350;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 /* Tracked-out museum label (floored at 12px for legibility) */
@@ -186,6 +231,51 @@ h1, h2, .font-display {
 /* 1px walnut hairline — the only divider in the system */
 .hairline {
   border-top: 1px solid var(--color-ink);
+}
+
+/* Small eyebrow with a clay tick — opens every section and page */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.083em;
+  color: var(--color-muted);
+}
+.eyebrow::before {
+  content: '';
+  width: 1.25rem;
+  height: 1px;
+  background: var(--color-clay);
+}
+
+/* Photography: a whisper of warmth so stock and user photos sit together */
+.photo-warm {
+  filter: saturate(0.92) sepia(0.06) contrast(1.02);
+}
+
+/* Paper texture for documents (agreements) — two soft radial washes */
+.paper {
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(120% 60% at 0% 0%, rgba(199, 154, 127, 0.08), transparent 60%),
+    radial-gradient(90% 50% at 100% 100%, rgba(138, 146, 126, 0.08), transparent 60%);
+}
+
+/* Text link with a drawn hairline underline that wipes in on hover */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  padding-bottom: 2px;
+  transition: background-size 0.45s var(--ease-out-soft), color 0.2s var(--ease-out-soft);
+}
+.link-underline:hover,
+.link-underline:focus-visible {
+  background-size: 100% 1px;
 }
 
 /* Press feedback for anything tappable */
@@ -223,7 +313,10 @@ h1, h2, .font-display {
   to { transform: translateX(-50%); }
 }
 .animate-ticker {
-  animation: ticker 30s linear infinite;
+  animation: ticker 48s linear infinite;
+}
+.ticker:hover .animate-ticker {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {

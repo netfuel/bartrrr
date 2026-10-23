@@ -45,7 +45,7 @@ export function Avatar({
         loading="lazy"
         style={{ width: px, height: px }}
         className={cn(
-          'rounded-full object-cover shrink-0',
+          'photo-warm rounded-full object-cover shrink-0 bg-sand-light ring-1 ring-ink/10',
           className,
         )}
       />
@@ -58,7 +58,7 @@ export function Avatar({
       className={cn(
         'rounded-full flex items-center justify-center shrink-0',
         text,
-        'font-semibold text-white',
+        'font-medium tracking-wide text-cream',
         className,
       )}
     >

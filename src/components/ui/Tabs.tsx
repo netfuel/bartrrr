@@ -77,9 +77,9 @@ export function Tabs<T extends string>({
                     isActive ? 'bg-ink text-cream' : 'text-ink hover:bg-sand-light',
                   )
                 : cn(
-                    'min-h-[44px] px-3 border-b-2 -mb-px',
+                    'min-h-[48px] px-3 border-b-2 -mb-px',
                     isActive
-                      ? 'border-ink text-ink'
+                      ? 'border-clay text-ink'
                       : 'border-transparent text-muted hover:text-ink',
                   ),
             )}
@@ -87,7 +87,7 @@ export function Tabs<T extends string>({
             {tab.icon}
             {tab.label}
             {tab.count !== undefined && tab.count > 0 && (
-              <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-clay text-white text-[10px] font-bold px-1">
+              <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-clay text-cream text-[11px] font-semibold tabular-nums px-1">
                 {tab.count}
               </span>
             )}

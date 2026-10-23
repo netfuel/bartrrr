@@ -8,13 +8,15 @@ export interface BadgeProps {
   children: React.ReactNode
 }
 
-const variantStyles: Record<BadgeVariant, string> = {
-  clay: 'bg-clay-light text-clay',
-  teal: 'bg-teal-light text-teal-dark',
-  gold: 'bg-gold-light text-gold',
-  moss: 'bg-moss-light text-moss',
-  active: 'bg-teal-light text-teal-dark',
-  closed: 'bg-sand-light text-muted',
+/* A quiet label with a colored tick: the hue marks the category or
+   status, the text stays ink so it clears AA on any surface (incl. photos). */
+const dotStyles: Record<BadgeVariant, string> = {
+  clay: 'bg-clay',
+  teal: 'bg-teal',
+  gold: 'bg-gold',
+  moss: 'bg-moss',
+  active: 'bg-teal',
+  closed: 'bg-muted/50',
 }
 
 export function Badge({
@@ -25,11 +27,12 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-label',
-        variantStyles[variant],
+        'inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-cream/95 px-2.5 py-[5px] text-label leading-none text-ink-2 backdrop-blur-sm',
+        variant === 'closed' && 'text-muted',
         className,
       )}
     >
+      <span aria-hidden="true" className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dotStyles[variant])} />
       {children}
     </span>
   )

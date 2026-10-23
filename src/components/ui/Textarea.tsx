@@ -22,7 +22,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-[15px] font-medium text-ink-2"
+            className="text-label text-ink-2"
           >
             {label}
           </label>
@@ -33,9 +33,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            'rounded-none border border-ink bg-cream px-4 py-3 text-base font-body text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-200 resize-y min-h-[96px]',
-            'focus:outline-none focus:ring-1 focus:ring-ink',
-            error && 'border-clay text-clay focus:ring-clay',
+            'rounded-none border border-ink/40 bg-paper px-4 py-3 text-base font-body text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-200 resize-y min-h-[96px]',
+            'hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay',
+            error && 'border-clay text-clay-dark focus:ring-clay',
             className,
           )}
           {...props}
