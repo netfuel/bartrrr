@@ -121,15 +121,18 @@ const SHOWCASE_SIZE = 8
  * Inventory for the "trading right now" strip. Demo builds show sample
  * listings; real builds show real active listings (publicly readable) and
  * fall back to a "be one of the first" invitation when there are none.
- * Sample data is imported lazily so it never ships in production chunks.
+ * Sample data comes from the demo-gated store, so production builds drop it.
  */
 function useShowcaseListings(): Listing[] | null {
   const [listings, setListings] = useState<Listing[] | null>(null)
   useEffect(() => {
     let cancelled = false
     const load: Promise<Listing[]> = DEMO_MODE
-      ? import('@/data/mock-listings').then(({ mockListings }) =>
-          mockListings.filter((l) => l.status === 'active' && l.images[0]).slice(0, SHOWCASE_SIZE),
+      ? // Through the store, not '@/data/mock-listings' directly: a dynamic
+        // import of that module would split it into its own chunk, which the
+        // stores chunk then imports even in production builds.
+        import('@/stores/listings-store').then(({ initialListings }) =>
+          initialListings().filter((l) => l.status === 'active' && l.images[0]).slice(0, SHOWCASE_SIZE),
         )
       : HAS_SUPABASE
         ? fetchShowcaseListings(SHOWCASE_SIZE)

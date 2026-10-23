@@ -184,7 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Supabase auth lifecycle ───────────────────────────────────────────────
   useEffect(() => {
     if (!supabase) {
-      // Offline demo mode: a persisted demo login is not restored, so start signed out
+      // Offline demo mode: no Supabase session; the auth store restores any
+      // persisted demo login (see auth-store.ts)
       setIsLoading(false)
       return
     }
