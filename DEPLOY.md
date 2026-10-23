@@ -10,7 +10,7 @@ Replace `<ref>` below with your Supabase project ref (the subdomain of your proj
    ```sh
    npx supabase login
    npx supabase link --project-ref <ref>
-   npx supabase db push          # applies supabase/migrations/001–004
+   npx supabase db push          # applies supabase/migrations/001–006
    ```
    Migrations contain schema only. `002_seed_data.sql` is an intentional no-op (kept so numbering stays stable); the demo users and listings live in `supabase/seed.sql`, which only `supabase db reset` loads on a **local** database. `db push` never runs it, so a fresh production database starts empty.
 
@@ -111,7 +111,7 @@ What the repo ships for Pages:
 ## 5. Launch checklist
 
 - [ ] `npm run typecheck && npm run lint && npm run build` pass
-- [ ] Migrations 001–004 applied; `select public.expire_stale_offers()` runs without error
+- [ ] Migrations 001–006 applied; `select public.expire_stale_offers()` runs without error
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
