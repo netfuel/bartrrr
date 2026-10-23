@@ -1,4 +1,4 @@
-// Auto-typed to match supabase/migrations/001_initial_schema.sql
+// Auto-typed to match supabase/migrations/ (001 through 004)
 // Do not edit by hand — regenerate with: npx supabase gen types typescript
 
 export type Json =
@@ -70,6 +70,7 @@ export interface Database {
           distance_mi: number
           status: 'active' | 'pending' | 'completed' | 'withdrawn'
           created_at: string
+          expires_at: string
         }
         Insert: {
           id?: string
@@ -86,6 +87,7 @@ export interface Database {
           distance_mi?: number
           status?: 'active' | 'pending' | 'completed' | 'withdrawn'
           created_at?: string
+          expires_at?: string
         }
         Update: {
           id?: string
@@ -102,6 +104,7 @@ export interface Database {
           distance_mi?: number
           status?: 'active' | 'pending' | 'completed' | 'withdrawn'
           created_at?: string
+          expires_at?: string
         }
         Relationships: []
       }
@@ -111,36 +114,39 @@ export interface Database {
           listing_id: string
           from_user_id: string
           to_user_id: string
-          status: 'pending' | 'countered' | 'accepted' | 'declined' | 'withdrawn'
+          status: 'pending' | 'countered' | 'accepted' | 'declined' | 'withdrawn' | 'expired'
           round: number
           max_rounds: number
           expires_at: string | null
           created_at: string
           updated_at: string
+          last_actor_id: string | null
         }
         Insert: {
           id?: string
           listing_id: string
           from_user_id: string
           to_user_id: string
-          status?: 'pending' | 'countered' | 'accepted' | 'declined' | 'withdrawn'
+          status?: 'pending' | 'countered' | 'accepted' | 'declined' | 'withdrawn' | 'expired'
           round?: number
           max_rounds?: number
           expires_at?: string | null
           created_at?: string
           updated_at?: string
+          last_actor_id?: string | null
         }
         Update: {
           id?: string
           listing_id?: string
           from_user_id?: string
           to_user_id?: string
-          status?: 'pending' | 'countered' | 'accepted' | 'declined' | 'withdrawn'
+          status?: 'pending' | 'countered' | 'accepted' | 'declined' | 'withdrawn' | 'expired'
           round?: number
           max_rounds?: number
           expires_at?: string | null
           created_at?: string
           updated_at?: string
+          last_actor_id?: string | null
         }
         Relationships: []
       }
