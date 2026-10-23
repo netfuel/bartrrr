@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Map, List, SlidersHorizontal } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, usePageTitle } from '@/lib/utils'
 import { Chip, EmptyState, Skeleton } from '@/components/ui'
 import { lazy, Suspense } from 'react'
 import { TradeCard } from '@/components/bartrrr'
@@ -40,10 +40,19 @@ export default function BrowsePage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  usePageTitle('Browse listings')
 
   const searchQuery = searchParams.get('q') || ''
   const listings = useListingsStore((s) => s.listings)
   const getUserById = useUsersStore((s) => s.getUserById)
+
+  const hasActiveListings = listings.some((l) => l.status === 'active')
+  const isFiltered = Boolean(searchQuery || maxDistance || selectedCategory)
+  const clearFilters = () => {
+    setSelectedCategory(null)
+    setMaxDistance(null)
+    if (searchQuery) navigate('/browse')
+  }
 
   const filteredListings = listings
     .filter((l) => l.status === 'active')
@@ -56,10 +65,12 @@ export default function BrowsePage() {
       {/* Filters bar */}
       <div className="flex items-center gap-3 px-4 py-3 bg-cream border-b border-ink overflow-x-auto">
         {/* View toggle (mobile) */}
-        <div className="flex items-center rounded-full border border-sand overflow-hidden shrink-0 lg:hidden">
+        <div role="group" aria-label="View" className="flex items-center rounded-full border border-sand overflow-hidden shrink-0 lg:hidden">
           <button
             type="button"
             onClick={() => setView('list')}
+            aria-label="List view"
+            aria-pressed={view === 'list'}
             className={cn('p-2 transition-colors', view === 'list' ? 'bg-clay text-white' : 'text-muted')}
           >
             <List className="h-4 w-4" />
@@ -67,6 +78,8 @@ export default function BrowsePage() {
           <button
             type="button"
             onClick={() => setView('map')}
+            aria-label="Map view"
+            aria-pressed={view === 'map'}
             className={cn('p-2 transition-colors', view === 'map' ? 'bg-clay text-white' : 'text-muted')}
           >
             <Map className="h-4 w-4" />
@@ -74,7 +87,7 @@ export default function BrowsePage() {
         </div>
 
         {/* Category chips */}
-        <div className="flex items-center gap-2">
+        <div role="group" aria-label="Category" className="flex items-center gap-2">
           <Chip label="All" selected={selectedCategory === null} onToggle={() => setSelectedCategory(null)} />
           {categories.map((cat) => (
             <Chip
@@ -90,6 +103,8 @@ export default function BrowsePage() {
         <button
           type="button"
           onClick={() => setShowFilters(!showFilters)}
+          aria-label="Distance filter"
+          aria-expanded={showFilters}
           className={cn(
             'p-2 rounded-full shrink-0 transition-colors',
             showFilters ? 'bg-clay text-white' : 'text-muted hover:bg-sand-light',
@@ -101,8 +116,8 @@ export default function BrowsePage() {
 
       {/* Distance filter bar */}
       {showFilters && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-sand-light border-b border-sand overflow-x-auto">
-          <span className="text-xs text-muted shrink-0">Distance:</span>
+        <div role="group" aria-labelledby="distance-label" className="flex items-center gap-2 px-4 py-2 bg-sand-light border-b border-sand overflow-x-auto">
+          <span id="distance-label" className="text-xs text-muted shrink-0">Within</span>
           {distanceOptions.map((opt) => (
             <Chip
               key={opt.label}
@@ -117,8 +132,10 @@ export default function BrowsePage() {
       {/* Search indicator */}
       {searchQuery && (
         <div className="px-4 py-2 bg-gold-light text-sm text-gold flex items-center justify-between">
-          <span>Results for "{searchQuery}"</span>
-          <button onClick={() => navigate('/browse')} className="text-xs underline">Clear</button>
+          <span aria-live="polite">
+            {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} for “{searchQuery}”
+          </span>
+          <button type="button" onClick={() => navigate('/browse')} className="text-xs underline">Clear search</button>
         </div>
       )}
 
@@ -143,12 +160,25 @@ export default function BrowsePage() {
         {/* Card grid */}
         <div className={cn('flex-1 overflow-y-auto p-4', 'lg:block', view === 'list' ? 'block' : 'hidden')}>
           {filteredListings.length === 0 ? (
-            <EmptyState
-              title="No listings here yet"
-              description="Your neighbors haven't posted yet — be the first! Post something you'd love to trade."
-              actionLabel="Post a listing"
-              onAction={() => navigate('/listing/new')}
-            />
+            isFiltered && hasActiveListings ? (
+              <EmptyState
+                title="No matches"
+                description={
+                  searchQuery
+                    ? `Nothing nearby matches “${searchQuery}” with these filters. Try a different word or widen your search.`
+                    : 'Nothing nearby matches these filters. Try another category or a wider distance.'
+                }
+                actionLabel="Clear filters"
+                onAction={clearFilters}
+              />
+            ) : (
+              <EmptyState
+                title="No listings here yet"
+                description="Your neighbors haven't posted yet. Be the first: post something you'd love to trade."
+                actionLabel="Post a listing"
+                onAction={() => navigate('/listing/new')}
+              />
+            )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredListings.map((listing) => {

@@ -1,12 +1,12 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { MapPin, Star, ChevronLeft, ChevronRight, Pencil, XCircle, RefreshCw, PartyPopper } from 'lucide-react'
 import { useState, useRef, useMemo } from 'react'
-import { Button, Badge, Avatar, ShareButton, BackLink } from '@/components/ui'
+import { Button, Badge, Avatar, ShareButton, BackLink, ConfirmDialog } from '@/components/ui'
 import { TradeCard, OfferBuilder } from '@/components/bartrrr'
-import { useListingsStore, useUsersStore } from '@/stores'
+import { useListingsStore, useUsersStore, showToast } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
-import { formatDistance } from '@/lib/utils'
-import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/types'
+import { formatDistance, usePageTitle } from '@/lib/utils'
+import { CATEGORY_LABELS, CATEGORY_COLORS, CONDITION_LABELS } from '@/types'
 
 const badgeVariant = CATEGORY_COLORS as Record<string, 'clay' | 'teal' | 'gold' | 'moss'>
 
@@ -23,6 +23,8 @@ export default function ListingDetailPage() {
   const user = listing ? getUserById(listing.userId) : undefined
   const [imageIndex, setImageIndex] = useState(0)
   const [showOfferBuilder, setShowOfferBuilder] = useState(false)
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
+  usePageTitle(listing?.title ?? 'Listing')
   const galleryRef = useRef<HTMLDivElement>(null)
   const justCreated = Boolean(location.state?.justCreated)
 
@@ -44,8 +46,8 @@ export default function ListingDetailPage() {
   if (!listing || !user) {
     return (
       <div className="p-8 text-center">
-        <p className="text-muted">Listing not found.</p>
-        <Link to="/browse" className="text-ink underline underline-offset-4 text-sm mt-2 inline-block">Back to browse</Link>
+        <p className="text-muted">We couldn't find this listing. It may have been traded or taken down.</p>
+        <Link to="/browse" className="text-ink underline underline-offset-4 text-sm mt-2 inline-block">Browse other listings</Link>
       </div>
     )
   }
@@ -65,11 +67,11 @@ export default function ListingDetailPage() {
           <PartyPopper className="h-6 w-6 text-teal shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-base font-medium text-teal-dark">Your listing is live!</p>
-            <p className="text-small text-teal-dark/80">Share it so neighbors know what you're trading for.</p>
+            <p className="text-small text-teal-dark/80">Neighbors can make offers for the next 30 days. Share it to get offers sooner.</p>
           </div>
           <ShareButton
             title={listing.title}
-            text={`I'm trading "${listing.title}" on Bartrrr — looking for ${listing.seeking}. Come barter!`}
+            text={`I'm trading "${listing.title}" on Bartrrr. I'm looking for ${listing.seeking}. Make me an offer!`}
             card={{
               title: listing.title,
               seeking: listing.seeking,
@@ -92,7 +94,7 @@ export default function ListingDetailPage() {
           }}
           tabIndex={0}
           role="region"
-          aria-label={`Photo gallery, ${listing.images.length} photos. Use arrow keys to browse.`}
+          aria-label={`Photos of ${listing.title}: ${listing.images.length} ${listing.images.length === 1 ? 'photo' : 'photos'}. Use the arrow keys to browse.`}
           onKeyDown={(e) => {
             if (e.key === 'ArrowRight') scrollToImage(Math.min(listing.images.length - 1, imageIndex + 1))
             if (e.key === 'ArrowLeft') scrollToImage(Math.max(0, imageIndex - 1))
@@ -142,14 +144,15 @@ export default function ListingDetailPage() {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <Badge variant={badgeVariant[listing.category]}>{CATEGORY_LABELS[listing.category]}</Badge>
-              {listing.condition && <Badge variant="closed">{listing.condition.replace('_', ' ')}</Badge>}
-              {listing.status === 'closed' && <Badge variant="closed">Closed</Badge>}
+              {listing.condition && <Badge variant="closed">{CONDITION_LABELS[listing.condition]}</Badge>}
+              {listing.status === 'pending' && <Badge variant="gold">Trade in progress</Badge>}
+              {listing.status === 'closed' && <Badge variant="closed">No longer available</Badge>}
             </div>
             <h1 className="text-heading-page text-ink">{listing.title}</h1>
           </div>
           <ShareButton
             title={listing.title}
-            text={`Check out "${listing.title}" on Bartrrr — they're looking to trade for ${listing.seeking}.`}
+            text={`Check out "${listing.title}" on Bartrrr. They'd trade it for ${listing.seeking}.`}
             card={{
               title: listing.title,
               seeking: listing.seeking,
@@ -172,7 +175,7 @@ export default function ListingDetailPage() {
 
         <div className="mt-6 bg-forest-light rounded-none p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-forest mb-1">Looking for</p>
-          <p className="text-sm text-forest-dark leading-relaxed">{listing.seeking}</p>
+          <p className="text-sm text-forest-dark leading-relaxed">{listing.seeking || 'Open to offers'}</p>
         </div>
 
         {/* Owner profile */}
@@ -187,7 +190,7 @@ export default function ListingDetailPage() {
               <Star className="h-4 w-4 fill-gold" />
               {user.reputationScore.toFixed(1)}
             </div>
-            <p className="text-xs text-muted">{user.tradeCount} trades</p>
+            <p className="text-xs text-muted">{user.tradeCount} {user.tradeCount === 1 ? 'trade' : 'trades'}</p>
           </div>
         </Link>
 
@@ -214,15 +217,26 @@ export default function ListingDetailPage() {
               {listing.status === 'active' ? (
                 <>
                   <Button variant="outline" className="flex-1" onClick={() => navigate(`/listing/${listing.id}/edit`)}>
-                    <Pencil className="h-4 w-4" /> Edit
+                    <Pencil className="h-4 w-4" /> Edit listing
                   </Button>
-                  <Button variant="ghost" className="flex-1" onClick={() => { withdrawListing(listing.id); navigate('/browse') }}>
-                    <XCircle className="h-4 w-4" /> Withdraw
+                  <Button variant="ghost" className="flex-1" onClick={() => setShowWithdrawConfirm(true)}>
+                    <XCircle className="h-4 w-4" /> Take down
                   </Button>
                 </>
+              ) : listing.status === 'pending' ? (
+                <Button variant="ghost" className="flex-1" disabled>
+                  You have a trade in progress for this listing
+                </Button>
               ) : (
-                <Button variant="primary" className="flex-1" onClick={() => { renewListing(listing.id) }}>
-                  <RefreshCw className="h-4 w-4" /> Renew listing
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={() => {
+                    renewListing(listing.id)
+                    showToast('Listing renewed. It stays up for another 30 days.', 'success')
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4" /> Relist for 30 days
                 </Button>
               )}
             </div>
@@ -232,11 +246,34 @@ export default function ListingDetailPage() {
             </Button>
           ) : (
             <Button variant="ghost" size="lg" className="w-full" disabled>
-              This listing is no longer active
+              {listing.status === 'pending'
+                ? 'A trade for this is in progress'
+                : 'This listing is no longer available'}
             </Button>
           )}
         </div>
       </div>
+
+      {showWithdrawConfirm && (
+        <ConfirmDialog
+          title="Take down this listing?"
+          description={
+            <p>
+              Neighbors won't see it anymore and can't make new offers. You can relist it later
+              from this page.
+            </p>
+          }
+          confirmLabel="Take down listing"
+          cancelLabel="Keep it up"
+          onConfirm={() => {
+            setShowWithdrawConfirm(false)
+            withdrawListing(listing.id)
+            showToast('Listing taken down. You can relist it anytime.', 'info')
+            navigate('/dashboard')
+          }}
+          onClose={() => setShowWithdrawConfirm(false)}
+        />
+      )}
 
       {/* OfferBuilder modal */}
       {showOfferBuilder && (
