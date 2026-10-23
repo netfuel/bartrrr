@@ -189,7 +189,7 @@ export default function OfferThreadPage() {
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-2 sm:gap-3">
+          <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
             {isActive ? (
               isWaiting ? (
                 <Button variant="ghost" disabled className="flex-1">
@@ -201,11 +201,11 @@ export default function OfferThreadPage() {
                     No thanks
                   </Button>
                   {canCounter && (
-                    <Button variant="outline" className="flex-1 whitespace-nowrap px-3 text-[14px] sm:text-[15px]" aria-expanded={showCounterForm} onClick={() => setShowCounterForm(!showCounterForm)}>
+                    <Button variant="outline" className="flex-1 min-w-max whitespace-nowrap px-3 text-[14px] sm:text-[15px]" aria-expanded={showCounterForm} onClick={() => setShowCounterForm(!showCounterForm)}>
                       Suggest a change
                     </Button>
                   )}
-                  <Button variant="confirm" className="flex-1 whitespace-nowrap px-3 text-[14px] sm:text-[15px]" onClick={handleAccept}>
+                  <Button variant="confirm" className="flex-1 min-w-max whitespace-nowrap px-4 text-[14px] sm:text-[15px]" onClick={handleAccept}>
                     Accept trade
                   </Button>
                 </>

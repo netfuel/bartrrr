@@ -12,7 +12,7 @@ export interface AvatarProps {
 }
 
 const sizeMap: Record<AvatarSize, { px: number; text: string }> = {
-  sm: { px: 22, text: 'text-[9px]' },
+  sm: { px: 22, text: 'text-[10px]' },
   md: { px: 32, text: 'text-xs' },
   lg: { px: 44, text: 'text-sm' },
   xl: { px: 64, text: 'text-lg' },

@@ -161,9 +161,9 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
             )}
             <div className="flex-1 min-w-0 pr-6">
               <p className="font-display text-[18px] leading-tight text-ink truncate">{selectedListing.title}</p>
-              <p className="text-xs text-muted">{selectedListing.location.neighborhood}</p>
+              <p className="text-small text-muted">{selectedListing.location.neighborhood}</p>
               {selectedListing.distanceMi !== undefined && (
-                <p className="text-xs text-muted">
+                <p className="text-small text-muted">
                   {selectedListing.distanceMi < 0.1
                     ? 'Nearby'
                     : selectedListing.distanceMi < 1
@@ -172,7 +172,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
                 </p>
               )}
               {users[selectedListing.userId] && (
-                <p className="text-xs text-muted mt-0.5">
+                <p className="text-small text-muted mt-0.5">
                   {users[selectedListing.userId].displayName}
                 </p>
               )}
