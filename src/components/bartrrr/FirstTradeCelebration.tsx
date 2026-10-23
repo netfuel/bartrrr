@@ -49,19 +49,19 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
 
         {/* Title */}
         <h2 id="first-trade-title" className="text-heading-page text-ink mb-2">
-          First Trade Complete!
+          First trade complete!
         </h2>
 
         {/* Subtitle */}
         <p className="text-sm text-muted leading-relaxed mb-8">
-          You're officially a Bartrrr trader. Welcome to the neighborhood.
+          You're officially a Bartrrr trader. Leave a review for your neighbor, then list something new to keep the swaps going.
         </p>
 
         {/* Actions */}
         <div className="flex flex-col gap-3">
           <ShareButton
             title="My first Bartrrr trade!"
-            text="I just completed my first trade on Bartrrr — swapping with neighbors instead of buying. Come barter with us!"
+            text="I just made my first trade on Bartrrr: swapping with Memphis neighbors, no cash needed. Come trade with us!"
             url={window.location.origin}
             label="Share the news"
             variant="primary"
@@ -74,7 +74,7 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
             </Button>
           </Link>
           <Button variant="ghost" size="lg" onClick={onClose} className="w-full">
-            Keep exploring
+            Leave a review
           </Button>
         </div>
     </Modal>

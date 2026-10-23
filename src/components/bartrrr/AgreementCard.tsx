@@ -1,7 +1,8 @@
+import { useId, useState } from 'react'
 import { ArrowLeftRight, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, Button, Badge } from '@/components/ui'
-import type { TradeAgreement, UserProfile } from '@/types'
+import { AGREEMENT_STATUS_LABELS, type TradeAgreement, type UserProfile } from '@/types'
 
 export interface AgreementCardProps {
   agreement: TradeAgreement
@@ -10,16 +11,6 @@ export interface AgreementCardProps {
   currentUserId?: string
   onSign?: () => void
   className?: string
-}
-
-const statusLabels: Record<string, string> = {
-  draft: 'Draft',
-  under_review: 'Under Review',
-  pending_signatures: 'Waiting for signatures',
-  active: 'Ready to swap',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  disputed: 'Disputed',
 }
 
 const statusBadgeVariant: Record<string, 'teal' | 'gold' | 'clay' | 'moss' | 'active' | 'closed'> = {
@@ -40,6 +31,8 @@ export function AgreementCard({
   onSign,
   className,
 }: AgreementCardProps) {
+  const [acknowledged, setAcknowledged] = useState(false)
+  const ackId = useId()
   const bothSigned = agreement.partyA.signed && agreement.partyB.signed
   const isPartyA = currentUserId === agreement.partyA.userId
   const isParticipant = currentUserId === agreement.partyA.userId || currentUserId === agreement.partyB.userId
@@ -74,10 +67,10 @@ export function AgreementCard({
       {/* Status badge */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-display text-xl font-semibold text-ink">
-          Trade Agreement
+          Trade agreement
         </h3>
         <Badge variant={statusBadgeVariant[agreement.status]}>
-          {statusLabels[agreement.status]}
+          {AGREEMENT_STATUS_LABELS[agreement.status]}
         </Badge>
       </div>
 
@@ -112,7 +105,7 @@ export function AgreementCard({
           >
             {signed && <Check className="h-4 w-4" />}
             {currentUserId === user.id ? 'You' : user.displayName.split(' ')[0]}
-            {signed ? ' signed' : ' — not signed yet'}
+            {signed ? ' signed' : currentUserId === user.id ? " haven't signed yet" : " hasn't signed yet"}
           </span>
         ))}
       </div>
@@ -120,25 +113,40 @@ export function AgreementCard({
       {/* CTA */}
       {!bothSigned && !hasSigned && onSign && isParticipant && (
         <div className="mt-5">
-          <Button variant="confirm" size="lg" onClick={onSign} className="w-full">
-            <Check className="h-5 w-5" /> I agree to this trade
+          <label htmlFor={ackId} className="flex items-start gap-3 mb-4 text-[15px] text-ink-2 cursor-pointer">
+            <input
+              id={ackId}
+              type="checkbox"
+              checked={acknowledged}
+              onChange={(e) => setAcknowledged(e.target.checked)}
+              className="mt-1 w-4 h-4 accent-clay shrink-0"
+            />
+            <span>
+              I've described what I'm giving honestly, including its condition, and I agree to
+              these terms.
+            </span>
+          </label>
+          <Button variant="confirm" size="lg" onClick={onSign} disabled={!acknowledged} className="w-full">
+            <Check className="h-5 w-5" /> Sign agreement
           </Button>
           <p className="text-small text-muted text-center mt-2">
-            Signing just means you both agree to the terms above.
+            {acknowledged
+              ? "Signing isn't a legal contract. It's a shared record of what you both agreed to."
+              : 'Check the box above to sign.'}
           </p>
         </div>
       )}
 
       {!bothSigned && hasSigned && (
         <p className="mt-5 text-center text-[15px] text-ink-2">
-          You've signed. Waiting for {them.user.displayName.split(' ')[0]} to sign.
+          You signed. Waiting for {them.user.displayName.split(' ')[0]} to sign. We'll let you know.
         </p>
       )}
 
       {bothSigned && (
         <div className="mt-5 flex items-center justify-center gap-2 text-teal-dark font-semibold text-base animate-scale-in">
           <Check className="h-5 w-5" />
-          You both agreed — time to swap!
+          You both signed. Time to swap!
         </div>
       )}
     </div>

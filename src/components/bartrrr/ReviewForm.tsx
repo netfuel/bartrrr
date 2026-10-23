@@ -17,7 +17,7 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
   if (submitted) {
     return (
       <div className="bg-teal-light rounded-none p-4 text-center">
-        <p className="text-sm font-medium text-teal-dark">Thanks for your review!</p>
+        <p className="text-sm font-medium text-teal-dark">Thanks! Your review is posted.</p>
       </div>
     )
   }
@@ -30,12 +30,12 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
 
   return (
     <div className="border border-ink bg-cream p-4 space-y-3">
-      <p className="text-sm font-medium text-ink">
+      <p id="review-heading" className="text-sm font-medium text-ink">
         How was your trade with {revieweeName}?
       </p>
 
       {/* Star rating */}
-      <div className="flex gap-1">
+      <div role="radiogroup" aria-labelledby="review-heading" className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -43,6 +43,9 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
             onClick={() => setRating(star)}
             onMouseEnter={() => setHoveredRating(star)}
             onMouseLeave={() => setHoveredRating(0)}
+            role="radio"
+            aria-checked={rating === star}
+            aria-label={`${star} ${star === 1 ? 'star' : 'stars'}`}
             className="p-0.5"
           >
             <Star
@@ -58,14 +61,16 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
       </div>
 
       <Textarea
-        placeholder="Leave a comment (optional)..."
+        label="Comment (optional)"
+        placeholder="What should other neighbors know?"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={2}
       />
 
+      {rating === 0 && <p className="text-small text-muted">Tap a star to rate the trade.</p>}
       <Button variant="primary" size="sm" onClick={handleSubmit} disabled={rating === 0}>
-        Submit review
+        Post review
       </Button>
     </div>
   )
