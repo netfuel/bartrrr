@@ -36,8 +36,14 @@ export type Listing = {
   }
   distanceMi?: number
   createdAt: string
+  /** Listings auto-expire 30 days after posting/renewal (PRD 5.2) */
+  expiresAt?: string
   status: ListingStatus
 }
+
+export const LISTING_TTL_DAYS = 30
+export const OFFER_TTL_HOURS = 72
+export const MAX_OFFER_ROUNDS = 5
 
 // ─── Offer ───────────────────────────────────────────────────
 export type OfferMessageType =
@@ -56,7 +62,13 @@ export type OfferMessage = {
   createdAt: string
 }
 
-export type OfferStatus = 'pending' | 'countered' | 'accepted' | 'declined'
+export type OfferStatus =
+  | 'pending'
+  | 'countered'
+  | 'accepted'
+  | 'declined'
+  | 'withdrawn'
+  | 'expired'
 
 export type Offer = {
   id: string

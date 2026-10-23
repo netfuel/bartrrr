@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import type { TradeAgreement } from '@/types'
 import { mockAgreements } from '@/data/mock-agreements'
-import { generateId } from '@/lib/utils'
+import { DEMO_MODE } from '@/lib/env'
 import * as svc from '@/lib/supabase/supabase-service'
-import { persistError } from './persist'
+import { hasBackend, persist } from './persist'
 import { sendPushNotification } from '@/lib/push'
 
 interface CreateAgreementData {
@@ -15,6 +15,8 @@ interface CreateAgreementData {
 interface AgreementsState {
   agreements: TradeAgreement[]
   setAgreements: (agreements: TradeAgreement[]) => void
+  upsertAgreement: (agreement: TradeAgreement) => void
+  removeAgreementForOffer: (offerId: string) => void
   getAgreementById: (id: string) => TradeAgreement | undefined
   getAgreementsByUser: (userId: string) => TradeAgreement[]
   getAgreementByOfferId: (offerId: string) => TradeAgreement | undefined
@@ -23,83 +25,101 @@ interface AgreementsState {
   completeAgreement: (id: string) => void
 }
 
-export const useAgreementsStore = create<AgreementsState>((set, get) => ({
-  agreements: [...mockAgreements],
+/** Matches the id the server assigns when it drafts the agreement on accept. */
+export const agreementIdForOffer = (offerId: string) => `agreement-${offerId}`
 
-  setAgreements: (agreements) => set({ agreements }),
+export const initialAgreements = (): TradeAgreement[] => (DEMO_MODE ? [...mockAgreements] : [])
 
-  getAgreementById: (id) => get().agreements.find((a) => a.id === id),
+export const useAgreementsStore = create<AgreementsState>((set, get) => {
+  const replace = (agreement: TradeAgreement | undefined) => {
+    if (!agreement) return
+    get().upsertAgreement(agreement)
+  }
 
-  getAgreementsByUser: (userId) =>
-    get().agreements.filter(
-      (a) => a.partyA.userId === userId || a.partyB.userId === userId,
-    ),
+  return {
+    agreements: initialAgreements(),
 
-  getAgreementByOfferId: (offerId) =>
-    get().agreements.find((a) => a.offerId === offerId),
+    setAgreements: (agreements) => set({ agreements }),
 
-  createAgreement: (data) => {
-    const id = generateId()
-    const agreement: TradeAgreement = {
-      id,
-      offerId: data.offerId,
-      partyA: { ...data.partyA, signed: false },
-      partyB: { ...data.partyB, signed: false },
-      status: 'pending_signatures',
-      createdAt: new Date().toISOString(),
-    }
-    set((state) => ({ agreements: [agreement, ...state.agreements] }))
-    // Persist to Supabase and replace with real DB record
-    svc.createAgreement(data.offerId, data.partyA, data.partyB).then((saved) => {
+    upsertAgreement: (agreement) =>
       set((state) => ({
-        agreements: state.agreements.map((a) => (a.id === id ? saved : a)),
-      }))
-    }).catch(persistError("Couldn't create the trade agreement"))
-    return id
-  },
+        agreements: state.agreements.some((a) => a.id === agreement.id)
+          ? state.agreements.map((a) => (a.id === agreement.id ? agreement : a))
+          : [agreement, ...state.agreements],
+      })),
 
-  signAgreement: (id, userId) => {
-    set((state) => ({
-      agreements: state.agreements.map((a) => {
-        if (a.id !== id) return a
-        const updated = { ...a }
-        if (a.partyA.userId === userId) {
-          updated.partyA = { ...a.partyA, signed: true }
-        }
-        if (a.partyB.userId === userId) {
-          updated.partyB = { ...a.partyB, signed: true }
-        }
-        if (updated.partyA.signed && updated.partyB.signed) {
-          updated.status = 'active'
-        }
-        return updated
-      }),
-    }))
-    svc.signAgreement(id, userId).catch(persistError("Couldn't sign the agreement"))
-    // Notify the other party
-    const ag = get().agreements.find((a) => a.id === id)
-    if (ag) {
-      const notifyUserId = ag.partyA.userId === userId ? ag.partyB.userId : ag.partyA.userId
-      const bothSigned = ag.partyA.signed && ag.partyB.signed
-      sendPushNotification({
-        userId: notifyUserId,
-        title: bothSigned ? 'Agreement fully signed!' : 'Agreement signed',
-        body: bothSigned
-          ? "Both parties have signed. The trade is officially on!"
-          : 'Your trade partner signed the agreement. Your turn!',
-        url: `/agreements/${id}`,
-      })
-    }
-  },
+    removeAgreementForOffer: (offerId) =>
+      set((state) => ({ agreements: state.agreements.filter((a) => a.offerId !== offerId) })),
 
-  completeAgreement: (id) => {
-    set((state) => ({
-      agreements: state.agreements.map((a) =>
-        a.id === id
-          ? { ...a, status: 'completed' as const, completedAt: new Date().toISOString() }
-          : a,
+    getAgreementById: (id) => get().agreements.find((a) => a.id === id),
+
+    getAgreementsByUser: (userId) =>
+      get().agreements.filter(
+        (a) => a.partyA.userId === userId || a.partyB.userId === userId,
       ),
-    }))
-    svc.completeAgreement(id).catch(persistError("Couldn't mark the trade complete"))
-  },
-}))
+
+    getAgreementByOfferId: (offerId) =>
+      get().agreements.find((a) => a.offerId === offerId),
+
+    /**
+     * Optimistic draft shown the moment an offer is accepted. With a backend
+     * the real agreement is created server-side in the same transaction as
+     * the acceptance (migration 004) under the same id, and replaces this
+     * draft when acceptOffer's response arrives.
+     */
+    createAgreement: (data) => {
+      const id = agreementIdForOffer(data.offerId)
+      if (get().agreements.some((a) => a.id === id)) return id
+      const agreement: TradeAgreement = {
+        id,
+        offerId: data.offerId,
+        partyA: { ...data.partyA, signed: false },
+        partyB: { ...data.partyB, signed: false },
+        status: 'pending_signatures',
+        createdAt: new Date().toISOString(),
+      }
+      set((state) => ({ agreements: [agreement, ...state.agreements] }))
+      return id
+    },
+
+    signAgreement: (id, userId) => {
+      const previous = get().agreements.find((a) => a.id === id)
+      if (!previous) return
+      const updated = { ...previous }
+      if (previous.partyA.userId === userId) updated.partyA = { ...previous.partyA, signed: true }
+      if (previous.partyB.userId === userId) updated.partyB = { ...previous.partyB, signed: true }
+      if (updated.partyA.signed && updated.partyB.signed) updated.status = 'active'
+      replace(updated)
+
+      const notifyUserId = previous.partyA.userId === userId ? previous.partyB.userId : previous.partyA.userId
+      const bothSigned = updated.status === 'active'
+      persist(() => svc.signAgreement(id, userId), {
+        error: "Couldn't sign the agreement",
+        onSuccess: (saved) => {
+          replace(saved)
+          sendPushNotification({
+            userId: notifyUserId,
+            title: bothSigned ? 'Agreement fully signed!' : 'Agreement signed',
+            body: bothSigned
+              ? 'Both parties have signed. The trade is officially on!'
+              : 'Your trade partner signed the agreement. Your turn!',
+            url: `/agreements/${id}`,
+          })
+        },
+        rollback: () => replace(previous),
+      })
+    },
+
+    completeAgreement: (id) => {
+      const previous = get().agreements.find((a) => a.id === id)
+      if (!previous) return
+      if (hasBackend() && previous.status !== 'active') return
+      replace({ ...previous, status: 'completed', completedAt: new Date().toISOString() })
+      persist(() => svc.completeAgreement(id), {
+        error: "Couldn't mark the trade complete",
+        onSuccess: replace,
+        rollback: () => replace(previous),
+      })
+    },
+  }
+})
