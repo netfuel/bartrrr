@@ -85,7 +85,6 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
       return false
     }
 
-    console.log('[Push] Subscribed successfully')
     return true
   } catch (err) {
     console.warn('[Push] Subscription failed', err)
@@ -132,19 +131,24 @@ interface SendPushPayload {
 
 /**
  * Trigger a push notification for a user via the Edge Function.
- * Fire-and-forget — errors are logged but not thrown.
+ * Fire-and-forget — errors are logged but not thrown. The caller's access
+ * token is sent so the function can verify who is pushing to whom.
  */
 export function sendPushNotification(payload: SendPushPayload): void {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  if (!supabaseUrl) return
-
-  fetch(`${supabaseUrl}/functions/v1/send-push`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Include the anon key so the edge function can auth with Supabase
-      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify(payload),
-  }).catch((err) => console.warn('[Push] Edge function call failed', err))
+  if (!supabase) return
+  const client = supabase
+  void (async () => {
+    try {
+      const { data } = await client.auth.getSession()
+      const token = data.session?.access_token
+      if (!token) return
+      const { error } = await client.functions.invoke('send-push', {
+        body: payload,
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (error) console.warn('[Push] Edge function call failed', error)
+    } catch (err) {
+      console.warn('[Push] Edge function call failed', err)
+    }
+  })()
 }
