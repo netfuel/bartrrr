@@ -362,7 +362,28 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      make_offer: {
+        Args: {
+          p_offer_id: string
+          p_listing_id: string
+          p_message_id: string
+          p_content: string
+          p_items: string[]
+        }
+        Returns: Database['public']['Tables']['offers']['Row']
+      }
+      respond_to_offer: {
+        Args: {
+          p_offer_id: string
+          p_action: 'accept' | 'decline' | 'counter' | 'withdraw'
+          p_message_id: string
+          p_content: string
+          p_items?: string[]
+        }
+        Returns: Database['public']['Tables']['offers']['Row']
+      }
+    }
     Enums: Record<string, never>
   }
 }

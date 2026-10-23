@@ -356,17 +356,41 @@ create trigger offers_guard
   before insert or update on public.offers
   for each row execute function public.offers_guard();
 
--- Accepting an offer puts the listing on hold
+-- Accepting an offer puts the listing on hold and drafts the trade agreement
+-- in the same transaction, so the agreement can never race the acceptance.
+-- The id is derived from the offer ('agreement-' || offer id) so the client
+-- can show it optimistically under the same id.
 create or replace function public.offers_after_accept()
 returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
+declare
+  v_offered text;
+  v_listing_title text;
 begin
   if new.status = 'accepted' and old.status is distinct from 'accepted' then
+    select title into v_listing_title from public.listings where id = new.listing_id;
     update public.listings set status = 'pending'
       where id = new.listing_id and status = 'active';
+
+    select array_to_string(m.items, ', ') into v_offered
+    from public.offer_messages m
+    where m.offer_id = new.id and m.type in ('offer', 'counter')
+    order by m.created_at desc
+    limit 1;
+
+    insert into public.agreements (id, offer_id, party_a_user_id, party_a_item, party_b_user_id, party_b_item)
+    values (
+      'agreement-' || new.id,
+      new.id,
+      new.from_user_id,
+      left(coalesce(nullif(v_offered, ''), 'Offered items'), 1000),
+      new.to_user_id,
+      left(coalesce(v_listing_title, 'Listed item'), 1000)
+    )
+    on conflict (offer_id) do nothing;
   end if;
   return new;
 end;
@@ -447,19 +471,9 @@ alter table public.agreements
     and (exchange_date is null or char_length(exchange_date) <= 64)
   ) not valid;
 
+-- Agreements are drafted by offers_after_accept(); clients never insert them.
 drop policy if exists "Agreement insert" on public.agreements;
-create policy "Agreement insert"
-  on public.agreements for insert
-  with check (
-    (auth.uid()::text = party_a_user_id or auth.uid()::text = party_b_user_id)
-    and exists (
-      select 1 from public.offers o
-      where o.id = offer_id
-        and o.status = 'accepted'
-        and o.from_user_id = party_a_user_id
-        and o.to_user_id = party_b_user_id
-    )
-  );
+revoke insert on public.agreements from anon, authenticated;
 
 drop policy if exists "Agreement parties update" on public.agreements;
 create policy "Agreement parties update"
@@ -748,7 +762,8 @@ begin
   if new.status = 'accepted' then
     perform public.notify(v_other, 'offer_accepted', 'Offer accepted!',
       coalesce(public.first_name(v_actor), 'Your neighbor') || ' accepted the trade. Review and sign the agreement.',
-      jsonb_build_object('offerId', new.id), new.listing_id, new.id, null);
+      jsonb_build_object('offerId', new.id, 'agreementId', 'agreement-' || new.id),
+      new.listing_id, new.id, null);
   elsif new.status = 'declined' then
     perform public.notify(v_other, 'offer_declined', 'Offer declined',
       coalesce(public.first_name(v_actor), 'Your neighbor') || ' passed on this trade.',
@@ -813,13 +828,7 @@ declare
 begin
   v_other := case when v_actor = new.party_a_user_id then new.party_b_user_id else new.party_a_user_id end;
 
-  if tg_op = 'INSERT' then
-    perform public.notify(v_other, 'agreement_ready', 'Trade agreement ready',
-      'Review the terms and sign when you''re ready.',
-      jsonb_build_object('agreementId', new.id), null, new.offer_id, new.id);
-    return new;
-  end if;
-
+  -- Creation is announced by the 'offer_accepted' notification
   if new.status = 'completed' and old.status is distinct from 'completed' then
     perform public.notify(v_other, 'trade_complete', 'Trade completed!',
       'Your trade has been marked as complete. Leave a review!',
@@ -837,7 +846,7 @@ $$;
 
 drop trigger if exists notify_agreement_change on public.agreements;
 create trigger notify_agreement_change
-  after insert or update on public.agreements
+  after update on public.agreements
   for each row execute function public.notify_agreement_change();
 
 create or replace function public.notify_review()
@@ -872,6 +881,114 @@ revoke all on function public.notify_offer_change() from public, anon, authentic
 revoke all on function public.notify_offer_message() from public, anon, authenticated;
 revoke all on function public.notify_agreement_change() from public, anon, authenticated;
 revoke all on function public.notify_review() from public, anon, authenticated;
+
+
+-- ─── 6b. Atomic offer actions (RPC) ─────────────────────────────────────────
+-- Making or answering an offer writes the offer row and its thread message
+-- together. SECURITY INVOKER: RLS and the guard triggers above still apply
+-- to the caller, so these add atomicity, not privileges.
+
+create or replace function public.make_offer(
+  p_offer_id text,
+  p_listing_id text,
+  p_message_id text,
+  p_content text,
+  p_items text[]
+) returns public.offers
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid text := auth.uid()::text;
+  v_owner text;
+  o public.offers;
+begin
+  if v_uid is null then
+    raise exception 'Sign in to make an offer' using errcode = '42501';
+  end if;
+  if coalesce(cardinality(p_items), 0) = 0 then
+    raise exception 'Add at least one thing you''ll trade' using errcode = 'P0001';
+  end if;
+
+  select user_id into v_owner from public.listings where id = p_listing_id;
+  if v_owner is null then
+    raise exception 'That listing is no longer available' using errcode = 'P0001';
+  end if;
+
+  insert into public.offers (id, listing_id, from_user_id, to_user_id)
+  values (
+    coalesce(p_offer_id, 'offer-' || replace(gen_random_uuid()::text, '-', '')),
+    p_listing_id, v_uid, v_owner
+  )
+  returning * into o;
+
+  insert into public.offer_messages (id, offer_id, from_user_id, type, content, items)
+  values (
+    coalesce(p_message_id, 'msg-' || replace(gen_random_uuid()::text, '-', '')),
+    o.id, v_uid, 'offer', p_content, p_items
+  );
+
+  return o;
+end;
+$$;
+
+create or replace function public.respond_to_offer(
+  p_offer_id text,
+  p_action text,
+  p_message_id text,
+  p_content text,
+  p_items text[] default '{}'
+) returns public.offers
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid text := auth.uid()::text;
+  o public.offers;
+begin
+  if v_uid is null then
+    raise exception 'Sign in to respond to offers' using errcode = '42501';
+  end if;
+
+  case p_action
+    when 'accept' then
+      update public.offers set status = 'accepted' where id = p_offer_id returning * into o;
+    when 'decline' then
+      update public.offers set status = 'declined' where id = p_offer_id returning * into o;
+    when 'counter' then
+      if coalesce(cardinality(p_items), 0) = 0 then
+        raise exception 'Add at least one thing to your counter-offer' using errcode = 'P0001';
+      end if;
+      update public.offers set status = 'countered', round = round + 1 where id = p_offer_id returning * into o;
+    when 'withdraw' then
+      update public.offers set status = 'withdrawn' where id = p_offer_id returning * into o;
+    else
+      raise exception 'Unknown offer action' using errcode = 'P0001';
+  end case;
+
+  if o.id is null then
+    raise exception 'Offer not found' using errcode = 'P0001';
+  end if;
+
+  if p_action <> 'withdraw' then
+    insert into public.offer_messages (id, offer_id, from_user_id, type, content, items)
+    values (
+      coalesce(p_message_id, 'msg-' || replace(gen_random_uuid()::text, '-', '')),
+      o.id, v_uid, p_action, p_content,
+      case when p_action = 'counter' then p_items else '{}'::text[] end
+    );
+  end if;
+
+  return o;
+end;
+$$;
+
+revoke all on function public.make_offer(text, text, text, text, text[]) from public, anon;
+revoke all on function public.respond_to_offer(text, text, text, text, text[]) from public, anon;
+grant execute on function public.make_offer(text, text, text, text, text[]) to authenticated;
+grant execute on function public.respond_to_offer(text, text, text, text, text[]) to authenticated;
 
 
 -- ─── 7. Push subscriptions: explicit WITH CHECK ─────────────────────────────
