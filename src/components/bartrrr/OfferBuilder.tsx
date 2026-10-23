@@ -65,22 +65,22 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 p-1 text-muted hover:text-ink transition-colors"
+          className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-sand-light hover:text-ink transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h2 id="offer-builder-title" className="font-display text-lg font-semibold text-ink mb-1">
+        <h2 id="offer-builder-title" className="font-display text-[28px] font-normal tracking-[-0.015em] text-ink mb-1">
           Make an offer
         </h2>
-        <p className="text-sm text-muted mb-5">
-          for <span className="font-medium text-ink">{listing.title}</span>
+        <p className="text-[15px] text-muted mb-6 pb-5 border-b border-ink">
+          for <span className="font-display italic text-[17px] text-ink">{listing.title}</span>
         </p>
 
         {/* User's listings as quick picks */}
         {myListings.length > 0 && (
           <div className="mb-4">
-            <p className="text-sm font-medium text-ink-2 mb-2">
+            <p className="text-label text-ink-2 mb-2.5">
               Offer from your listings:
             </p>
             <div className="flex flex-wrap gap-2">
@@ -118,17 +118,18 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
 
         {/* Summary */}
         {allItems.length > 0 && (
-          <div className="mt-4 bg-forest-light rounded-none p-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-forest mb-1">
+          <div className="animate-fade-in mt-5 border-l-2 border-forest bg-forest-light py-2.5 pl-3.5 pr-3">
+            <p className="text-label text-forest mb-1">
               Your offer
             </p>
-            <p className="text-sm text-forest-dark">{allItems.join(', ')}</p>
+            <p className="font-display text-[17px] leading-snug text-ink">{allItems.join(', ')}</p>
           </div>
         )}
 
         <Button
           variant="primary"
-          className="w-full mt-5"
+          size="lg"
+          className="w-full mt-6"
           disabled={allItems.length === 0}
           onClick={handleSubmit}
         >

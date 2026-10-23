@@ -16,8 +16,8 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
 
   if (submitted) {
     return (
-      <div className="bg-teal-light rounded-none p-4 text-center">
-        <p className="text-sm font-medium text-teal-dark">Thanks for your review!</p>
+      <div className="animate-scale-in border border-teal bg-teal-light rounded-none p-5 text-center">
+        <p className="font-display text-[19px] text-teal-dark">Thanks for your review!</p>
       </div>
     )
   }
@@ -29,8 +29,8 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
   }
 
   return (
-    <div className="border border-ink bg-cream p-4 space-y-3">
-      <p className="text-sm font-medium text-ink">
+    <div className="border border-ink bg-paper p-5 space-y-4">
+      <p className="font-display text-[20px] text-ink">
         How was your trade with {revieweeName}?
       </p>
 
@@ -43,14 +43,16 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
             onClick={() => setRating(star)}
             onMouseEnter={() => setHoveredRating(star)}
             onMouseLeave={() => setHoveredRating(0)}
-            className="p-0.5"
+            aria-label={`${star} star${star > 1 ? 's' : ''}`}
+            aria-pressed={star <= rating}
+            className="pressable flex h-11 w-11 items-center justify-center rounded-full hover:bg-sand-light"
           >
             <Star
               className={cn(
-                'h-6 w-6 transition-colors',
+                'h-7 w-7 transition-[color,fill,transform] duration-300 ease-spring',
                 star <= (hoveredRating || rating)
-                  ? 'fill-gold text-gold'
-                  : 'text-sand',
+                  ? 'fill-gold text-gold scale-105'
+                  : 'text-ink/30',
               )}
             />
           </button>

@@ -21,8 +21,8 @@ export function CounterOfferForm({ onSubmit, onCancel }: CounterOfferFormProps) 
   }
 
   return (
-    <div className="border border-ink bg-cream p-4 space-y-3">
-      <p className="text-sm font-medium text-ink">Counter offer</p>
+    <div className="border border-ink bg-paper p-5 space-y-4">
+      <p className="font-display text-[22px] text-ink">Counter offer</p>
 
       <Textarea
         label="What are you offering instead?"

@@ -21,20 +21,20 @@ export function DeclineModal({ onDecline, onClose }: DeclineModalProps) {
   return (
     <Modal onClose={onClose} align="sheet" labelledBy="decline-modal-title">
         <div className="flex items-center justify-between mb-4">
-          <h3 id="decline-modal-title" className="font-display text-lg font-semibold">
+          <h3 id="decline-modal-title" className="font-display text-[26px] font-normal tracking-[-0.015em]">
             Decline this offer?
           </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="p-1 rounded-full hover:bg-sand-light transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-sand-light transition-colors"
           >
             <X className="h-5 w-5 text-muted" />
           </button>
         </div>
 
-        <p className="text-sm text-muted mb-4">
+        <p className="text-[15px] text-ink-2 mb-5">
           Let them know why so they can make a better offer next time.
         </p>
 

@@ -20,8 +20,8 @@ export function NotificationCard({
   return (
     <div
       className={cn(
-        'flex gap-3 p-4 rounded-none bg-cream border transition-colors',
-        notification.readAt ? 'border-sand-light' : 'border-clay-mid bg-clay-light/30',
+        'flex gap-3 p-4 rounded-none border transition-colors',
+        notification.readAt ? 'border-ink/20 bg-cream' : 'border-ink bg-paper',
         className,
       )}
     >
@@ -34,11 +34,11 @@ export function NotificationCard({
         />
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-ink">{notification.title}</p>
-        <p className="text-xs text-muted mt-0.5 line-clamp-2">
+        <p className="text-[15px] font-medium text-ink">{notification.title}</p>
+        <p className="text-small text-ink-2 mt-0.5 line-clamp-2">
           {notification.body}
         </p>
-        <p className="text-[10px] text-muted mt-1">
+        <p className="text-label text-muted mt-1.5">
           {new Date(notification.createdAt).toLocaleDateString([], {
             month: 'short',
             day: 'numeric',

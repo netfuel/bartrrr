@@ -11,9 +11,9 @@ export interface ToastProps {
 }
 
 const typeStyles = {
-  success: 'bg-teal-light border-teal text-teal-dark',
-  error: 'bg-clay-light border-clay text-clay-dark',
-  info: 'bg-sand-light border-sand text-ink-2',
+  success: 'bg-paper border-teal text-ink [--toast-accent:var(--color-teal)]',
+  error: 'bg-paper border-clay text-ink [--toast-accent:var(--color-clay)]',
+  info: 'bg-paper border-ink text-ink [--toast-accent:var(--color-ink)]',
 }
 
 export function Toast({
@@ -32,7 +32,7 @@ export function Toast({
     <div
       role="alert"
       className={cn(
-        'animate-toast-in flex items-center gap-3 rounded-none border px-4 py-3 text-[15px]',
+        'animate-toast-in flex items-center gap-3 rounded-none border border-l-4 border-l-[var(--toast-accent)] px-4 py-3 text-[15px] shadow-lift',
         typeStyles[type],
         className,
       )}

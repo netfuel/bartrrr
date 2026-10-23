@@ -32,13 +32,13 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
     <Modal
       onClose={onClose}
       labelledBy="first-trade-title"
-      className="max-w-sm rounded-none bg-cream p-8 text-center"
+      className="max-w-sm rounded-none bg-paper p-8 sm:p-10 text-center"
     >
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-sand-light transition-colors text-muted hover:text-ink"
+          className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full hover:bg-sand-light transition-colors text-muted hover:text-ink"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
@@ -53,7 +53,7 @@ export function FirstTradeCelebration({ userId, onClose }: FirstTradeCelebration
         </h2>
 
         {/* Subtitle */}
-        <p className="text-sm text-muted leading-relaxed mb-8">
+        <p className="text-[15px] text-ink-2 leading-relaxed mb-8">
           You're officially a Bartrrr trader. Welcome to the neighborhood.
         </p>
 

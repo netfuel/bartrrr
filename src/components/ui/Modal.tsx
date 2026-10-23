@@ -60,7 +60,7 @@ export function Modal({ onClose, labelledBy, align = 'center', className, childr
         align === 'sheet' ? 'items-end sm:items-center sm:p-4' : 'items-center p-4',
       )}
     >
-      <div className="animate-fade-in absolute inset-0 bg-ink/40" onClick={onClose} aria-hidden="true" />
+      <div className="animate-fade-in absolute inset-0 bg-ink/45 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
       <div
         ref={panelRef}
         tabIndex={-1}
@@ -68,7 +68,8 @@ export function Modal({ onClose, labelledBy, align = 'center', className, childr
         aria-modal="true"
         aria-labelledby={labelledBy}
         className={cn(
-          'animate-scale-in relative w-full max-w-md max-h-[85vh] overflow-y-auto border border-ink bg-cream p-6 focus:outline-none',
+          'relative w-full max-w-md max-h-[88svh] overflow-y-auto border border-ink bg-paper p-6 sm:p-7 shadow-float focus:outline-none',
+          align === 'sheet' ? 'animate-slide-up sm:animate-scale-in' : 'animate-scale-in',
           'rounded-none',
           className,
         )}
