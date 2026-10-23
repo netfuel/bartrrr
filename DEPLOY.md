@@ -12,7 +12,17 @@ Replace `<ref>` below with your Supabase project ref (the subdomain of your proj
    npx supabase link --project-ref <ref>
    npx supabase db push          # applies supabase/migrations/001–004
    ```
-   `002_seed_data.sql` inserts demo users and listings. For a clean launch, delete those rows afterwards (or remove 002 before the first push).
+   Migrations contain schema only. `002_seed_data.sql` is an intentional no-op (kept so numbering stays stable); the demo users and listings live in `supabase/seed.sql`, which only `supabase db reset` loads on a **local** database. `db push` never runs it, so a fresh production database starts empty.
+
+   If a database already applied the old 002 with demo rows (an early staging project, say), clear them before launch:
+   ```sql
+   delete from public.listings where id like 'listing-0%';
+   delete from public.users where id in (
+     'bc668087-f272-44b7-9a58-00d36a31be93','3b6e23ce-2a48-41a6-b51a-5d6625c28d26',
+     'cd4deb82-d7cc-46b3-b015-ba81e3d6034a','2b1d31a1-0348-484e-900b-5c3dc16f5b1c',
+     'b7cc2650-df36-45f8-a920-9428089edbf9','8bf44cdb-55f5-4fdd-a048-eb0055fda110',
+     'b4061c2d-7c98-4ddd-a086-95e12ec61e20','6daf679c-395c-4f64-a956-a71e72b08096');
+   ```
 3. **Database → Extensions:** enable `pg_cron`, then run once in the SQL editor, so offers expire after 72 hours even when nobody has the app open:
    ```sql
    select cron.schedule('bartrrr-expire-offers', '*/15 * * * *', 'select public.expire_stale_offers()');
@@ -102,7 +112,7 @@ What the repo ships for Pages:
 
 - [ ] `npm run typecheck && npm run lint && npm run build` pass
 - [ ] Migrations 001–004 applied; `select public.expire_stale_offers()` runs without error
-- [ ] Seed/demo rows removed from production (`*@bartrrr.demo` auth users, `listing-0xx` rows)
+- [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
 - [ ] Apple: new account is asked for a name in onboarding; "Hide my email" accounts work
