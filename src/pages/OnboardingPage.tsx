@@ -115,7 +115,7 @@ export default function OnboardingPage() {
                 Trade what you have for what you need.
               </p>
               <p className="text-base text-muted mb-8">
-                No money. Just neighbors helping neighbors.
+                No cash. Just neighbors swapping with neighbors.
               </p>
               <Button
                 variant="primary"
@@ -138,10 +138,10 @@ export default function OnboardingPage() {
                 Where do you live?
               </h2>
               <p className="text-base text-muted mb-6">
-                Pick your Memphis neighborhood and we'll show trades closest to you.
+                Pick your Memphis neighborhood so we can show you trades nearby. Neighbors see your neighborhood, never your address.
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
+              <div role="group" aria-label="Neighborhood" className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
                 {NEIGHBORHOODS.map((n) => (
                   <button
                     key={n}
@@ -183,10 +183,10 @@ export default function OnboardingPage() {
                 What are you looking for?
               </h2>
               <p className="text-base text-muted mb-6">
-                Pick at least 3 categories and we'll personalize your feed.
+                Pick at least 3 so we can show you listings you'll care about.
               </p>
 
-              <div className="flex flex-wrap gap-2.5 mb-4">
+              <div role="group" aria-label="Interests" className="flex flex-wrap gap-2.5 mb-4">
                 {INTEREST_CATEGORIES.map((cat) => (
                   <Chip
                     key={cat.id}
@@ -200,11 +200,11 @@ export default function OnboardingPage() {
               <p className="text-base mb-6 min-h-[24px]" aria-live="polite">
                 {interests.length === 0 && <span className="text-muted">Tap a category to select it.</span>}
                 {interests.length > 0 && interests.length < 3 && (
-                  <span className="text-muted">{interests.length} picked — choose {3 - interests.length} more.</span>
+                  <span className="text-muted">{interests.length} picked. Choose {3 - interests.length} more to continue.</span>
                 )}
                 {interests.length >= 3 && (
                   <span className="text-teal-dark font-medium animate-fade-in">
-                    {interests.length} picked — great choices!
+                    {interests.length} picked. Nice!
                   </span>
                 )}
               </p>
@@ -239,12 +239,12 @@ export default function OnboardingPage() {
                 You're in <span className="font-medium text-ink">{neighborhood}</span>.
               </p>
               <p className="text-base text-muted mb-8">
-                Explore nearby listings or post your first item to start trading.
+                Browse what neighbors are offering, or post your first listing to start getting offers.
               </p>
 
               <div className="flex flex-col gap-3">
                 <Button variant="primary" size="lg" onClick={handleFinish} className="w-full">
-                  Explore listings <ArrowRight className="h-5 w-5 ml-1" />
+                  Browse listings <ArrowRight className="h-5 w-5 ml-1" />
                 </Button>
                 <Button
                   variant="outline"
@@ -252,13 +252,12 @@ export default function OnboardingPage() {
                   onClick={() => { if (neighborhood) updateUser(currentUser.id, { neighborhood, interests }); markOnboarded(currentUser.id); navigate('/listing/new') }}
                   className="w-full"
                 >
-                  Post my first listing
+                  Post your first listing
                 </Button>
               </div>
 
               <p className="text-small text-muted mt-5">
-                You selected {interests.length} interest{interests.length !== 1 ? 's' : ''}.
-                Your feed is ready.
+                You can change your neighborhood anytime in Settings.
               </p>
             </div>
           )}

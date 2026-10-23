@@ -44,7 +44,7 @@ export default function SignupPage() {
     setManualError('')
     const zip = manualZip.trim()
     if (!/^\d{5}$/.test(zip)) {
-      setManualError('Please enter a valid 5-digit zip code.')
+      setManualError('Enter a 5-digit ZIP code, like 38104.')
       return
     }
     if (isMemphisZip(zip)) {
@@ -67,7 +67,7 @@ export default function SignupPage() {
       navigate('/onboarding')
     } catch (err) {
       console.error('Signup failed:', err)
-      setSignupError('Something went wrong. Please try again.')
+      setSignupError("We couldn't create your account. Check your connection and try again.")
     } finally {
       setIsSigningUp(false)
     }
@@ -97,7 +97,7 @@ export default function SignupPage() {
               <div>
                 <p className="font-display text-2xl font-semibold text-ink">Available in Memphis, TN</p>
                 <p className="text-base text-muted mt-2 leading-relaxed">
-                  Bartrrr is currently available in the greater Memphis metro area. Let us confirm you're nearby.
+                  Bartrrr is just for the Memphis metro for now. Let's check that you're nearby. We only use your location to confirm your area.
                 </p>
               </div>
               <Button variant="primary" size="lg" className="w-full" onClick={checkLocation}>
@@ -108,7 +108,7 @@ export default function SignupPage() {
                 onClick={() => setGeoState('manual')}
                 className="inline-flex min-h-[44px] items-center text-base text-ink underline underline-offset-4"
               >
-                Enter zip code manually
+                Enter a ZIP code instead
               </button>
             </div>
           )}
@@ -130,11 +130,11 @@ export default function SignupPage() {
               <div>
                 <p className="font-display text-2xl font-semibold text-ink">Not available yet</p>
                 {detectedZip && (
-                  <p className="text-small text-muted mt-1">Detected zip: {detectedZip}</p>
+                  <p className="text-small text-muted mt-1">Your ZIP code: {detectedZip}</p>
                 )}
                 <p className="text-base text-muted mt-2 leading-relaxed">
-                  Bartrrr is currently serving the Memphis, TN metro area (zip codes 38103–38157 and surrounding).
-                  We hope to expand soon!
+                  Bartrrr is only in the Memphis, TN metro right now. We're working on more cities.
+                  If you're in the Memphis area, try your home ZIP code.
                 </p>
               </div>
               <Link to="/">
@@ -145,7 +145,7 @@ export default function SignupPage() {
                 onClick={() => { setGeoState('manual'); setDetectedZip(null) }}
                 className="inline-flex min-h-[44px] items-center text-base text-ink underline underline-offset-4"
               >
-                Try a different zip code
+                Try a different ZIP code
               </button>
             </div>
           )}
@@ -155,11 +155,11 @@ export default function SignupPage() {
             <div className="border border-ink bg-cream p-8 space-y-5">
               <p className="text-base text-muted text-center leading-relaxed">
                 {geoState === 'denied'
-                  ? 'Location access was denied. Enter your zip code to check availability.'
-                  : 'Enter your zip code to check if Bartrrr is available in your area.'}
+                  ? "We couldn't get your location. Enter your ZIP code instead."
+                  : "Enter your ZIP code to see if Bartrrr is in your area."}
               </p>
               <Input
-                label="Zip code"
+                label="ZIP code"
                 placeholder="e.g. 38104"
                 value={manualZip}
                 onChange={(e) => { setManualZip(e.target.value); setManualError('') }}
@@ -188,11 +188,11 @@ export default function SignupPage() {
                 <CheckCircle2 className="h-5 w-5 shrink-0" />
                 <span>
                   {detectedZip
-                    ? `Zip ${detectedZip} is in our service area!`
-                    : 'Your location is in our service area!'}
+                    ? `Good news: ${detectedZip} is in our area.`
+                    : "Good news: you're in our area."}
                 </span>
               </div>
-              <p className="text-base font-medium text-ink-2">Choose a user to explore as:</p>
+              <p className="text-base font-medium text-ink-2">Pick a demo neighbor to explore as</p>
               <form onSubmit={handleSignup} className="space-y-5">
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {users.map((user) => (
@@ -220,7 +220,7 @@ export default function SignupPage() {
                   ))}
                 </div>
                 {signupError && (
-                  <p className="text-base text-clay text-center animate-fade-in">{signupError}</p>
+                  <p role="alert" className="text-base text-clay text-center animate-fade-in">{signupError}</p>
                 )}
                 <Button variant="primary" size="lg" className="w-full" type="submit" loading={isSigningUp} disabled={!selectedUserId}>
                   {isSigningUp ? 'Joining…' : `Join as ${selectedUser?.displayName.split(' ')[0] || '…'}`}
@@ -232,7 +232,7 @@ export default function SignupPage() {
         </div>
 
         <p className="text-center text-small text-muted mt-5">
-          This is a demo — pick any user to explore Bartrrr.
+          This is a demo: pick any neighbor to explore Bartrrr.
         </p>
         <p className="text-center text-base text-muted mt-2">
           Already have an account?{' '}

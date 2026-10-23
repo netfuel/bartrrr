@@ -28,7 +28,7 @@ export default function LoginPage() {
       navigate(returnTo)
     } catch (err) {
       console.error('Login failed:', err)
-      setLoginError('Login failed. Please try again.')
+      setLoginError("We couldn't log you in. Check your connection and try again.")
     } finally {
       setIsLoggingIn(false)
     }
@@ -52,7 +52,7 @@ export default function LoginPage() {
         {/* User picker */}
         <div className="border border-ink bg-cream p-6">
           <p className="text-sm font-medium text-ink-2 mb-3">
-            Choose a user to log in as:
+            Pick a demo neighbor to log in as
           </p>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -90,7 +90,7 @@ export default function LoginPage() {
             </div>
 
             {loginError && (
-              <p className="text-sm text-red-500 text-center">{loginError}</p>
+              <p role="alert" className="text-sm text-red-500 text-center">{loginError}</p>
             )}
             <Button
               variant="primary"
@@ -107,7 +107,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-muted mt-4">
-          This is a demo — pick any user to explore Bartrrr.
+          This is a demo: pick any neighbor to explore Bartrrr.
         </p>
       </div>
     </div>
