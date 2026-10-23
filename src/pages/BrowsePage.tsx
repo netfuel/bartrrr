@@ -10,6 +10,7 @@ const ListingsMap = lazy(() =>
   import('@/components/bartrrr/ListingsMap').then((m) => ({ default: m.ListingsMap })),
 )
 import { useListingsStore, useUsersStore } from '@/stores'
+import { useMediaQuery } from '@/lib/utils/use-media-query'
 import type { Category } from '@/types'
 import { CATEGORY_LABELS } from '@/types'
 
@@ -41,6 +42,11 @@ export default function BrowsePage() {
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
 
+  // Only mount the map (and download mapbox-gl) when it's actually visible:
+  // always on desktop (lg split view), on mobile only in map view.
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const showMap = isDesktop || view === 'map'
+
   const searchQuery = searchParams.get('q') || ''
   const listings = useListingsStore((s) => s.listings)
   const getUserById = useUsersStore((s) => s.getUserById)
@@ -59,6 +65,8 @@ export default function BrowsePage() {
         <div className="flex items-center rounded-full border border-sand overflow-hidden shrink-0 lg:hidden">
           <button
             type="button"
+            aria-label="List view"
+            aria-pressed={view === 'list'}
             onClick={() => setView('list')}
             className={cn('p-2 transition-colors', view === 'list' ? 'bg-clay text-white' : 'text-muted')}
           >
@@ -66,6 +74,8 @@ export default function BrowsePage() {
           </button>
           <button
             type="button"
+            aria-label="Map view"
+            aria-pressed={view === 'map'}
             onClick={() => setView('map')}
             className={cn('p-2 transition-colors', view === 'map' ? 'bg-clay text-white' : 'text-muted')}
           >
@@ -89,6 +99,8 @@ export default function BrowsePage() {
         {/* Distance filter toggle */}
         <button
           type="button"
+          aria-label="Distance filter"
+          aria-expanded={showFilters}
           onClick={() => setShowFilters(!showFilters)}
           className={cn(
             'p-2 rounded-full shrink-0 transition-colors',
@@ -126,7 +138,7 @@ export default function BrowsePage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Map panel */}
         <div className={cn('lg:w-1/2 lg:block', view === 'map' ? 'w-full' : 'hidden')}>
-          <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
+          {showMap && <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
             <ListingsMap
               listings={filteredListings}
               users={Object.fromEntries(
@@ -137,7 +149,7 @@ export default function BrowsePage() {
               )}
               className="h-full"
             />
-          </Suspense>
+          </Suspense>}
         </div>
 
         {/* Card grid */}
