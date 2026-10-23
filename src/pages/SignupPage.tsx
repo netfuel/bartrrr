@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Star, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { Button, Avatar, Input } from '@/components/ui'
+import { Button, Avatar, Input, buttonStyles } from '@/components/ui'
+import { AuthShell } from '@/components/layout'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore } from '@/stores'
 import { requestLocation, getZipFromCoords } from '@/lib/utils/geolocation'
@@ -74,15 +75,11 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <AuthShell image="/photo-community.jpg" caption={<>Your neighbor has <em>exactly</em> what you need.</>}>
 
-        {/* Logo */}
-        <div className="text-center mb-8 animate-fade-up">
-          <Link to="/">
-            <span className="text-[20px] font-medium lowercase tracking-tight text-ink">bartrrr</span>
-          </Link>
-          <p className="text-base text-muted mt-2">Join your neighbors. Start trading.</p>
+        {/* Heading */}
+        <div className="mb-10 animate-fade-up">
+          <h1 className="text-heading-page text-ink">Join your neighbors. Start trading.</h1>
         </div>
 
         {/* key replays the entrance animation on every step change */}
@@ -90,15 +87,17 @@ export default function SignupPage() {
 
           {/* ── Idle: ask for location ── */}
           {geoState === 'idle' && (
-            <div className="border border-ink bg-cream p-8 text-center space-y-5">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border border-ink text-ink">
-                <MapPin className="h-7 w-7" />
-              </div>
-              <div>
-                <p className="font-display text-2xl font-semibold text-ink">Available in Memphis, TN</p>
-                <p className="text-base text-muted mt-2 leading-relaxed">
+            <div className="space-y-6">
+              <div className="flex items-start gap-4 border-t border-ink pt-6">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-ink text-clay">
+                  <MapPin className="h-5 w-5" />
+                </span>
+                <div>
+                <p className="text-heading-section text-ink">Available in Memphis, TN</p>
+                <p className="text-base text-ink-2 mt-2 leading-relaxed">
                   Bartrrr is currently available in the greater Memphis metro area. Let us confirm you're nearby.
                 </p>
+                </div>
               </div>
               <Button variant="primary" size="lg" className="w-full" onClick={checkLocation}>
                 <MapPin className="h-5 w-5" /> Check my location
@@ -106,7 +105,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => setGeoState('manual')}
-                className="inline-flex min-h-[44px] items-center text-base text-ink underline underline-offset-4"
+                className="link-underline inline-flex min-h-[44px] items-center text-base text-ink"
               >
                 Enter zip code manually
               </button>
@@ -115,20 +114,20 @@ export default function SignupPage() {
 
           {/* ── Checking ── */}
           {geoState === 'checking' && (
-            <div className="border border-ink bg-cream p-10 text-center space-y-4">
-              <Loader2 className="h-10 w-10 text-ink animate-spin mx-auto" strokeWidth={1.5} />
+            <div className="border-t border-ink pt-10 space-y-4" aria-live="polite">
+              <Loader2 className="h-8 w-8 text-clay animate-spin" strokeWidth={1.5} />
               <p className="text-base text-muted">Checking your location…</p>
             </div>
           )}
 
           {/* ── Outside service area ── */}
           {geoState === 'outside' && (
-            <div className="border border-ink bg-cream p-8 text-center space-y-5">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sand-light text-muted">
-                <AlertCircle className="h-7 w-7" />
-              </div>
+            <div className="border-t border-ink pt-6 space-y-6">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sand-light text-muted">
+                <AlertCircle className="h-5 w-5" />
+              </span>
               <div>
-                <p className="font-display text-2xl font-semibold text-ink">Not available yet</p>
+                <p className="text-heading-section text-ink">Not available yet</p>
                 {detectedZip && (
                   <p className="text-small text-muted mt-1">Detected zip: {detectedZip}</p>
                 )}
@@ -137,13 +136,13 @@ export default function SignupPage() {
                   We hope to expand soon!
                 </p>
               </div>
-              <Link to="/">
-                <Button variant="outline" size="lg" className="w-full">Back to home</Button>
+              <Link to="/" className={buttonStyles({ variant: 'outline', size: 'lg', className: 'w-full' })}>
+                Back to home
               </Link>
               <button
                 type="button"
                 onClick={() => { setGeoState('manual'); setDetectedZip(null) }}
-                className="inline-flex min-h-[44px] items-center text-base text-ink underline underline-offset-4"
+                className="link-underline inline-flex min-h-[44px] items-center text-base text-ink"
               >
                 Try a different zip code
               </button>
@@ -152,8 +151,8 @@ export default function SignupPage() {
 
           {/* ── Permission denied: manual entry ── */}
           {(geoState === 'denied' || geoState === 'manual') && (
-            <div className="border border-ink bg-cream p-8 space-y-5">
-              <p className="text-base text-muted text-center leading-relaxed">
+            <div className="border-t border-ink pt-6 space-y-6">
+              <p className="text-base text-ink-2 leading-relaxed">
                 {geoState === 'denied'
                   ? 'Location access was denied. Enter your zip code to check availability.'
                   : 'Enter your zip code to check if Bartrrr is available in your area.'}
@@ -174,7 +173,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => setGeoState('idle')}
-                className="w-full min-h-[44px] text-base text-muted underline underline-offset-4"
+                className="link-underline inline-flex min-h-[44px] items-center text-base text-muted hover:text-ink"
               >
                 Use my location instead
               </button>
@@ -183,8 +182,8 @@ export default function SignupPage() {
 
           {/* ── Allowed: show user picker ── */}
           {geoState === 'allowed' && (
-            <div className="border border-ink bg-cream p-8 space-y-5">
-              <div className="flex items-center gap-2 text-teal-dark text-base font-medium">
+            <div className="border-t border-ink pt-6 space-y-5">
+              <div className="flex items-center gap-2 bg-teal-light px-4 py-3 text-teal-dark text-[15px] font-medium">
                 <CheckCircle2 className="h-5 w-5 shrink-0" />
                 <span>
                   {detectedZip
@@ -192,19 +191,19 @@ export default function SignupPage() {
                     : 'Your location is in our service area!'}
                 </span>
               </div>
-              <p className="text-base font-medium text-ink-2">Choose a user to explore as:</p>
+              <p className="text-label text-muted">Choose a user to explore as:</p>
               <form onSubmit={handleSignup} className="space-y-5">
-                <div className="space-y-2 max-h-80 overflow-y-auto">
+                <div className="-mx-1 space-y-1 max-h-80 overflow-y-auto px-1">
                   {users.map((user) => (
                     <button
                       key={user.id}
                       type="button"
                       onClick={() => setSelectedUserId(user.id)}
                       aria-pressed={selectedUserId === user.id}
-                      className={`pressable w-full flex items-center gap-3 p-4 rounded-none border-2 transition-colors text-left ${
+                      className={`pressable w-full flex items-center gap-3 px-4 py-3 rounded-none border text-left transition-[background-color,border-color] duration-300 ${
                         selectedUserId === user.id
-                          ? 'border-ink bg-sand-light'
-                          : 'border-sand-light hover:border-sand'
+                          ? 'border-ink bg-paper'
+                          : 'border-transparent hover:border-ink/30 hover:bg-paper/60'
                       }`}
                     >
                       <Avatar name={user.displayName} userId={user.id} src={user.avatarUrl} size="lg" />
@@ -212,15 +211,15 @@ export default function SignupPage() {
                         <p className="text-base font-medium text-ink truncate">{user.displayName}</p>
                         <p className="text-small text-muted">{user.neighborhood}</p>
                       </div>
-                      <div className="flex items-center gap-1 text-small text-gold shrink-0">
-                        <Star className="h-4 w-4 fill-gold" />
+                      <div className="flex items-center gap-1 text-small tabular-nums text-ink-2 shrink-0">
+                        <Star className="h-3.5 w-3.5 fill-gold text-gold" />
                         {user.reputationScore.toFixed(1)}
                       </div>
                     </button>
                   ))}
                 </div>
                 {signupError && (
-                  <p className="text-base text-clay text-center animate-fade-in">{signupError}</p>
+                  <p role="alert" className="text-small text-clay-dark text-center animate-fade-in">{signupError}</p>
                 )}
                 <Button variant="primary" size="lg" className="w-full" type="submit" loading={isSigningUp} disabled={!selectedUserId}>
                   {isSigningUp ? 'Joining…' : `Join as ${selectedUser?.displayName.split(' ')[0] || '…'}`}
@@ -231,14 +230,15 @@ export default function SignupPage() {
 
         </div>
 
-        <p className="text-center text-small text-muted mt-5">
-          This is a demo — pick any user to explore Bartrrr.
-        </p>
-        <p className="text-center text-base text-muted mt-2">
-          Already have an account?{' '}
-          <Link to="/auth/login" className="text-ink font-medium underline underline-offset-4">Log in</Link>
-        </p>
-      </div>
-    </div>
+        <div className="mt-10 space-y-2 border-t border-ink/20 pt-6">
+          <p className="text-small text-muted">
+            This is a demo — pick any user to explore Bartrrr.
+          </p>
+          <p className="text-base text-ink-2">
+            Already have an account?{' '}
+            <Link to="/auth/login" className="font-medium text-ink underline decoration-clay decoration-1 underline-offset-4 hover:decoration-2">Log in</Link>
+          </p>
+        </div>
+    </AuthShell>
   )
 }

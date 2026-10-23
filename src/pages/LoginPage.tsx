@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Star } from 'lucide-react'
 import { Button, Avatar } from '@/components/ui'
+import { AuthShell } from '@/components/layout'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore } from '@/stores'
 
@@ -37,36 +38,30 @@ export default function LoginPage() {
   const selectedUser = users.find((u) => u.id === selectedUserId)
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link to="/">
-            <span className="text-[20px] font-medium lowercase tracking-tight text-ink">
-              bartrrr
-            </span>
-          </Link>
-          <p className="text-sm text-muted mt-1">Welcome back, neighbor.</p>
+    <AuthShell image="/photo-editorial.jpg" caption={<>Trade, <em>don't buy.</em></>}>
+        {/* Heading */}
+        <div className="mb-10 animate-fade-up">
+          <h1 className="text-heading-page text-ink">Welcome back, neighbor.</h1>
         </div>
 
         {/* User picker */}
-        <div className="border border-ink bg-cream p-6">
-          <p className="text-sm font-medium text-ink-2 mb-3">
+        <div className="animate-fade-up stagger-1">
+          <p className="text-label text-muted mb-3">
             Choose a user to log in as:
           </p>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2 max-h-72 overflow-y-auto">
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="-mx-1 space-y-1 max-h-[22rem] overflow-y-auto border-y border-ink/20 px-1 py-2">
               {users.map((user) => (
                 <button
                   key={user.id}
                   type="button"
                   onClick={() => setSelectedUserId(user.id)}
                   aria-pressed={selectedUserId === user.id}
-                  className={`pressable w-full flex items-center gap-3 p-3 rounded-none border transition-colors text-left ${
+                  className={`pressable group w-full flex items-center gap-3 px-4 py-3 rounded-none border text-left transition-[background-color,border-color] duration-300 ${
                     selectedUserId === user.id
-                      ? 'border-ink bg-sand-light'
-                      : 'border-sand-light hover:border-sand'
+                      ? 'border-ink bg-paper'
+                      : 'border-transparent hover:border-ink/30 hover:bg-paper/60'
                   }`}
                 >
                   <Avatar
@@ -76,21 +71,25 @@ export default function LoginPage() {
                     size="md"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-ink truncate">
+                    <p className="text-[15px] font-medium text-ink truncate">
                       {user.displayName}
                     </p>
-                    <p className="text-xs text-muted">{user.neighborhood}</p>
+                    <p className="text-small text-muted">{user.neighborhood}</p>
                   </div>
-                  <div className="flex items-center gap-0.5 text-xs text-gold shrink-0">
-                    <Star className="h-3 w-3 fill-gold" />
+                  <div className="flex items-center gap-1 text-small tabular-nums text-ink-2 shrink-0">
+                    <Star className="h-3.5 w-3.5 fill-gold text-gold" />
                     {user.reputationScore.toFixed(1)}
                   </div>
+                  <span
+                    aria-hidden="true"
+                    className={`ml-1 h-2 w-2 shrink-0 rounded-full transition-colors ${selectedUserId === user.id ? 'bg-clay' : 'bg-transparent'}`}
+                  />
                 </button>
               ))}
             </div>
 
             {loginError && (
-              <p className="text-sm text-red-500 text-center">{loginError}</p>
+              <p role="alert" className="text-small text-clay-dark text-center animate-fade-in">{loginError}</p>
             )}
             <Button
               variant="primary"
@@ -106,10 +105,9 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted mt-4">
+        <p className="text-small text-muted mt-6">
           This is a demo — pick any user to explore Bartrrr.
         </p>
-      </div>
-    </div>
+    </AuthShell>
   )
 }
