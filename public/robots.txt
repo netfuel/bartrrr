@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /auth/callback
+Disallow: /auth/reset-password
+Disallow: /onboarding
+Disallow: /dashboard
+Disallow: /offers
+Disallow: /agreements
+Disallow: /settings
+
+Sitemap: https://bartrrr.app/sitemap.xml

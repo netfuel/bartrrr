@@ -5,6 +5,9 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Bartrrr — Trade, don't buy</title>
+    <meta name="description" content="Swap goods, skills, and services with your Memphis neighbors — no cash, just fair exchange." />
+    <link rel="canonical" href="https://bartrrr.app/" />
+    <meta name="robots" content="index, follow" />
 
     <!-- Fonts: preconnect + link beats a render-blocking CSS @import -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,7 +16,6 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
     />
-    <meta name="description" content="Swap goods, skills, and services with your Memphis neighbors — no cash, just fair exchange." />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -24,18 +26,35 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="apple-touch-icon" href="/icon.svg" />
 
-    <!-- Social sharing -->
+    <!-- Social sharing (crawlers need absolute URLs) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bartrrr" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://bartrrr.app/" />
     <meta property="og:title" content="Bartrrr — Trade, don't buy" />
     <meta property="og:description" content="Swap goods, skills, and services with your Memphis neighbors — no cash, just fair exchange." />
-    <meta property="og:image" content="/photo-community.jpg" />
+    <meta property="og:image" content="https://bartrrr.app/photo-community.jpg" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="853" />
+    <meta property="og:image:alt" content="Neighbors trading goods in Memphis" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Bartrrr — Trade, don't buy" />
     <meta name="twitter:description" content="Swap goods, skills, and services with your Memphis neighbors — no cash, just fair exchange." />
-    <meta name="twitter:image" content="/photo-community.jpg" />
+    <meta name="twitter:image" content="https://bartrrr.app/photo-community.jpg" />
+    <meta name="twitter:image:alt" content="Neighbors trading goods in Memphis" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Bartrrr",
+        "url": "https://bartrrr.app/",
+        "description": "Swap goods, skills, and services with your Memphis neighbors — no cash, just fair exchange."
+      }
+    </script>
   </head>
   <body>
+    <noscript>Bartrrr needs JavaScript to run. Please enable it to trade with your neighbors.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
