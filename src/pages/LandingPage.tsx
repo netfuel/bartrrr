@@ -158,6 +158,10 @@ export default function LandingPage() {
   useGSAP(
     () => {
       const mm = gsap.matchMedia()
+      // Reduced motion: hold the hero on its poster frame
+      mm.add('(prefers-reduced-motion: reduce)', () => {
+        container.current?.querySelector<HTMLVideoElement>('.hero-video')?.pause()
+      })
       mm.add('(prefers-reduced-motion: no-preference)', () => {
         // ── Hero entrance ──
         gsap
