@@ -10,15 +10,26 @@
  */
 
 import { supabase } from './supabase'
-
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string
+import { VAPID_PUBLIC_KEY } from './env'
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 
+/**
+ * Register /sw.js. `updateViaCache: 'none'` makes the browser always check
+ * the network for a new sw.js, so a deploy is picked up on the next visit
+ * instead of being stuck behind HTTP caching.
+ */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null
   try {
-    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    const reg = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    })
+    // Check for a new deploy when the app comes back to the foreground
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().catch(() => {})
+    })
     await navigator.serviceWorker.ready
     return reg
   } catch (err) {
@@ -28,6 +39,11 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 }
 
 // ── Subscription management ───────────────────────────────────────────────────
+
+async function requireSessionUser(userId: string) {
+  const { data } = await supabase!.auth.getSession()
+  if (data.session?.user.id !== userId) throw new Error('Not signed in as this user')
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -56,13 +72,17 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
     return false
   }
 
-  // Request permission
-  const permission = await Notification.requestPermission()
+  // Request permission (only prompts if the user hasn't decided yet)
+  const permission =
+    Notification.permission === 'default'
+      ? await Notification.requestPermission()
+      : Notification.permission
   if (permission !== 'granted') return false
 
   try {
     const reg = await registerServiceWorker()
     if (!reg) return false
+    await requireSessionUser(userId)
 
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
@@ -112,7 +132,14 @@ export async function unsubscribeFromPush(userId: string): Promise<void> {
 }
 
 export function isPushSupported(): boolean {
-  return 'PushManager' in window && 'serviceWorker' in navigator && !!VAPID_PUBLIC_KEY
+  return (
+    typeof window !== 'undefined' &&
+    'PushManager' in window &&
+    'Notification' in window &&
+    'serviceWorker' in navigator &&
+    !!VAPID_PUBLIC_KEY &&
+    !!supabase
+  )
 }
 
 export function getPushPermissionState(): NotificationPermission | 'unsupported' {

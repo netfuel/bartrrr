@@ -1,40 +1,59 @@
-import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Star } from 'lucide-react'
-import { Button, Avatar } from '@/components/ui'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Button, Input } from '@/components/ui'
+import { AuthDivider, OAuthButtons } from '@/components/auth'
 import { useAuth } from '@/providers/AuthProvider'
-import { useUsersStore } from '@/stores'
+import { DEMO_MODE, HAS_SUPABASE } from '@/lib/env'
+import {
+  DEFAULT_AFTER_LOGIN,
+  authPathWithReturn,
+  friendlyAuthError,
+  sanitizeReturnTo,
+  signInWithEmail,
+} from '@/lib/auth'
+import { ValidationError } from '@/lib/validation'
+
+// Demo-only picker: never bundled unless VITE_DEMO_MODE=true at build time
+// (the env check must be inline so the bundler can drop the import)
+const DemoUserPicker =
+  import.meta.env.VITE_DEMO_MODE === 'true' && DEMO_MODE
+    ? lazy(() => import('@/components/auth/DemoUserPicker'))
+    : null
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { login } = useAuth()
-  const users = useUsersStore((s) => s.users)
-  const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '')
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
-  const [loginError, setLoginError] = useState<string | null>(null)
+  const { isAuthenticated, isLoading } = useAuth()
 
-  const returnTo = searchParams.get('returnTo') || '/browse'
+  const returnTo = sanitizeReturnTo(searchParams.get('returnTo')) ?? DEFAULT_AFTER_LOGIN
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(searchParams.get('error'))
+  const [awaitingSession, setAwaitingSession] = useState(false)
+
+  // After a successful sign-in, AuthProvider loads the profile; go once it has.
+  useEffect(() => {
+    if (awaitingSession && isAuthenticated) navigate(returnTo, { replace: true })
+  }, [awaitingSession, isAuthenticated, navigate, returnTo])
+
+  if (isAuthenticated && !awaitingSession && !isLoading) {
+    return <Navigate to={returnTo} replace />
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const selectedUser = users.find((u) => u.id === selectedUserId)
-    if (!selectedUser) return
-
     setIsLoggingIn(true)
     setLoginError(null)
     try {
-      await login(selectedUser.displayName.split(' ')[0].toLowerCase())
-      navigate(returnTo)
+      await signInWithEmail(email, password)
+      setAwaitingSession(true)
     } catch (err) {
-      console.error('Login failed:', err)
-      setLoginError('Login failed. Please try again.')
+      setLoginError(err instanceof ValidationError ? err.message.replace(/^\w+: /, '') : friendlyAuthError(err))
     } finally {
       setIsLoggingIn(false)
     }
   }
-
-  const selectedUser = users.find((u) => u.id === selectedUserId)
 
   return (
     <div className="min-h-screen bg-cream flex items-center justify-center px-4">
@@ -46,68 +65,78 @@ export default function LoginPage() {
               bartrrr
             </span>
           </Link>
+          <h1 className="sr-only">Log in to Bartrrr</h1>
           <p className="text-sm text-muted mt-1">Welcome back, neighbor.</p>
         </div>
 
-        {/* User picker */}
-        <div className="border border-ink bg-cream p-6">
-          <p className="text-sm font-medium text-ink-2 mb-3">
-            Choose a user to log in as:
-          </p>
+        {HAS_SUPABASE && (
+          <div className="border border-ink bg-cream p-6">
+            <OAuthButtons returnTo={returnTo} onError={setLoginError} disabled={isLoggingIn} />
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2 max-h-72 overflow-y-auto">
-              {users.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => setSelectedUserId(user.id)}
-                  aria-pressed={selectedUserId === user.id}
-                  className={`pressable w-full flex items-center gap-3 p-3 rounded-none border transition-colors text-left ${
-                    selectedUserId === user.id
-                      ? 'border-ink bg-sand-light'
-                      : 'border-sand-light hover:border-sand'
-                  }`}
+            <AuthDivider label="or use email" />
+
+            <form onSubmit={handleLogin} className="space-y-4" noValidate>
+              <Input
+                id="login-email"
+                label="Email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                id="login-password"
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <div className="text-right -mt-2">
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-small text-ink underline underline-offset-4"
                 >
-                  <Avatar
-                    name={user.displayName}
-                    userId={user.id}
-                    src={user.avatarUrl}
-                    size="md"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-ink truncate">
-                      {user.displayName}
-                    </p>
-                    <p className="text-xs text-muted">{user.neighborhood}</p>
-                  </div>
-                  <div className="flex items-center gap-0.5 text-xs text-gold shrink-0">
-                    <Star className="h-3 w-3 fill-gold" />
-                    {user.reputationScore.toFixed(1)}
-                  </div>
-                </button>
-              ))}
-            </div>
+                  Forgot password?
+                </Link>
+              </div>
 
-            {loginError && (
-              <p className="text-sm text-red-500 text-center">{loginError}</p>
-            )}
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full"
-              type="submit"
-              disabled={!selectedUserId || isLoggingIn}
-            >
-              {isLoggingIn
-                ? 'Signing in…'
-                : `Log in as ${selectedUser?.displayName.split(' ')[0] || '...'}`}
-            </Button>
-          </form>
-        </div>
+              {loginError && (
+                <p role="alert" className="text-sm text-clay text-center">{loginError}</p>
+              )}
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                type="submit"
+                loading={isLoggingIn || awaitingSession}
+                disabled={!email || !password}
+              >
+                {isLoggingIn || awaitingSession ? 'Signing in…' : 'Log in'}
+              </Button>
+            </form>
+          </div>
+        )}
 
-        <p className="text-center text-xs text-muted mt-4">
-          This is a demo — pick any user to explore Bartrrr.
+        {DemoUserPicker && (
+          <div className={HAS_SUPABASE ? 'mt-6' : undefined}>
+            <Suspense fallback={null}>
+              <DemoUserPicker onDone={() => navigate(returnTo, { replace: true })} />
+            </Suspense>
+          </div>
+        )}
+
+        <p className="text-center text-base text-muted mt-4">
+          New to Bartrrr?{' '}
+          <Link
+            to={authPathWithReturn('/auth/signup', returnTo)}
+            className="text-ink font-medium underline underline-offset-4"
+          >
+            Create an account
+          </Link>
         </p>
       </div>
     </div>

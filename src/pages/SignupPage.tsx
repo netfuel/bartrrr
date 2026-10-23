@@ -1,27 +1,50 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Star, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { Button, Avatar, Input } from '@/components/ui'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { MapPin, Loader2, AlertCircle, CheckCircle2, MailCheck } from 'lucide-react'
+import { Button, Input } from '@/components/ui'
+import { AuthDivider, OAuthButtons } from '@/components/auth'
 import { useAuth } from '@/providers/AuthProvider'
-import { useUsersStore } from '@/stores'
 import { requestLocation, getZipFromCoords } from '@/lib/utils/geolocation'
 import { isMemphisZip } from '@/lib/utils/zip'
+import { DEMO_MODE, HAS_SUPABASE } from '@/lib/env'
+import { authPathWithReturn, friendlyAuthError, sanitizeReturnTo, signUpWithEmail } from '@/lib/auth'
+import { ValidationError } from '@/lib/validation'
+
+// Demo-only picker: never bundled unless VITE_DEMO_MODE=true at build time
+// (the env check must be inline so the bundler can drop the import)
+const DemoUserPicker =
+  import.meta.env.VITE_DEMO_MODE === 'true' && DEMO_MODE
+    ? lazy(() => import('@/components/auth/DemoUserPicker'))
+    : null
 
 type GeoState = 'idle' | 'checking' | 'allowed' | 'outside' | 'denied' | 'manual'
 
 export default function SignupPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
-  const users = useUsersStore((s) => s.users)
-  const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '')
+  const [searchParams] = useSearchParams()
+  const { isAuthenticated, isLoading } = useAuth()
+  const returnTo = sanitizeReturnTo(searchParams.get('returnTo'))
   const [geoState, setGeoState] = useState<GeoState>('idle')
   const [detectedZip, setDetectedZip] = useState<string | null>(null)
   const [manualZip, setManualZip] = useState('')
   const [manualError, setManualError] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [isSigningUp, setIsSigningUp] = useState(false)
   const [signupError, setSignupError] = useState<string | null>(null)
+  const [confirmationSentTo, setConfirmationSentTo] = useState<string | null>(null)
+  const [awaitingSession, setAwaitingSession] = useState(false)
 
-  const selectedUser = users.find((u) => u.id === selectedUserId)
+  // Email signup without confirmation signs in immediately; continue once
+  // AuthProvider has the profile. New accounts go through onboarding.
+  useEffect(() => {
+    if (awaitingSession && isAuthenticated) navigate('/onboarding', { replace: true })
+  }, [awaitingSession, isAuthenticated, navigate])
+
+  if (isAuthenticated && !awaitingSession && !isLoading) {
+    return <Navigate to={returnTo ?? '/browse'} replace />
+  }
 
   const checkLocation = async () => {
     setGeoState('checking')
@@ -58,16 +81,25 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    const selectedUser = users.find((u) => u.id === selectedUserId)
-    if (!selectedUser) return
     setIsSigningUp(true)
     setSignupError(null)
     try {
-      await login(selectedUser.displayName.split(' ')[0].toLowerCase())
-      navigate('/onboarding')
+      const { needsEmailConfirmation } = await signUpWithEmail({
+        displayName,
+        email,
+        password,
+        returnTo,
+      })
+      if (needsEmailConfirmation) setConfirmationSentTo(email.trim())
+      else setAwaitingSession(true)
     } catch (err) {
-      console.error('Signup failed:', err)
-      setSignupError('Something went wrong. Please try again.')
+      if (err instanceof ValidationError) {
+        const [field, message] = err.message.split(': ')
+        const label: Record<string, string> = { displayName: 'Name', email: 'Email', password: 'Password' }
+        setSignupError(message ? `${label[field] ?? field}: ${message}` : err.message)
+      } else {
+        setSignupError(friendlyAuthError(err))
+      }
     } finally {
       setIsSigningUp(false)
     }
@@ -181,8 +213,8 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* ── Allowed: show user picker ── */}
-          {geoState === 'allowed' && (
+          {/* ── Allowed: create the account ── */}
+          {geoState === 'allowed' && !confirmationSentTo && (
             <div className="border border-ink bg-cream p-8 space-y-5">
               <div className="flex items-center gap-2 text-teal-dark text-base font-medium">
                 <CheckCircle2 className="h-5 w-5 shrink-0" />
@@ -192,51 +224,97 @@ export default function SignupPage() {
                     : 'Your location is in our service area!'}
                 </span>
               </div>
-              <p className="text-base font-medium text-ink-2">Choose a user to explore as:</p>
-              <form onSubmit={handleSignup} className="space-y-5">
-                <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {users.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onClick={() => setSelectedUserId(user.id)}
-                      aria-pressed={selectedUserId === user.id}
-                      className={`pressable w-full flex items-center gap-3 p-4 rounded-none border-2 transition-colors text-left ${
-                        selectedUserId === user.id
-                          ? 'border-ink bg-sand-light'
-                          : 'border-sand-light hover:border-sand'
-                      }`}
+
+              {HAS_SUPABASE && (
+                <>
+                  <OAuthButtons
+                    returnTo={returnTo}
+                    onError={setSignupError}
+                    disabled={isSigningUp || awaitingSession}
+                  />
+
+                  <AuthDivider label="or sign up with email" />
+
+                  <form onSubmit={handleSignup} className="space-y-4" noValidate>
+                    <Input
+                      id="signup-name"
+                      label="Your name"
+                      autoComplete="name"
+                      required
+                      maxLength={60}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                    />
+                    <Input
+                      id="signup-email"
+                      label="Email"
+                      type="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <Input
+                      id="signup-password"
+                      label="Password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      helperText="At least 8 characters, with letters and numbers."
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    {signupError && (
+                      <p role="alert" className="text-base text-clay text-center animate-fade-in">{signupError}</p>
+                    )}
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      type="submit"
+                      loading={isSigningUp || awaitingSession}
+                      disabled={!displayName.trim() || !email || !password}
                     >
-                      <Avatar name={user.displayName} userId={user.id} src={user.avatarUrl} size="lg" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-medium text-ink truncate">{user.displayName}</p>
-                        <p className="text-small text-muted">{user.neighborhood}</p>
-                      </div>
-                      <div className="flex items-center gap-1 text-small text-gold shrink-0">
-                        <Star className="h-4 w-4 fill-gold" />
-                        {user.reputationScore.toFixed(1)}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                {signupError && (
-                  <p className="text-base text-clay text-center animate-fade-in">{signupError}</p>
-                )}
-                <Button variant="primary" size="lg" className="w-full" type="submit" loading={isSigningUp} disabled={!selectedUserId}>
-                  {isSigningUp ? 'Joining…' : `Join as ${selectedUser?.displayName.split(' ')[0] || '…'}`}
-                </Button>
-              </form>
+                      {isSigningUp || awaitingSession ? 'Creating your account…' : 'Create account'}
+                    </Button>
+                  </form>
+                </>
+              )}
+
+              {DemoUserPicker && (
+                <Suspense fallback={null}>
+                  <DemoUserPicker onDone={() => navigate('/onboarding', { replace: true })} />
+                </Suspense>
+              )}
+            </div>
+          )}
+
+          {/* ── Email confirmation sent ── */}
+          {confirmationSentTo && (
+            <div className="border border-ink bg-cream p-8 text-center space-y-4" role="status">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border border-ink text-ink">
+                <MailCheck className="h-7 w-7" />
+              </div>
+              <p className="font-display text-2xl font-semibold text-ink">Check your email</p>
+              <p className="text-base text-muted leading-relaxed">
+                We sent a confirmation link to <span className="font-medium text-ink">{confirmationSentTo}</span>.
+                Open it on this device to finish creating your account.
+              </p>
             </div>
           )}
 
         </div>
 
-        <p className="text-center text-small text-muted mt-5">
-          This is a demo — pick any user to explore Bartrrr.
-        </p>
-        <p className="text-center text-base text-muted mt-2">
+        <p className="text-center text-base text-muted mt-5">
           Already have an account?{' '}
-          <Link to="/auth/login" className="text-ink font-medium underline underline-offset-4">Log in</Link>
+          <Link
+            to={authPathWithReturn('/auth/login', returnTo)}
+            className="text-ink font-medium underline underline-offset-4"
+          >
+            Log in
+          </Link>
         </p>
       </div>
     </div>
