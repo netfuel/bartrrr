@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Share2, Check } from 'lucide-react'
 import { Button, type ButtonProps } from './Button'
 import { renderShareCard, type ShareCardData } from '@/lib/utils/share-card'
+import { showToast } from '@/stores/toast-store'
 
 export interface ShareButtonProps {
   title: string
@@ -61,7 +62,8 @@ export function ShareButton({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Clipboard unavailable — nothing sensible left to do
+      // Clipboard unavailable: tell the user instead of failing silently
+      showToast("Couldn't copy the link. Copy it from your browser's address bar instead.", 'error')
     }
   }
 
@@ -69,7 +71,7 @@ export function ShareButton({
     <Button variant={variant} size={size} className={className} onClick={handleShare}>
       {copied ? (
         <>
-          <Check className="h-4 w-4" /> Copied!
+          <Check className="h-4 w-4" /> Link copied
         </>
       ) : (
         <>

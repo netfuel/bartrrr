@@ -25,11 +25,12 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const getLink = (n: (typeof userNotifications)[0]) => {
     if (n.data?.offerId) return `/offers/${n.data.offerId}`
     if (n.data?.agreementId) return `/agreements/${n.data.agreementId}`
+    if (n.data?.listingId) return `/listing/${n.data.listingId}`
     return '/offers'
   }
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-none border border-sand-light z-50 overflow-hidden">
+    <div role="region" aria-label="Notifications" className="absolute right-0 top-full mt-2 w-80 bg-white rounded-none border border-sand-light z-50 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-sand-light">
         <p className="text-sm font-semibold text-ink">Notifications</p>
         {unreadCount > 0 && (
@@ -46,8 +47,8 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
       <div className="max-h-80 overflow-y-auto">
         {userNotifications.length === 0 ? (
           <div className="px-4 py-8 text-center">
-            <p className="text-sm text-muted">No notifications yet.</p>
-            <p className="text-xs text-muted mt-1">You'll see updates about your offers and trades here.</p>
+            <p className="text-sm text-muted">You're all caught up.</p>
+            <p className="text-xs text-muted mt-1">New offers, messages, and trade updates will show up here.</p>
           </div>
         ) : (
           userNotifications.map((notification) => (

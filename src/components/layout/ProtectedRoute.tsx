@@ -9,7 +9,7 @@ export function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
+        <div role="status" className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 border-2 border-clay border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-muted">Loading…</p>
         </div>

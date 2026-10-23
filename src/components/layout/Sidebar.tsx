@@ -8,7 +8,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/browse', label: 'Browse', icon: Map },
   { to: '/feed', label: 'Feed', icon: Rss },
-  { to: '/offers', label: 'My Offers', icon: MessageSquare },
+  { to: '/offers', label: 'Offers', icon: MessageSquare },
   { to: '/agreements', label: 'Agreements', icon: FileCheck },
   { to: '/profile/me', label: 'Profile', icon: User },
 ]
@@ -17,7 +17,7 @@ export function Sidebar() {
   const { currentUser } = useAuth()
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-cream border-r border-ink z-40">
+    <aside aria-label="Main navigation" className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-cream border-r border-ink z-40">
       {/* Logo */}
       <div className="px-6 py-6">
         <NavLink to="/" className="flex items-center gap-2">
@@ -53,18 +53,18 @@ export function Sidebar() {
       <div className="px-3 py-4 border-t border-ink">
         <div className="flex items-center gap-3 px-3">
           <Avatar
-            name={currentUser?.displayName || 'User'}
+            name={currentUser?.displayName || 'Neighbor'}
             userId={currentUser?.id || ''}
             src={currentUser?.avatarUrl}
             size="md"
           />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-ink truncate">
-              {currentUser?.displayName || 'User'}
+              {currentUser?.displayName || 'Neighbor'}
             </p>
             <p className="text-xs text-muted">{currentUser?.neighborhood || ''}</p>
           </div>
-          <NavLink to="/settings" className="text-muted hover:text-ink transition-colors">
+          <NavLink to="/settings" aria-label="Settings" className="text-muted hover:text-ink transition-colors">
             <Settings className="h-4 w-4" />
           </NavLink>
         </div>

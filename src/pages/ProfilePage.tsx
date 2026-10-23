@@ -1,10 +1,11 @@
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useState } from 'react'
 import { Star, MapPin, Calendar } from 'lucide-react'
 import { Avatar, Chip, Tabs } from '@/components/ui'
 import { TradeCard, ReviewCard } from '@/components/bartrrr'
 import { useUsersStore, useListingsStore, useReviewsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
+import { usePageTitle } from '@/lib/utils'
 
 type Tab = 'portfolio' | 'reviews'
 
@@ -18,10 +19,17 @@ export default function ProfilePage() {
   const getReviewsForUser = useReviewsStore((s) => s.getReviewsForUser)
 
   const user = username === 'me' ? currentUser : getUserByUsername(username || '')
+  usePageTitle(user?.displayName ?? 'Profile')
 
   if (!user) {
-    return <div className="p-8 text-center text-muted">Profile not found.</div>
+    return (
+      <div className="p-8 text-center">
+        <p className="text-muted">We couldn't find this neighbor. They may have closed their account.</p>
+        <Link to="/browse" className="text-ink underline underline-offset-4 text-sm mt-2 inline-block">Browse listings</Link>
+      </div>
+    )
   }
+  const isMe = currentUser?.id === user.id
 
   const userListings = listings.filter((l) => l.userId === user.id && l.status === 'active')
   const reviews = getReviewsForUser(user.id)
@@ -48,7 +56,7 @@ export default function ProfilePage() {
               <Star className="h-4 w-4 fill-gold" />
               {user.reputationScore.toFixed(1)}
             </span>
-            <span className="text-sm text-ink-2">{user.tradeCount} trades</span>
+            <span className="text-sm text-ink-2">{user.tradeCount} {user.tradeCount === 1 ? 'trade' : 'trades'}</span>
           </div>
           {user.bio && <p className="mt-3 text-sm text-ink-2 leading-relaxed">{user.bio}</p>}
           {user.lookingFor && user.lookingFor.length > 0 && (
@@ -68,7 +76,7 @@ export default function ProfilePage() {
         active={tab}
         onChange={setTab}
         tabs={[
-          { id: 'portfolio', label: 'Portfolio' },
+          { id: 'portfolio', label: 'Listings' },
           { id: 'reviews', label: 'Reviews', count: reviews.length },
         ]}
       />
@@ -76,7 +84,16 @@ export default function ProfilePage() {
       {tab === 'portfolio' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {userListings.length === 0 ? (
-            <p className="text-sm text-muted col-span-full text-center py-8">No listings yet.</p>
+            <div className="col-span-full text-center py-8">
+              <p className="text-sm text-muted">
+                {isMe
+                  ? "You don't have any active listings. Post one so neighbors can make offers."
+                  : `${user.displayName.split(' ')[0]} doesn't have anything listed right now.`}
+              </p>
+              {isMe && (
+                <Link to="/listing/new" className="text-ink underline underline-offset-4 text-sm mt-2 inline-block">Post a listing</Link>
+              )}
+            </div>
           ) : (
             userListings.map((listing) => (
               <TradeCard key={listing.id} listing={listing} user={user} />
@@ -89,7 +106,9 @@ export default function ProfilePage() {
         <div className="space-y-4">
           {reviews.length === 0 ? (
             <div className="text-center py-12 text-sm text-muted">
-              Reviews will appear here after completed trades.
+              {isMe
+                ? 'No reviews yet. After each trade, your neighbor can leave one here.'
+                : `No reviews yet. Reviews show up after ${user.displayName.split(' ')[0]} completes a trade.`}
             </div>
           ) : (
             reviews.map((review) => {

@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { MapPin, Repeat, Rss } from 'lucide-react'
 import { useListingsStore, useAgreementsStore, useUsersStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { CATEGORY_LABELS } from '@/types'
+import { usePageTitle } from '@/lib/utils'
 
 type FeedItem =
   | {
@@ -39,6 +41,7 @@ export default function ActivityFeedPage() {
   const listings = useListingsStore((s) => s.listings)
   const agreements = useAgreementsStore((s) => s.agreements)
   const getUserById = useUsersStore((s) => s.getUserById)
+  usePageTitle('Neighborhood feed')
 
   const feedItems = useMemo<FeedItem[]>(() => {
     if (!currentUser) return []
@@ -58,7 +61,7 @@ export default function ActivityFeedPage() {
           title: l.title,
           neighborhood: l.location.neighborhood,
           category: CATEGORY_LABELS[l.category] ?? l.category,
-          displayerName: poster?.displayName ?? 'Someone',
+          displayerName: poster?.displayName ?? 'A neighbor',
           timestamp: l.createdAt,
         }
       })
@@ -79,8 +82,8 @@ export default function ActivityFeedPage() {
         return {
           type: 'trade',
           id: a.id,
-          partyAName: pA?.displayName ?? 'Someone',
-          partyBName: pB?.displayName ?? 'Someone',
+          partyAName: pA?.displayName ?? 'A neighbor',
+          partyBName: pB?.displayName ?? 'A neighbor',
           timestamp: a.completedAt ?? a.createdAt,
         }
       })
@@ -103,7 +106,7 @@ export default function ActivityFeedPage() {
           </h1>
         </div>
         <p className="text-sm text-muted pl-7">
-          Recent listings and completed trades in your neighborhood
+          New listings and finished trades near you
         </p>
       </div>
 
@@ -117,9 +120,12 @@ export default function ActivityFeedPage() {
             No activity yet
           </p>
           <p className="text-sm text-muted max-w-xs">
-            When neighbors in {currentUser.neighborhood} post listings or complete
-            trades, you'll see them here.
+            When neighbors in {currentUser.neighborhood} post listings or finish
+            trades, you'll see them here. Get things started with a listing of your own.
           </p>
+          <Link to="/listing/new" className="mt-4 text-ink underline underline-offset-4 text-sm">
+            Post a listing
+          </Link>
         </div>
       ) : (
         <div className="relative">
@@ -163,10 +169,7 @@ export default function ActivityFeedPage() {
                         <span className="text-forest">{item.partyAName}</span>{' '}
                         &amp;{' '}
                         <span className="text-forest">{item.partyBName}</span>{' '}
-                        completed a trade
-                      </p>
-                      <p className="text-xs text-muted mt-0.5">
-                        2 items exchanged
+                        traded with each other
                       </p>
                     </>
                   )}

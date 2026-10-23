@@ -67,7 +67,8 @@ export function Header({ className }: HeaderProps) {
         <button
           type="button"
           className="pressable relative flex h-11 w-11 items-center justify-center rounded-full hover:bg-sand-light transition-colors"
-          aria-label="Notifications"
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          aria-expanded={showNotifications}
           onClick={() => setShowNotifications(!showNotifications)}
         >
           <Bell className="h-5 w-5 text-ink-2" />
