@@ -26,6 +26,8 @@ export function MessageComposer({
     <form onSubmit={handleSubmit} className={cn('flex items-center gap-2', className)}>
       <input
         type="text"
+        aria-label={placeholder || 'Message'}
+        maxLength={2000}
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={placeholder}

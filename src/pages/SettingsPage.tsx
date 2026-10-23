@@ -58,8 +58,10 @@ export default function SettingsPage() {
           <Input label="Display name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           <Input label="Neighborhood" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-ink-2">Bio</label>
+            <label htmlFor="settings-bio" className="text-sm font-medium text-ink-2">Bio</label>
             <textarea
+              id="settings-bio"
+              maxLength={500}
               className="rounded-none border border-ink bg-cream px-3 py-2.5 text-[15px] text-ink placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ink resize-y min-h-[80px]"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
