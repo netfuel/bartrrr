@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Map, MessageSquare, FileCheck, User, Settings, Rss } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Avatar } from '@/components/ui'
+import { Avatar, Wordmark } from '@/components/ui'
 import { useAuth } from '@/providers/AuthProvider'
 
 const navItems = [
@@ -18,32 +18,30 @@ export function Sidebar() {
 
   return (
     <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-cream border-r border-ink z-40">
-      {/* Logo */}
-      <div className="px-6 py-6">
-        <NavLink to="/" className="flex items-center gap-2">
-          <span className="text-[20px] font-medium lowercase tracking-tight text-ink">
-            Bartrrr
-          </span>
+      {/* Logo — aligned to the header's 64px band */}
+      <div className="flex h-16 shrink-0 items-center border-b border-ink px-6">
+        <NavLink to="/" aria-label="Bartrrr home" className="rounded-sm">
+          <Wordmark />
         </NavLink>
-        <p className="text-xs text-muted mt-0.5">Trade, don't buy.</p>
       </div>
+      <p className="eyebrow px-6 pt-7 pb-3">Trade, don't buy.</p>
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 px-3 space-y-0.5">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               cn(
-                'pressable flex items-center gap-3 px-3 py-2.5 rounded-none text-[15px] font-medium transition-[background-color,color] duration-200',
+                'pressable group relative flex min-h-[44px] items-center gap-3 px-3 text-[15px] font-medium transition-[background-color,color] duration-300 ease-out-soft',
                 isActive
-                  ? 'bg-ink text-cream font-medium'
-                  : 'text-ink-2 hover:bg-sand-light hover:translate-x-0.5',
+                  ? 'bg-ink text-cream'
+                  : 'text-ink-2 hover:bg-sand-light hover:text-ink',
               )
             }
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-[18px] w-[18px] shrink-0" />
             {label}
           </NavLink>
         ))}
@@ -62,9 +60,18 @@ export function Sidebar() {
             <p className="text-sm font-medium text-ink truncate">
               {currentUser?.displayName || 'User'}
             </p>
-            <p className="text-xs text-muted">{currentUser?.neighborhood || ''}</p>
+            <p className="text-small truncate text-muted">{currentUser?.neighborhood || ''}</p>
           </div>
-          <NavLink to="/settings" className="text-muted hover:text-ink transition-colors">
+          <NavLink
+            to="/settings"
+            aria-label="Settings"
+            className={({ isActive }) =>
+              cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors',
+                isActive ? 'bg-ink text-cream' : 'text-muted hover:bg-sand-light hover:text-ink',
+              )
+            }
+          >
             <Settings className="h-4 w-4" />
           </NavLink>
         </div>

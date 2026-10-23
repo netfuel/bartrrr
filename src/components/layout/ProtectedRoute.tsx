@@ -8,10 +8,10 @@ export function ProtectedRoute() {
   // Wait for Supabase to restore the session before making auth decisions
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 border-2 border-clay border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-muted">Loading…</p>
+      <div className="min-h-screen bg-cream flex items-center justify-center" aria-busy="true">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-7 w-7 border border-ink border-t-transparent rounded-full animate-spin" />
+          <p className="text-label text-muted">Loading…</p>
         </div>
       </div>
     )
