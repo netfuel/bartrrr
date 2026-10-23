@@ -26,36 +26,37 @@ function TradeCardInner({
     currentUser?.interests?.includes(listing.category) ?? false
 
   return (
-    <div
+    <article
       className={cn(
-        'border border-ink bg-cream overflow-hidden transition-colors hover:bg-sand-light',
+        'group/card flex flex-col border border-ink bg-paper overflow-hidden transition-colors duration-500 ease-out-soft hover:bg-cream',
         className,
       )}
     >
       {/* Image area */}
-      <Link to={`/listing/${listing.id}`} className="block relative">
-        <div className="h-[140px] bg-clay-light overflow-hidden">
+      <Link to={`/listing/${listing.id}`} tabIndex={-1} aria-hidden="true" className="block relative">
+        <div className="aspect-[4/3] bg-sand-light overflow-hidden border-b border-ink">
           {listing.images[0] ? (
             <img
               src={listing.images[0]}
-              alt={listing.title}
+              alt=""
               loading="lazy"
-              className="w-full h-full object-cover"
+              decoding="async"
+              className="photo-warm w-full h-full object-cover transition-transform duration-[1200ms] ease-out-soft group-hover/card:scale-[1.04]"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-clay-mid">
-              <ImageIcon className="h-10 w-10" />
+            <div className="w-full h-full flex items-center justify-center text-muted/60">
+              <ImageIcon className="h-9 w-9" strokeWidth={1.25} />
             </div>
           )}
         </div>
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-3 left-3">
           <Badge variant={CATEGORY_COLORS[listing.category] as 'clay' | 'teal' | 'gold' | 'moss'}>
             {CATEGORY_LABELS[listing.category]}
           </Badge>
         </div>
         {isPerfectMatch && (
-          <div className="absolute top-2 right-2">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold text-white text-[11px] font-semibold shadow-sm">
+          <div className="absolute top-3 right-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-[5px] text-label leading-none text-cream">
               ✦ Match
             </span>
           </div>
@@ -63,41 +64,41 @@ function TradeCardInner({
       </Link>
 
       {/* Content */}
-      <div className="p-4">
-        {/* Title — Fraunces 16px/600 per §6.3 */}
-        <Link to={`/listing/${listing.id}`}>
-          <h3 className="font-display text-[16px] font-semibold leading-snug text-ink truncate hover:text-clay transition-colors">
+      <div className="flex flex-1 flex-col p-5">
+        {/* Title — Fraunces, the card's one serif moment */}
+        <Link to={`/listing/${listing.id}`} className="rounded-sm">
+          <h3 className="font-display text-[21px] font-normal leading-[1.2] tracking-[-0.012em] text-ink line-clamp-2 transition-colors group-hover/card:text-clay-dark">
             {listing.title}
           </h3>
         </Link>
 
-        {/* Meta row — small token: 13px per §5.3 */}
-        <div className="flex items-center gap-1.5 mt-1.5 text-[13px] text-muted">
-          <MapPin className="h-3.5 w-3.5" />
-          <span>
+        {/* Meta row */}
+        <div className="flex min-w-0 items-center gap-1.5 mt-2 text-small text-muted">
+          <MapPin className="h-3.5 w-3.5 shrink-0" />
+          <span className="shrink-0">
             {listing.distanceMi !== undefined
               ? formatDistance(listing.distanceMi)
               : listing.location.neighborhood}
           </span>
-          <span>&middot;</span>
-          <span>{listing.location.neighborhood}</span>
+          <span aria-hidden="true">&middot;</span>
+          <span className="truncate">{listing.location.neighborhood}</span>
         </div>
 
-        {/* Seeking section — forest-light bg per §6.3 */}
-        <div className="mt-3 bg-forest-light rounded-none p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-forest mb-1">
+        {/* Seeking section — the other half of every trade, never blank */}
+        <div className="mt-4 mb-4 border-l-2 border-clay bg-clay-light/60 py-2.5 pl-3.5 pr-3">
+          <p className="text-label text-clay-dark mb-1">
             Looking for
           </p>
-          <p className="text-[13px] text-forest-dark leading-relaxed">
+          <p className="text-[14px] text-ink-2 leading-snug line-clamp-2">
             {listing.seeking || 'What would you like in return?'}
           </p>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-3">
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-ink/15 pt-4">
           <Link
             to={`/profile/${user.username}`}
-            className="flex items-center gap-2 min-w-0"
+            className="flex items-center gap-2 min-w-0 rounded-sm"
           >
             <Avatar
               src={user.avatarUrl}
@@ -105,20 +106,22 @@ function TradeCardInner({
               userId={user.id}
               size="sm"
             />
-            <span className="text-[13px] text-ink-2 truncate">
+            <span className="text-small text-ink-2 truncate">
               {user.displayName}
             </span>
-            <span className="flex items-center gap-0.5 text-[13px] text-gold shrink-0">
-              <Star className="h-3 w-3 fill-gold" />
+            <span className="flex items-center gap-1 text-small tabular-nums text-ink-2 shrink-0">
+              <Star className="h-3 w-3 fill-gold text-gold" />
               {user.reputationScore.toFixed(1)}
             </span>
           </Link>
-          <Button variant="primary" size="sm" onClick={onOffer}>
-            Offer
-          </Button>
+          {onOffer && (
+            <Button variant="primary" size="sm" onClick={onOffer} className="shrink-0">
+              Offer
+            </Button>
+          )}
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 

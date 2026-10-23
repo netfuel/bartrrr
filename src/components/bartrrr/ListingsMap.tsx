@@ -11,12 +11,12 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
 const DEFAULT_LNG = -90.049
 const DEFAULT_LAT = 35.1495
 
-// Category pin colors match our design system
+// Category pin colors match the design tokens in globals.css
 const CATEGORY_COLORS: Record<string, string> = {
-  goods: '#C05A35',    // clay
-  services: '#3AABA6', // teal
-  skills: '#C88A2A',   // gold
-  outdoor: '#7A9A3A',  // moss
+  goods: '#9c5b3c',    // clay
+  services: '#4d6a62', // teal
+  skills: '#86662a',   // gold
+  outdoor: '#5f6532',  // moss
 }
 
 export interface ListingsMapProps {
@@ -65,34 +65,37 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
       const { lat, lng } = listing.location
       if (!lat || !lng) return
 
-      const color = CATEGORY_COLORS[listing.category] || '#C05A35'
+      const color = CATEGORY_COLORS[listing.category] || '#9c5b3c'
 
       // Outer wrapper — Mapbox owns the transform on this element for positioning.
       // Never touch its transform or the pin will jump to (0,0).
       const wrapper = document.createElement('div')
-      wrapper.style.cssText = `width: 32px; height: 32px; cursor: pointer;`
+      wrapper.style.cssText = `width: 44px; height: 44px; cursor: pointer; display: grid; place-items: center;`
+      wrapper.setAttribute('role', 'button')
+      wrapper.setAttribute('aria-label', listing.title)
 
-      // Inner element handles all visual styling & hover scale
+      // Inner element handles all visual styling & hover scale. A dot inside
+      // a soft halo reads as "around here", not a doorstep: location is
+      // neighborhood-level until both neighbors agree to a trade.
       const pin = document.createElement('div')
       pin.style.cssText = `
-        width: 32px;
-        height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
+        width: 16px;
+        height: 16px;
+        border-radius: 9999px;
         background: ${color};
-        border: 2px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-        transition: transform 0.15s, box-shadow 0.15s;
+        border: 2px solid #f6f1eb;
+        box-shadow: 0 0 0 10px ${color}29, 0 1px 3px rgba(64,58,52,0.3);
+        transition: transform 0.3s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.3s;
       `
       wrapper.appendChild(pin)
 
       wrapper.addEventListener('mouseenter', () => {
-        pin.style.transform = 'rotate(-45deg) scale(1.2)'
-        pin.style.boxShadow = '0 4px 16px rgba(0,0,0,0.35)'
+        pin.style.transform = 'scale(1.25)'
+        pin.style.boxShadow = `0 0 0 14px ${color}38, 0 2px 6px rgba(64,58,52,0.35)`
       })
       wrapper.addEventListener('mouseleave', () => {
-        pin.style.transform = 'rotate(-45deg) scale(1)'
-        pin.style.boxShadow = '0 2px 8px rgba(0,0,0,0.25)'
+        pin.style.transform = 'scale(1)'
+        pin.style.boxShadow = `0 0 0 10px ${color}29, 0 1px 3px rgba(64,58,52,0.3)`
       })
       wrapper.addEventListener('click', () => {
         setSelectedListing(listing)
@@ -110,16 +113,25 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
   // No token — show instructions
   if (!MAPBOX_TOKEN) {
     return (
-      <div className={`flex flex-col items-center justify-center bg-forest-light h-full text-center p-8 ${className}`}>
-        <MapIcon className="h-14 w-14 text-forest-mid mb-4" />
-        <p className="font-display text-lg font-semibold text-forest mb-2">Map View</p>
-        <p className="text-sm text-forest-mid max-w-xs mb-3">
+      <div
+        className={`relative flex flex-col items-center justify-center overflow-hidden bg-forest-light h-full text-center p-8 ${className}`}
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(74,82,64,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(74,82,64,0.08) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      >
+        <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-forest text-forest">
+          <MapIcon className="h-6 w-6" />
+        </span>
+        <p className="font-display text-[24px] text-forest-dark mb-2">Map View</p>
+        <p className="text-[15px] text-forest max-w-xs mb-4">
           Add your Mapbox token to enable the interactive map with listing pins.
         </p>
-        <code className="text-xs bg-forest/10 text-forest px-3 py-2 rounded-none">
+        <code className="text-small bg-cream/70 border border-forest/30 text-forest-dark px-3 py-2 rounded-none">
           VITE_MAPBOX_TOKEN=pk.your_token
         </code>
-        <p className="text-xs text-forest-mid mt-2">in .env.local</p>
+        <p className="text-label text-forest mt-3">in .env.local</p>
       </div>
     )
   }
@@ -130,10 +142,11 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
 
       {/* Listing preview card on pin click */}
       {selectedListing && (
-        <div className="absolute bottom-4 left-4 right-4 bg-cream rounded-none border border-ink p-3 z-10">
+        <div className="animate-slide-up absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-paper rounded-none border border-ink p-4 shadow-float z-10">
           <button
             type="button"
-            className="absolute top-2 right-2 text-muted hover:text-ink text-xs"
+            aria-label="Close"
+            className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-sand-light hover:text-ink text-xs"
             onClick={() => setSelectedListing(null)}
           >
             ✕
@@ -143,11 +156,11 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
               <img
                 src={selectedListing.images[0]}
                 alt={selectedListing.title}
-                className="w-16 h-16 rounded-none object-cover shrink-0"
+                className="photo-warm w-16 h-16 rounded-none object-cover shrink-0"
               />
             )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-ink truncate">{selectedListing.title}</p>
+            <div className="flex-1 min-w-0 pr-6">
+              <p className="font-display text-[18px] leading-tight text-ink truncate">{selectedListing.title}</p>
               <p className="text-xs text-muted">{selectedListing.location.neighborhood}</p>
               {selectedListing.distanceMi !== undefined && (
                 <p className="text-xs text-muted">
@@ -168,7 +181,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
           <button
             type="button"
             onClick={() => navigate(`/listing/${selectedListing.id}`)}
-            className="mt-3 w-full py-2 bg-clay text-white text-sm font-semibold rounded-full hover:bg-clay-dark transition-colors"
+            className="pressable mt-3 w-full min-h-[44px] border border-ink bg-ink text-cream text-[15px] font-medium hover:bg-clay-dark hover:border-clay-dark transition-colors duration-300"
           >
             View listing
           </button>

@@ -52,26 +52,32 @@ export default function BrowsePage() {
     .filter((l) => !selectedCategory || l.category === selectedCategory)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-57px)]">
+    <div className="flex flex-col h-[calc(100svh-4rem-4.75rem)] -mb-28 lg:mb-0 lg:h-[calc(100svh-4rem)]">
       {/* Filters bar */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-cream border-b border-ink overflow-x-auto">
+      <div className="no-scrollbar flex items-center gap-3 px-4 lg:px-6 py-3 bg-cream border-b border-ink overflow-x-auto">
         {/* View toggle (mobile) */}
-        <div className="flex items-center rounded-full border border-sand overflow-hidden shrink-0 lg:hidden">
+        <div className="flex items-center rounded-full border border-ink p-0.5 shrink-0 lg:hidden">
           <button
             type="button"
+            aria-label="List view"
+            aria-pressed={view === 'list'}
             onClick={() => setView('list')}
-            className={cn('p-2 transition-colors', view === 'list' ? 'bg-clay text-white' : 'text-muted')}
+            className={cn('flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-300', view === 'list' ? 'bg-ink text-cream' : 'text-ink hover:bg-sand-light')}
           >
             <List className="h-4 w-4" />
           </button>
           <button
             type="button"
+            aria-label="Map view"
+            aria-pressed={view === 'map'}
             onClick={() => setView('map')}
-            className={cn('p-2 transition-colors', view === 'map' ? 'bg-clay text-white' : 'text-muted')}
+            className={cn('flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-300', view === 'map' ? 'bg-ink text-cream' : 'text-ink hover:bg-sand-light')}
           >
             <Map className="h-4 w-4" />
           </button>
         </div>
+
+        <span aria-hidden="true" className="h-6 w-px shrink-0 bg-ink/20 lg:hidden" />
 
         {/* Category chips */}
         <div className="flex items-center gap-2">
@@ -89,10 +95,12 @@ export default function BrowsePage() {
         {/* Distance filter toggle */}
         <button
           type="button"
+          aria-label="Distance"
+          aria-expanded={showFilters}
           onClick={() => setShowFilters(!showFilters)}
           className={cn(
-            'p-2 rounded-full shrink-0 transition-colors',
-            showFilters ? 'bg-clay text-white' : 'text-muted hover:bg-sand-light',
+            'ml-auto flex h-10 w-10 items-center justify-center rounded-full border shrink-0 transition-colors duration-300',
+            showFilters || maxDistance ? 'border-ink bg-ink text-cream' : 'border-ink/30 text-ink hover:border-ink hover:bg-sand-light',
           )}
         >
           <SlidersHorizontal className="h-4 w-4" />
@@ -101,8 +109,8 @@ export default function BrowsePage() {
 
       {/* Distance filter bar */}
       {showFilters && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-sand-light border-b border-sand overflow-x-auto">
-          <span className="text-xs text-muted shrink-0">Distance:</span>
+        <div className="no-scrollbar animate-fade-in flex items-center gap-2 px-4 lg:px-6 py-2.5 bg-paper border-b border-ink overflow-x-auto">
+          <span className="text-label text-muted shrink-0 mr-1">Distance:</span>
           {distanceOptions.map((opt) => (
             <Chip
               key={opt.label}
@@ -116,16 +124,16 @@ export default function BrowsePage() {
 
       {/* Search indicator */}
       {searchQuery && (
-        <div className="px-4 py-2 bg-gold-light text-sm text-gold flex items-center justify-between">
-          <span>Results for "{searchQuery}"</span>
-          <button onClick={() => navigate('/browse')} className="text-xs underline">Clear</button>
+        <div className="px-4 lg:px-6 py-2.5 bg-paper border-b border-ink text-[15px] text-ink-2 flex items-center justify-between gap-4">
+          <span className="min-w-0 truncate">Results for <span className="font-display italic text-ink">"{searchQuery}"</span></span>
+          <button type="button" onClick={() => navigate('/browse')} className="text-label link-underline shrink-0 text-ink">Clear</button>
         </div>
       )}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Map panel */}
-        <div className={cn('lg:w-1/2 lg:block', view === 'map' ? 'w-full' : 'hidden')}>
+        <div className={cn('lg:w-[46%] xl:w-1/2 lg:block lg:border-r lg:border-ink', view === 'map' ? 'w-full' : 'hidden')}>
           <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
             <ListingsMap
               listings={filteredListings}
@@ -141,7 +149,7 @@ export default function BrowsePage() {
         </div>
 
         {/* Card grid */}
-        <div className={cn('flex-1 overflow-y-auto p-4', 'lg:block', view === 'list' ? 'block' : 'hidden')}>
+        <div className={cn('flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6', 'lg:block', view === 'list' ? 'block' : 'hidden')}>
           {filteredListings.length === 0 ? (
             <EmptyState
               title="No listings here yet"
@@ -150,7 +158,7 @@ export default function BrowsePage() {
               onAction={() => navigate('/listing/new')}
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 min-[1800px]:grid-cols-3 gap-4 lg:gap-5">
               {filteredListings.map((listing) => {
                 const user = getUserById(listing.userId)
                 if (!user) return null
