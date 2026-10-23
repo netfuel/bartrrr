@@ -25,9 +25,9 @@ export default function AgreementDetailPage() {
 
   if (!agreement || !currentUser) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-muted">Agreement not found.</p>
-        <Link to="/agreements" className="text-ink underline underline-offset-4 text-base mt-2 inline-block">Back to agreements</Link>
+      <div className="px-5 py-24 text-center">
+        <p className="font-display text-[28px] text-ink">Agreement not found.</p>
+        <Link to="/agreements" className="text-label link-underline mt-4 inline-block text-ink">Back to agreements</Link>
       </div>
     )
   }
@@ -97,38 +97,38 @@ export default function AgreementDetailPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <BackLink to="/agreements" className="mb-2">Back to agreements</BackLink>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-16">
+      <BackLink to="/agreements" className="mb-3">Back to agreements</BackLink>
 
       {/* Journey: agree → meet → done */}
-      <div className="border border-ink bg-cream p-5 mb-4">
+      <div className="border-y border-ink/30 py-5 mb-6">
         <div className="flex items-center">
           {journey.map(({ label, icon: Icon }, i) => (
             <div key={label} className={cn('flex items-center', i > 0 && 'flex-1')}>
               {i > 0 && (
                 <div
                   className={cn(
-                    'h-0.5 flex-1 mx-2',
-                    i <= journeyStep ? 'bg-teal' : 'bg-sand',
+                    'h-px flex-1 mx-3 -mt-6',
+                    i <= journeyStep ? 'bg-ink' : 'bg-ink/20',
                   )}
                 />
               )}
               <div className="flex flex-col items-center gap-1.5 shrink-0">
                 <div
                   className={cn(
-                    'flex items-center justify-center w-10 h-10 rounded-full transition-colors',
+                    'flex items-center justify-center w-10 h-10 rounded-full border transition-colors duration-500',
                     i < journeyStep
-                      ? 'bg-teal text-white'
+                      ? 'border-ink bg-ink text-cream'
                       : i === journeyStep
-                        ? 'bg-forest text-white'
-                        : 'bg-sand-light text-muted',
+                        ? 'border-forest bg-forest text-cream'
+                        : 'border-ink/25 bg-cream text-muted',
                   )}
                 >
                   {i < journeyStep ? <CheckCircle className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                 </div>
                 <p
                   className={cn(
-                    'text-xs font-medium whitespace-nowrap',
+                    'text-label whitespace-nowrap',
                     i <= journeyStep ? 'text-ink' : 'text-muted',
                   )}
                 >
@@ -141,8 +141,8 @@ export default function AgreementDetailPage() {
       </div>
 
       {/* Disclaimer */}
-      <div className="flex items-start gap-2.5 bg-gold-light rounded-none p-4 mb-6 text-small text-gold leading-relaxed">
-        <Info className="h-4 w-4 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 border-l-2 border-gold bg-gold-light/70 rounded-none px-4 py-3.5 mb-6 text-small text-ink-2 leading-relaxed">
+        <Info className="h-4 w-4 shrink-0 mt-0.5 text-gold" />
         <p>
           This is a voluntary, non-legally-binding agreement between two parties
           facilitated by Bartrrr. It documents the terms of a barter exchange.
@@ -160,42 +160,44 @@ export default function AgreementDetailPage() {
 
       {/* Exchange details */}
       {(agreement.exchangeDate || agreement.exchangeLocation || agreement.specialInstructions) && (
-        <div className="mt-6 border border-ink bg-cream p-5 space-y-3">
-          <h3 className="font-display text-lg font-semibold text-ink">When & where</h3>
+        <section className="mt-8">
+          <h3 className="text-heading-section text-ink mb-4">When & where</h3>
+          <div className="divide-y divide-ink/20 border-y border-ink">
           {agreement.exchangeMethod && (
-            <div className="text-[15px]">
-              <span className="text-muted">Method: </span>
+            <div className="flex items-baseline gap-4 py-3.5 text-[16px]">
+              <span className="text-label w-20 shrink-0 text-muted">Method: </span>
               <span className="text-ink capitalize">{agreement.exchangeMethod.replace(/_/g, ' ')}</span>
             </div>
           )}
           {agreement.exchangeDate && (
-            <div className="flex items-center gap-2 text-[15px]">
-              <Calendar className="h-4 w-4 text-muted" />
+            <div className="flex items-center gap-4 py-3.5 text-[16px]">
+              <Calendar className="h-4 w-4 shrink-0 text-clay" />
               <span className="text-ink">
                 {new Date(agreement.exchangeDate).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
               </span>
             </div>
           )}
           {agreement.exchangeLocation && (
-            <div className="flex items-center gap-2 text-[15px]">
-              <MapPin className="h-4 w-4 text-muted" />
+            <div className="flex items-center gap-4 py-3.5 text-[16px]">
+              <MapPin className="h-4 w-4 shrink-0 text-clay" />
               <span className="text-ink">{agreement.exchangeLocation}</span>
             </div>
           )}
           {agreement.specialInstructions && (
-            <div className="text-[15px]">
-              <span className="text-muted">Notes: </span>
-              <span className="text-ink-2">{agreement.specialInstructions}</span>
+            <div className="flex items-baseline gap-4 py-3.5 text-[16px]">
+              <span className="text-label w-20 shrink-0 text-muted">Notes: </span>
+              <span className="text-ink-2 leading-relaxed">{agreement.specialInstructions}</span>
             </div>
           )}
-        </div>
+          </div>
+        </section>
       )}
 
       {/* Mark as complete (when both signed) */}
       {agreement.status === 'active' && (
-        <div className="mt-6 bg-teal-light rounded-none p-6 text-center animate-fade-up">
-          <CheckCircle className="h-10 w-10 text-teal mx-auto mb-3" />
-          <p className="text-base font-medium text-teal-dark mb-4">
+        <div className="mt-8 border border-teal bg-teal-light rounded-none p-6 sm:p-8 text-center animate-fade-up">
+          <CheckCircle className="h-9 w-9 text-teal-dark mx-auto mb-4" strokeWidth={1.25} />
+          <p className="font-display text-[20px] leading-snug text-ink mb-5 max-w-[30ch] mx-auto">
             You both agreed. Once you've met and swapped, mark it complete.
           </p>
           <Button variant="confirm" size="lg" onClick={handleComplete}>
@@ -206,8 +208,8 @@ export default function AgreementDetailPage() {
 
       {/* Review section */}
       {agreement.status === 'completed' && (
-        <div className="mt-6">
-          <h3 className="font-display text-lg font-semibold text-ink mb-3">Reviews</h3>
+        <div className="mt-10">
+          <h3 className="text-heading-section text-ink mb-4">Reviews</h3>
 
           {agreementReviews.map((review) => {
             const reviewer = getUserById(review.reviewerId)
