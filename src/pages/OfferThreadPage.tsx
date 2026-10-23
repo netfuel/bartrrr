@@ -92,7 +92,7 @@ export default function OfferThreadPage() {
       userId: otherUserId,
       type: 'offer_declined',
       title: 'Offer declined',
-      body: `${currentUser.displayName} passed on this trade: ${DECLINE_REASON_LABELS[reason].toLowerCase()}.`,
+      body: `${currentUser.displayName} declined your offer. Their reason: “${DECLINE_REASON_LABELS[reason]}”`,
       data: { offerId: offer.id },
     })
     showToast(`Offer declined. We let ${otherFirstName} know.`, 'info')
@@ -184,7 +184,8 @@ export default function OfferThreadPage() {
             <p className="text-small text-muted">
               Round {offer.round} of {offer.maxRounds}
               {canCounter ? ` · ${roundsLeft} ${roundsLeft === 1 ? 'counter-offer' : 'counter-offers'} left` : ''}
-              {timeLeft ? ` · Expires in ${timeLeft}` : ' · Reply window has closed'}
+              {/* Expiry isn't enforced in the store yet, so only show a countdown while it's meaningful */}
+              {timeLeft ? ` · Expires in ${timeLeft}` : ''}
             </p>
           )}
           {isActive && !isWaiting && canCounter && roundsLeft === 1 && (
@@ -249,7 +250,11 @@ export default function OfferThreadPage() {
               )
             ) : offer.status === 'accepted' && agreement ? (
               <Link to={`/agreements/${agreement.id}`} className="flex-1">
-                <Button variant="confirm" className="w-full">Review and sign agreement</Button>
+                <Button variant="confirm" className="w-full">
+                  {(iAmOfferMaker ? agreement.partyA.signed : agreement.partyB.signed)
+                    ? 'View trade agreement'
+                    : 'Review and sign agreement'}
+                </Button>
               </Link>
             ) : offer.status === 'declined' && iAmOfferMaker ? (
               <Link to="/browse" className="flex-1">

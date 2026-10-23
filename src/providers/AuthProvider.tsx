@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setNotifications(dbNotifications)
       setReviews(dbReviews)
     } catch (err) {
-      console.warn('[Bartr] Supabase data load failed — falling back to mock data', err)
+      console.warn('[Bartrrr] Supabase data load failed — falling back to mock data', err)
     }
 
     // Request push permission and subscribe (non-blocking)
