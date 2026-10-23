@@ -26,8 +26,8 @@ export default function AgreementsPage() {
   const filtered = userAgreements.filter((a) => tabFilter[tab].includes(a.status))
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <h1 className="text-heading-page text-ink mb-4">Trade Agreements</h1>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <h1 className="text-heading-page text-ink mb-8">Trade Agreements</h1>
 
       <Tabs
         label="Agreement status"
@@ -48,13 +48,13 @@ export default function AgreementsPage() {
           icon={<FileCheck className="h-10 w-10" />}
         />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {filtered.map((agreement) => {
             const partyA = getUserById(agreement.partyA.userId)
             const partyB = getUserById(agreement.partyB.userId)
             if (!partyA || !partyB) return null
             return (
-              <Link key={agreement.id} to={`/agreements/${agreement.id}`}>
+              <Link key={agreement.id} to={`/agreements/${agreement.id}`} className="block transition-transform duration-500 ease-out-soft hover:-translate-y-0.5">
                 <AgreementCard
                   agreement={agreement}
                   partyA={partyA}

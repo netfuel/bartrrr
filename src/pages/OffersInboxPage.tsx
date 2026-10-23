@@ -29,8 +29,8 @@ export default function OffersInboxPage() {
   const offers = tab === 'incoming' ? incoming : outgoing
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <h1 className="text-heading-page text-ink mb-4">My Offers</h1>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <h1 className="text-heading-page text-ink mb-8">My Offers</h1>
 
       <Tabs
         label="Offer direction"
@@ -53,7 +53,7 @@ export default function OffersInboxPage() {
           icon={<MessageSquare className="h-10 w-10" />}
         />
       ) : (
-        <div className="space-y-3">
+        <div className="border-t border-ink">
           {offers.map((offer) => {
             const otherUserId = tab === 'incoming' ? offer.fromUserId : offer.toUserId
             const otherUser = getUserById(otherUserId)
@@ -65,7 +65,7 @@ export default function OffersInboxPage() {
               <Link
                 key={offer.id}
                 to={`/offers/${offer.id}`}
-                className="flex items-start gap-3 p-4 border border-ink bg-cream transition-colors hover:bg-sand-light"
+                className="group flex items-start gap-4 border-b border-ink/20 px-1 py-5 transition-colors hover:bg-paper"
               >
                 <Avatar
                   src={otherUser?.avatarUrl}
@@ -74,16 +74,16 @@ export default function OffersInboxPage() {
                   size="lg"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-ink truncate">{otherUser?.displayName}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <p className="text-[16px] font-medium text-ink truncate">{otherUser?.displayName}</p>
                     <Badge variant={sb.variant}>{sb.label}</Badge>
                   </div>
-                  <p className="text-xs text-muted mt-0.5 truncate">{listing?.title}</p>
+                  <p className="font-display text-[18px] leading-snug text-ink mt-1 truncate transition-colors group-hover:text-clay-dark">{listing?.title}</p>
                   {lastMessage && (
-                    <p className="text-xs text-ink-2 mt-1 line-clamp-1">{lastMessage.content}</p>
+                    <p className="text-small text-muted mt-1 line-clamp-1">{lastMessage.content}</p>
                   )}
                 </div>
-                <p className="text-[10px] text-muted shrink-0">
+                <p className="text-label text-muted shrink-0 pt-0.5">
                   {new Date(offer.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                 </p>
               </Link>

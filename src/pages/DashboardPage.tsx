@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Package, MessageSquare, FileCheck, Plus, ArrowRight, History, Send } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { useListingsStore, useUsersStore, useOffersForUser, useAgreementsForUser, useMyActiveListings } from '@/stores'
-import { Button, Badge, Avatar, Card, EmptyState, Tabs } from '@/components/ui'
+import { Badge, Avatar, EmptyState, Tabs, buttonStyles } from '@/components/ui'
 import { TradeCard } from '@/components/bartrrr'
 
 type Tab = 'listings' | 'incoming' | 'outgoing' | 'trades' | 'history'
@@ -42,31 +42,29 @@ export default function DashboardPage() {
   const completedAgreements = agreements.filter((a) => a.status === 'completed')
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <h1 className="text-heading-page text-ink mb-1">
-        Welcome back, {currentUser.displayName.split(' ')[0]}
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <p className="eyebrow mb-4">{currentUser.neighborhood}</p>
+      <h1 className="text-heading-page text-ink mb-8 sm:mb-10">
+        Welcome back, <em>{currentUser.displayName.split(' ')[0]}</em>
       </h1>
-      <p className="text-sm text-muted mb-6">{currentUser.neighborhood}</p>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <Card className="p-4 text-center">
-          <p className="text-heading-page text-clay">{myListings.length}</p>
-          <p className="text-xs text-muted">Active listings</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-heading-page text-gold">{pendingIncoming.length}</p>
-          <p className="text-xs text-muted">Incoming offers</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-heading-page text-teal">{activeAgreements.length}</p>
-          <p className="text-xs text-muted">Active trades</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-heading-page text-forest">{currentUser.tradeCount}</p>
-          <p className="text-xs text-muted">Trades completed</p>
-        </Card>
-      </div>
+      {/* Stats row — one hairline ledger, serif numerals */}
+      <dl className="grid grid-cols-2 sm:grid-cols-4 border-t border-l border-ink mb-10">
+        {[
+          { value: myListings.length, label: 'Active listings' },
+          { value: pendingIncoming.length, label: 'Incoming offers', accent: pendingIncoming.length > 0 },
+          { value: activeAgreements.length, label: 'Active trades' },
+          { value: currentUser.tradeCount, label: 'Trades completed' },
+        ].map(({ value, label, accent }) => (
+          <div key={label} className="flex flex-col-reverse gap-3 border-b border-r border-ink p-4 sm:p-5">
+            <dt className="text-label text-muted">{label}</dt>
+            <dd className="flex items-start gap-2 text-numeral text-[clamp(2.5rem,5vw,3.5rem)] text-ink">
+              {value}
+              {accent && <span aria-hidden="true" className="mt-2 h-2 w-2 rounded-full bg-clay" />}
+            </dd>
+          </div>
+        ))}
+      </dl>
 
       {/* Tab bar */}
       <Tabs
@@ -88,12 +86,10 @@ export default function DashboardPage() {
 
       {activeTab === 'listings' && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted">{myListings.length} active listing{myListings.length !== 1 ? 's' : ''}</p>
-            <Link to="/listing/new">
-              <Button variant="outline" size="sm">
-                <Plus className="h-4 w-4" /> New listing
-              </Button>
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-label text-muted">{myListings.length} active listing{myListings.length !== 1 ? 's' : ''}</p>
+            <Link to="/listing/new" className={buttonStyles({ variant: 'outline', size: 'sm' })}>
+              <Plus className="h-4 w-4" /> New listing
             </Link>
           </div>
           {myListings.length === 0 ? (
@@ -104,7 +100,7 @@ export default function DashboardPage() {
               onAction={() => navigate('/listing/new')}
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {myListings.map((listing) => {
                 const user = getUserById(listing.userId)
                 if (!user) return null
@@ -116,7 +112,7 @@ export default function DashboardPage() {
       )}
 
       {activeTab === 'incoming' && (
-        <div className="space-y-2">
+        <div className="border-t border-ink">
           {pendingIncoming.length === 0 ? (
             <EmptyState
               title="No incoming offers"
@@ -131,21 +127,21 @@ export default function DashboardPage() {
               if (!fromUser) return null
               return (
                 <Link key={offer.id} to={`/offers/${offer.id}`}>
-                  <Card className="p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+                  <div className="group flex items-center gap-4 border-b border-ink/20 px-1 py-4 transition-colors hover:bg-paper">
                     <Avatar name={fromUser.displayName} userId={fromUser.id} size="md" src={fromUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink">
+                      <p className="text-[16px] font-medium text-ink">
                         {fromUser.displayName} wants to trade
                       </p>
-                      <p className="text-xs text-muted truncate">for {listing?.title || 'your listing'}</p>
+                      <p className="text-small text-muted truncate mt-0.5">for {listing?.title || 'your listing'}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant={offer.status === 'countered' ? 'gold' : 'teal'}>
                         {offer.status}
                       </Badge>
-                      <ArrowRight className="h-4 w-4 text-muted" />
+                      <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
-                  </Card>
+                  </div>
                 </Link>
               )
             })
@@ -154,7 +150,7 @@ export default function DashboardPage() {
       )}
 
       {activeTab === 'outgoing' && (
-        <div className="space-y-2">
+        <div className="border-t border-ink">
           {pendingOutgoing.length === 0 ? (
             <EmptyState
               title="No outgoing offers"
@@ -169,13 +165,13 @@ export default function DashboardPage() {
               if (!toUser) return null
               return (
                 <Link key={offer.id} to={`/offers/${offer.id}`}>
-                  <Card className="p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+                  <div className="group flex items-center gap-4 border-b border-ink/20 px-1 py-4 transition-colors hover:bg-paper">
                     <Avatar name={toUser.displayName} userId={toUser.id} size="md" src={toUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink">
+                      <p className="text-[16px] font-medium text-ink">
                         Your offer to {toUser.displayName}
                       </p>
-                      <p className="text-xs text-muted truncate">for {listing?.title || 'their listing'}</p>
+                      <p className="text-small text-muted truncate mt-0.5">for {listing?.title || 'their listing'}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant={
@@ -184,29 +180,29 @@ export default function DashboardPage() {
                       }>
                         {offer.status}
                       </Badge>
-                      <ArrowRight className="h-4 w-4 text-muted" />
+                      <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
-                  </Card>
+                  </div>
                 </Link>
               )
             })
           )}
           {outgoing.filter((o) => o.status === 'declined').length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">Declined</p>
+            <div>
+              <p className="text-label text-muted mt-8 mb-2">Declined</p>
               {outgoing.filter((o) => o.status === 'declined').map((offer) => {
                 const toUser = getUserById(offer.toUserId)
                 const listing = getListingById(offer.listingId)
                 if (!toUser) return null
                 return (
                   <Link key={offer.id} to={`/offers/${offer.id}`}>
-                    <Card className="p-3 flex items-center gap-3 opacity-60 mb-2">
+                    <div className="flex items-center gap-3 border-b border-ink/15 px-1 py-3 text-muted transition-colors hover:bg-paper">
                       <Avatar name={toUser.displayName} userId={toUser.id} size="sm" src={toUser.avatarUrl} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-ink truncate">{toUser.displayName} — {listing?.title}</p>
                       </div>
                       <Badge variant="clay">Declined</Badge>
-                    </Card>
+                    </div>
                   </Link>
                 )
               })}
@@ -216,7 +212,7 @@ export default function DashboardPage() {
       )}
 
       {activeTab === 'trades' && (
-        <div className="space-y-2">
+        <div className="border-t border-ink">
           {activeAgreements.length === 0 ? (
             <EmptyState
               title="No active trades"
@@ -233,11 +229,11 @@ export default function DashboardPage() {
               if (!otherUser) return null
               return (
                 <Link key={agreement.id} to={`/agreements/${agreement.id}`}>
-                  <Card className="p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+                  <div className="group flex items-center gap-4 border-b border-ink/20 px-1 py-4 transition-colors hover:bg-paper">
                     <Avatar name={otherUser.displayName} userId={otherUser.id} size="md" src={otherUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink">Trade with {otherUser.displayName}</p>
-                      <p className="text-xs text-muted truncate">
+                      <p className="text-[16px] font-medium text-ink">Trade with {otherUser.displayName}</p>
+                      <p className="text-small text-muted truncate mt-0.5">
                         {agreement.partyA.item} ⇄ {agreement.partyB.item}
                       </p>
                     </div>
@@ -245,9 +241,9 @@ export default function DashboardPage() {
                       <Badge variant={agreement.status === 'active' ? 'teal' : 'gold'}>
                         {agreement.status === 'pending_signatures' ? 'Pending' : 'Active'}
                       </Badge>
-                      <ArrowRight className="h-4 w-4 text-muted" />
+                      <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
-                  </Card>
+                  </div>
                 </Link>
               )
             })
@@ -256,7 +252,7 @@ export default function DashboardPage() {
       )}
 
       {activeTab === 'history' && (
-        <div className="space-y-2">
+        <div className="border-t border-ink">
           {completedAgreements.length === 0 ? (
             <EmptyState
               title="No completed trades yet"
@@ -273,21 +269,21 @@ export default function DashboardPage() {
               if (!otherUser) return null
               return (
                 <Link key={agreement.id} to={`/agreements/${agreement.id}`}>
-                  <Card className="p-4 flex items-center gap-3 hover:shadow-md transition-shadow opacity-80">
+                  <div className="group flex items-center gap-4 border-b border-ink/20 px-1 py-4 transition-colors hover:bg-paper">
                     <Avatar name={otherUser.displayName} userId={otherUser.id} size="md" src={otherUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink">Trade with {otherUser.displayName}</p>
-                      <p className="text-xs text-muted truncate">
+                      <p className="text-[16px] font-medium text-ink">Trade with {otherUser.displayName}</p>
+                      <p className="text-small text-muted truncate mt-0.5">
                         {agreement.partyA.item} ⇄ {agreement.partyB.item}
                       </p>
                       {agreement.completedAt && (
-                        <p className="text-xs text-muted mt-0.5">
+                        <p className="text-label text-muted mt-1.5">
                           Completed {new Date(agreement.completedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                       )}
                     </div>
                     <Badge variant="teal">Completed</Badge>
-                  </Card>
+                  </div>
                 </Link>
               )
             })
