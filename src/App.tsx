@@ -1,8 +1,10 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { PageShell, ProtectedRoute } from '@/components/layout'
 import { Toaster } from '@/components/ui'
+import { ErrorBoundary } from '@/components/system/ErrorBoundary'
+import { RouteEffects } from '@/components/system/RouteEffects'
 
 // Route-level code splitting: each page loads on demand, keeping heavy
 // deps (mapbox-gl on Browse, gsap on Landing, confetti on Agreements)
@@ -19,22 +21,28 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const SignupPage = lazy(() => import('@/pages/SignupPage'))
+const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage'))
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const EditListingPage = lazy(() => import('@/pages/EditListingPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const ActivityFeedPage = lazy(() => import('@/pages/ActivityFeedPage'))
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-ink" strokeWidth={1.5} />
+    <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label="Loading">
+      <Loader2 className="h-8 w-8 animate-spin text-ink" strokeWidth={1.5} aria-hidden="true" />
     </div>
   )
 }
 
 export default function App() {
+  const { pathname } = useLocation()
   return (
-    <>
+    <ErrorBoundary resetKey={pathname}>
+    <RouteEffects />
     <Toaster />
     <Suspense fallback={<RouteFallback />}>
       <Routes>
@@ -42,6 +50,9 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/signup" element={<SignupPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
         {/* Protected app routes */}
         <Route element={<ProtectedRoute />}>
@@ -63,8 +74,10 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
+
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
-    </>
+    </ErrorBoundary>
   )
 }
