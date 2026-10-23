@@ -27,7 +27,7 @@ export function ReviewCard({ review, reviewer }: ReviewCardProps) {
             })}
           </p>
         </div>
-        <div className="flex gap-0.5" aria-label={`${review.rating} out of 5`}>
+        <div className="flex gap-0.5" role="img" aria-label={`${review.rating} out of 5 stars`}>
           {[1, 2, 3, 4, 5].map((star) => (
             <Star
               key={star}

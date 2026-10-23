@@ -30,7 +30,7 @@ export function Toast({
 
   return (
     <div
-      role="alert"
+      role={type === 'error' ? 'alert' : 'status'}
       className={cn(
         'animate-toast-in flex items-center gap-3 rounded-none border border-l-4 border-l-[var(--toast-accent)] px-4 py-3 text-[15px] shadow-lift',
         typeStyles[type],
@@ -41,7 +41,7 @@ export function Toast({
       <button
         type="button"
         onClick={onDismiss}
-        aria-label="Dismiss"
+        aria-label="Dismiss notification"
         className="shrink-0 -m-2 p-2 opacity-60 hover:opacity-100 transition-opacity"
       >
         <X className="h-4 w-4" />

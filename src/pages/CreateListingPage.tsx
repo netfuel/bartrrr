@@ -1,21 +1,19 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Camera, Check, Plus, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, usePageTitle } from '@/lib/utils'
 import { Button, Input, Textarea, Chip } from '@/components/ui'
-import { CATEGORY_LABELS, type Category, type ListingCondition } from '@/types'
-import { useListingsStore, useUsersStore, useNotificationsStore } from '@/stores'
+import { CATEGORY_LABELS, CONDITION_LABELS, type Category, type ListingCondition } from '@/types'
+import { useListingsStore, useUsersStore, useNotificationsStore, showToast } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
-const conditions: { value: ListingCondition; label: string }[] = [
-  { value: 'new', label: 'New' },
-  { value: 'like_new', label: 'Like New' },
-  { value: 'good', label: 'Good' },
-  { value: 'fair', label: 'Fair' },
-]
+const conditions = (Object.keys(CONDITION_LABELS) as ListingCondition[]).map((value) => ({
+  value,
+  label: CONDITION_LABELS[value],
+}))
 
-const steps = ['Photos', 'Details', 'Looking For', 'Review']
+const steps = ['Photos', 'Details', 'In return', 'Review']
 
 export default function CreateListingPage() {
   const navigate = useNavigate()
@@ -32,21 +30,42 @@ export default function CreateListingPage() {
   const [seeking, setSeeking] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [images, setImages] = useState<string[]>([])
+  const [imageError, setImageError] = useState('')
+  usePageTitle('Post a listing')
 
   if (!currentUser) return null
 
-  const canAdvance = () => {
-    if (step === 0) return true
-    if (step === 1) return title.length >= 3 && category !== null
-    if (step === 2) return seeking.length >= 3
-    return true
+  // Why "Next" is disabled, in plain words. Empty string = ready.
+  const blocker = (): string => {
+    if (step === 1) {
+      if (title.trim().length < 3) return 'Add a title (at least 3 characters) to continue.'
+      if (category === null) return 'Pick a category to continue.'
+    }
+    if (step === 2 && seeking.trim().length < 3) {
+      return 'Tell neighbors what you’d like in return to continue.'
+    }
+    return ''
   }
+  const canAdvance = () => blocker() === ''
 
   const addImage = () => {
-    if (imageUrl.trim()) {
-      setImages((prev) => [...prev, imageUrl.trim()])
-      setImageUrl('')
+    const url = imageUrl.trim()
+    if (!url) return
+    if (!/^https?:\/\//i.test(url)) {
+      setImageError('That doesn’t look like a web link. It should start with https://')
+      return
     }
+    if (images.includes(url)) {
+      setImageError('You’ve already added that photo.')
+      return
+    }
+    if (images.length >= 6) {
+      setImageError('You can add up to 6 photos.')
+      return
+    }
+    setImages((prev) => [...prev, url])
+    setImageUrl('')
+    setImageError('')
   }
 
   const handleSubmit = () => {
@@ -72,26 +91,30 @@ export default function CreateListingPage() {
         addNotification({
           userId: u.id,
           type: 'match',
-          title: 'Perfect Match!',
-          body: `A new listing matches your interests: "${title}"`,
+          title: 'New listing you might like',
+          body: `A neighbor just posted "${title}". It matches what you're looking for.`,
           data: { listingId: newId },
         })
       }
     })
 
+    showToast('Your listing is live.', 'success')
     navigate(`/listing/${newId}`, { state: { justCreated: true } })
   }
 
   return (
     <div className="max-w-xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/browse" aria-label="Back to browse" className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full hover:bg-sand-light transition-colors">
+        <Link to="/browse" aria-label="Cancel and go back to browse" className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full hover:bg-sand-light transition-colors">
           <ArrowLeft className="h-5 w-5 text-ink" />
         </Link>
         <h1 className="text-heading-page text-ink">Post a listing</h1>
       </div>
 
       {/* Progress */}
+      <p className="sr-only" aria-live="polite">
+        Step {step + 1} of {steps.length}: {steps[step]}
+      </p>
       <ol className="grid grid-cols-4 gap-2 mb-10">
         {steps.map((s, i) => (
           <li key={s} className="flex flex-col gap-2" aria-current={i === step ? 'step' : undefined}>
@@ -110,15 +133,18 @@ export default function CreateListingPage() {
         {step === 0 && (
           <>
             <h2 className="text-heading-section text-ink">Add some photos</h2>
-            <p className="text-[15px] text-ink-2 -mt-3">Listings with photos get 3x more offers. Paste image URLs below.</p>
+            <p className="text-[15px] text-ink-2 -mt-3">Clear photos help neighbors decide faster. Add up to 6 by pasting image links. Photos are optional, so you can skip this step.</p>
 
             {/* Image URL input */}
             <div className="flex items-start gap-2">
               <div className="flex-1">
               <Input
-                placeholder="Paste image URL..."
+                aria-label="Photo link"
+                placeholder="https://…"
                 value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
+                onChange={(e) => { setImageUrl(e.target.value); setImageError('') }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addImage() } }}
+                error={imageError || undefined}
               />
               </div>
               <Button variant="outline" aria-label="Add photo" className="h-[50px] w-[50px] shrink-0 px-0" onClick={addImage} disabled={!imageUrl.trim()}>
@@ -154,11 +180,11 @@ export default function CreateListingPage() {
         {step === 1 && (
           <>
             <h2 className="text-heading-section text-ink">Describe your listing</h2>
-            <Input label="Title" placeholder="e.g. Vintage Lamp, 2 Hours of Gardening Help" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <Textarea label="Description" placeholder="Tell your neighbors about it..." value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+            <Input label="Title" placeholder="Like: Vintage lamp, or 2 hours of gardening help" maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Textarea label="Description (optional)" placeholder="Size, condition, how long it takes: whatever a neighbor would want to know" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
             <div>
-              <p className="text-label text-ink-2 mb-2.5">Category</p>
-              <div className="flex flex-wrap gap-2">
+              <p id="category-label" className="text-label text-ink-2 mb-2.5">Category</p>
+              <div role="group" aria-labelledby="category-label" className="flex flex-wrap gap-2">
                 {categories.map((cat) => (
                   <Chip key={cat} label={CATEGORY_LABELS[cat]} selected={category === cat} onToggle={() => setCategory(cat)} />
                 ))}
@@ -166,8 +192,8 @@ export default function CreateListingPage() {
             </div>
             {(category === 'goods' || category === 'outdoor') && (
               <div>
-                <p className="text-label text-ink-2 mb-2.5">Condition</p>
-                <div className="flex flex-wrap gap-2">
+                <p id="condition-label" className="text-label text-ink-2 mb-2.5">Condition (optional)</p>
+                <div role="group" aria-labelledby="condition-label" className="flex flex-wrap gap-2">
                   {conditions.map((c) => (
                     <Chip key={c.value} label={c.label} selected={condition === c.value} onToggle={() => setCondition(c.value)} />
                   ))}
@@ -179,9 +205,9 @@ export default function CreateListingPage() {
 
         {step === 2 && (
           <>
-            <h2 className="text-heading-section text-ink">What are you looking for?</h2>
-            <p className="text-[15px] text-ink-2 -mt-3">Help neighbors know what you'd trade for.</p>
-            <Textarea label="I'd trade this for..." placeholder="e.g. gardening help, kitchen appliances, interesting books" value={seeking} onChange={(e) => setSeeking(e.target.value)} rows={4} />
+            <h2 className="text-heading-section text-ink">What would you like in return?</h2>
+            <p className="text-[15px] text-ink-2 -mt-3">Be specific, but leave room for ideas. Neighbors use this to shape their offers.</p>
+            <Textarea label="I'd trade this for…" placeholder="Like: gardening help, kitchen appliances, or good books" value={seeking} onChange={(e) => setSeeking(e.target.value)} rows={4} />
           </>
         )}
 
@@ -198,7 +224,7 @@ export default function CreateListingPage() {
               )}
               <div>
                 <p className="text-label text-muted">Title</p>
-                <p className="font-display text-[22px] leading-tight text-ink mt-1">{title || 'Untitled'}</p>
+                <p className="font-display text-[22px] leading-tight text-ink mt-1">{title}</p>
               </div>
               {description && (
                 <div>
@@ -208,13 +234,22 @@ export default function CreateListingPage() {
               )}
               <div>
                 <p className="text-label text-muted">Category</p>
-                <p className="text-[15px] text-ink mt-1">{category ? CATEGORY_LABELS[category] : '—'}</p>
+                <p className="text-[15px] text-ink mt-1">{category ? CATEGORY_LABELS[category] : ''}</p>
               </div>
+              {condition && (
+                <div>
+                  <p className="text-label text-muted">Condition</p>
+                  <p className="text-[15px] text-ink mt-1">{CONDITION_LABELS[condition]}</p>
+                </div>
+              )}
               <div className="border-l-2 border-clay bg-clay-light/60 py-2.5 pl-3.5 pr-3">
                 <p className="text-label text-clay-dark mb-1">Looking for</p>
                 <p className="text-[15px] text-ink-2">{seeking}</p>
               </div>
             </div>
+            <p className="text-small text-muted">
+              Your listing stays up for 30 days. Neighbors see your neighborhood, never your address.
+            </p>
           </>
         )}
       </div>
@@ -233,6 +268,7 @@ export default function CreateListingPage() {
           </Button>
         )}
       </div>
+      <p className="mt-2 text-small text-muted text-right min-h-[20px]" aria-live="polite">{blocker()}</p>
     </div>
   )
 }

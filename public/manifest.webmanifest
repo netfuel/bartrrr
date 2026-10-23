@@ -1,7 +1,7 @@
 {
-  "name": "Bartrrr — Trade, don't buy",
+  "name": "Bartrrr: Trade, don't buy",
   "short_name": "Bartrrr",
-  "description": "Swap goods, skills, and services with your Memphis neighbors — no cash, just fair exchange.",
+  "description": "Swap goods, skills, and services with your Memphis neighbors. No cash, just a fair trade.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,13 +1,29 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { FileCheck } from 'lucide-react'
 import { EmptyState, Tabs } from '@/components/ui'
 import { AgreementCard } from '@/components/bartrrr'
 import { useAgreementsForUser, useUsersStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
+import { usePageTitle } from '@/lib/utils'
 import type { AgreementStatus } from '@/types'
 
 type Tab = 'pending' | 'active' | 'completed'
+
+const emptyCopy: Record<Tab, { title: string; description: string }> = {
+  pending: {
+    title: 'Nothing to sign',
+    description: "When you accept a trade, or a neighbor accepts yours, the trade agreement shows up here for you both to sign.",
+  },
+  active: {
+    title: 'No swaps scheduled',
+    description: "Once you've both signed an agreement, it moves here until you've met up and made the swap.",
+  },
+  completed: {
+    title: 'No finished trades yet',
+    description: 'Trades you mark as done land here, along with your reviews.',
+  },
+}
 
 const tabFilter: Record<Tab, AgreementStatus[]> = {
   pending: ['draft', 'under_review', 'pending_signatures'],
@@ -17,9 +33,11 @@ const tabFilter: Record<Tab, AgreementStatus[]> = {
 
 export default function AgreementsPage() {
   const [tab, setTab] = useState<Tab>('pending')
+  const navigate = useNavigate()
   const { currentUser } = useAuth()
   const userAgreements = useAgreementsForUser(currentUser?.id)
   const getUserById = useUsersStore((s) => s.getUserById)
+  usePageTitle('Trade agreements')
 
   if (!currentUser) return null
 
@@ -27,7 +45,7 @@ export default function AgreementsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-      <h1 className="text-heading-page text-ink mb-8">Trade Agreements</h1>
+      <h1 className="text-heading-page text-ink mb-8">Trade agreements</h1>
 
       <Tabs
         label="Agreement status"
@@ -35,16 +53,18 @@ export default function AgreementsPage() {
         active={tab}
         onChange={setTab}
         tabs={[
-          { id: 'pending', label: 'Pending' },
-          { id: 'active', label: 'Active' },
-          { id: 'completed', label: 'Completed' },
+          { id: 'pending', label: 'To sign' },
+          { id: 'active', label: 'Ready to swap' },
+          { id: 'completed', label: 'Done' },
         ]}
       />
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="No agreements here"
-          description="Your agreements will live here once you've confirmed a trade."
+          title={emptyCopy[tab].title}
+          description={emptyCopy[tab].description}
+          actionLabel={tab === 'pending' ? 'Check your offers' : undefined}
+          onAction={tab === 'pending' ? () => navigate('/offers') : undefined}
           icon={<FileCheck className="h-10 w-10" />}
         />
       ) : (

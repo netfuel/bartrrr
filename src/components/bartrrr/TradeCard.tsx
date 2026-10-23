@@ -57,7 +57,7 @@ function TradeCardInner({
         {isPerfectMatch && (
           <div className="absolute top-3 right-3">
             <span className="inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-[5px] text-label leading-none text-cream">
-              ✦ Match
+              ✦ For you
             </span>
           </div>
         )}
@@ -90,7 +90,7 @@ function TradeCardInner({
             Looking for
           </p>
           <p className="text-[14px] text-ink-2 leading-snug line-clamp-2">
-            {listing.seeking || 'What would you like in return?'}
+            {listing.seeking || 'Open to offers'}
           </p>
         </div>
 
@@ -115,7 +115,7 @@ function TradeCardInner({
             </span>
           </Link>
           {onOffer && (
-            <Button variant="primary" size="sm" onClick={onOffer} className="shrink-0">
+            <Button variant="primary" size="sm" onClick={onOffer} className="shrink-0" aria-label={`Make an offer on ${listing.title}`}>
               Offer
             </Button>
           )}

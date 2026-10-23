@@ -8,7 +8,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/browse', label: 'Browse', icon: Map },
   { to: '/feed', label: 'Feed', icon: Rss },
-  { to: '/offers', label: 'My Offers', icon: MessageSquare },
+  { to: '/offers', label: 'Offers', icon: MessageSquare },
   { to: '/agreements', label: 'Agreements', icon: FileCheck },
   { to: '/profile/me', label: 'Profile', icon: User },
 ]
@@ -17,8 +17,8 @@ export function Sidebar() {
   const { currentUser } = useAuth()
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-cream border-r border-ink z-40">
-      {/* Logo — aligned to the header's 64px band */}
+    <aside aria-label="Main navigation" className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-cream border-r border-ink z-40">
+      {/* Logo: aligned to the header's 64px band */}
       <div className="flex h-16 shrink-0 items-center border-b border-ink px-6">
         <NavLink to="/" aria-label="Bartrrr home" className="rounded-sm">
           <Wordmark />
@@ -51,14 +51,14 @@ export function Sidebar() {
       <div className="px-3 py-4 border-t border-ink">
         <div className="flex items-center gap-3 px-3">
           <Avatar
-            name={currentUser?.displayName || 'User'}
+            name={currentUser?.displayName || 'Neighbor'}
             userId={currentUser?.id || ''}
             src={currentUser?.avatarUrl}
             size="md"
           />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-ink truncate">
-              {currentUser?.displayName || 'User'}
+              {currentUser?.displayName || 'Neighbor'}
             </p>
             <p className="text-small truncate text-muted">{currentUser?.neighborhood || ''}</p>
           </div>

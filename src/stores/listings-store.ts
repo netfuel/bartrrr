@@ -74,7 +74,7 @@ export const useListingsStore = create<ListingsState>((set, get) => ({
         l.id === id ? { ...l, status: 'closed' as const } : l,
       ),
     }))
-    svc.updateListing(id, { status: 'closed' }).catch(persistError("Couldn't withdraw your listing"))
+    svc.updateListing(id, { status: 'closed' }).catch(persistError("Couldn't take down your listing"))
   },
 
   renewListing: (id) => {
@@ -86,6 +86,6 @@ export const useListingsStore = create<ListingsState>((set, get) => ({
           : l,
       ),
     }))
-    svc.updateListing(id, { status: 'active' }).catch(persistError("Couldn't renew your listing"))
+    svc.updateListing(id, { status: 'active' }).catch(persistError("Couldn't relist your listing"))
   },
 }))

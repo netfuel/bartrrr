@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
-import type { OfferMessage } from '@/types'
+import { DECLINE_REASON_LABELS, type OfferDeclineReason, type OfferMessage } from '@/types'
 
 export interface OfferBubbleProps {
   message: OfferMessage
@@ -17,14 +17,24 @@ function OfferBubbleInner({
 }: OfferBubbleProps) {
   const isAccept = message.type === 'accept'
   const showAsConfirmed = isConfirmed || isAccept
+  // Declines store the reason key when no note was written; show the human label
+  const content =
+    message.type === 'decline' && message.content in DECLINE_REASON_LABELS
+      ? `Declined: ${DECLINE_REASON_LABELS[message.content as OfferDeclineReason]}`
+      : message.content
+  const typeLabel: Partial<Record<OfferMessage['type'], string>> = {
+    offer: 'Offer',
+    counter: 'Counter-offer',
+    accept: 'Accepted',
+    decline: 'Declined',
+  }
 
   return (
     <div className={cn('animate-fade-up flex flex-col gap-1.5 max-w-[86%] sm:max-w-[72%]', isOwn ? 'ml-auto items-end' : 'items-start')}>
       {/* Sender label */}
       <p className="text-label text-muted">
         {isOwn ? 'You' : senderName}
-        {message.type === 'counter' && ' · Counter'}
-        {message.type === 'offer' && ' · Offer'}
+        {typeLabel[message.type] && ` · ${typeLabel[message.type]}`}
       </p>
 
       {/* Bubble */}
@@ -60,7 +70,7 @@ function OfferBubbleInner({
         )}
 
         {/* Message content */}
-        <p>{message.content}</p>
+        <p>{content}</p>
 
         {/* Timestamp */}
         <p

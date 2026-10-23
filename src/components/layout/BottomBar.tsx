@@ -3,21 +3,22 @@ import { Map, Plus, MessageSquare, User, Rss } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { to: '/browse', label: 'Discover', icon: Map },
+  { to: '/browse', label: 'Browse', icon: Map },
   { to: '/feed', label: 'Feed', icon: Rss },
-  { to: '/listing/new', label: 'Post', icon: Plus, isPrimary: true },
+  { to: '/listing/new', label: 'Post a listing', icon: Plus, isPrimary: true },
   { to: '/offers', label: 'Offers', icon: MessageSquare },
   { to: '/profile/me', label: 'Profile', icon: User },
 ]
 
 export function BottomBar() {
   return (
-    <nav aria-label="Primary" className="lg:hidden fixed bottom-0 left-0 right-0 bg-cream/90 backdrop-blur-md border-t border-ink z-40 safe-area-pb">
+    <nav aria-label="Main navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-cream/90 backdrop-blur-md border-t border-ink z-40 safe-area-pb">
       <div className="mx-auto flex max-w-md items-center justify-around px-2 pt-1.5 pb-1">
         {navItems.map(({ to, label, icon: Icon, isPrimary }) => (
           <NavLink
             key={to}
             to={to}
+            aria-label={isPrimary ? label : undefined}
             className={({ isActive }) =>
               cn(
                 'pressable group flex flex-col items-center gap-1 min-w-[60px] min-h-[52px] justify-center rounded-none',

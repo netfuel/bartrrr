@@ -6,8 +6,8 @@ export function Toaster() {
   const toasts = useToastStore((s) => s.toasts)
   const dismissToast = useToastStore((s) => s.dismissToast)
 
-  if (toasts.length === 0) return null
-
+  // The live region stays mounted even when empty: screen readers only
+  // announce changes to a region that already exists in the DOM.
   return (
     <div
       aria-live="polite"

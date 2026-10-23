@@ -4,6 +4,7 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { Map as MapIcon } from 'lucide-react'
 import type { Listing, UserProfile } from '@/types'
+import { formatDistance } from '@/lib/utils'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
 
@@ -124,14 +125,18 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
         <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-forest text-forest">
           <MapIcon className="h-6 w-6" />
         </span>
-        <p className="font-display text-[24px] text-forest-dark mb-2">Map View</p>
+        <p className="font-display text-[24px] text-forest-dark mb-2">Map isn't available right now</p>
         <p className="text-[15px] text-forest max-w-xs mb-4">
-          Add your Mapbox token to enable the interactive map with listing pins.
+          You can still see every nearby listing in the list view.
         </p>
-        <code className="text-small bg-cream/70 border border-forest/30 text-forest-dark px-3 py-2 rounded-none">
-          VITE_MAPBOX_TOKEN=pk.your_token
-        </code>
-        <p className="text-label text-forest mt-3">in .env.local</p>
+        {import.meta.env.DEV && (
+          <>
+            <code className="text-small bg-cream/70 border border-forest/30 text-forest-dark px-3 py-2 rounded-none">
+              VITE_MAPBOX_TOKEN=pk.your_token
+            </code>
+            <p className="text-label text-forest mt-3">Developers: add this to .env.local</p>
+          </>
+        )}
       </div>
     )
   }
@@ -145,7 +150,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
         <div className="animate-slide-up absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-paper rounded-none border border-ink p-4 shadow-float z-10">
           <button
             type="button"
-            aria-label="Close"
+            aria-label="Close preview"
             className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-sand-light hover:text-ink text-xs"
             onClick={() => setSelectedListing(null)}
           >
@@ -164,11 +169,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
               <p className="text-small text-muted">{selectedListing.location.neighborhood}</p>
               {selectedListing.distanceMi !== undefined && (
                 <p className="text-small text-muted">
-                  {selectedListing.distanceMi < 0.1
-                    ? 'Nearby'
-                    : selectedListing.distanceMi < 1
-                    ? `${(selectedListing.distanceMi * 5280).toFixed(0)} ft away`
-                    : `${selectedListing.distanceMi.toFixed(1)} mi away`}
+                  {formatDistance(selectedListing.distanceMi)}
                 </p>
               )}
               {users[selectedListing.userId] && (

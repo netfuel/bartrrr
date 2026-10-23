@@ -1,10 +1,11 @@
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useState } from 'react'
 import { Star, MapPin, Calendar } from 'lucide-react'
 import { Avatar, Chip, Tabs } from '@/components/ui'
 import { TradeCard, ReviewCard } from '@/components/bartrrr'
 import { useUsersStore, useListingsStore, useReviewsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
+import { usePageTitle } from '@/lib/utils'
 
 type Tab = 'portfolio' | 'reviews'
 
@@ -18,10 +19,18 @@ export default function ProfilePage() {
   const getReviewsForUser = useReviewsStore((s) => s.getReviewsForUser)
 
   const user = username === 'me' ? currentUser : getUserByUsername(username || '')
+  usePageTitle(user?.displayName ?? 'Profile')
 
   if (!user) {
-    return <div className="px-5 py-24 text-center font-display text-[28px] text-ink">Profile not found.</div>
+    return (
+      <div className="px-5 py-24 text-center">
+        <p className="font-display text-[28px] text-ink">We couldn't find this neighbor.</p>
+        <p className="text-base text-ink-2 mt-2">They may have closed their account.</p>
+        <Link to="/browse" className="text-label link-underline mt-4 inline-block text-ink">Browse listings</Link>
+      </div>
+    )
   }
+  const isMe = currentUser?.id === user.id
 
   const userListings = listings.filter((l) => l.userId === user.id && l.status === 'active')
   const reviews = getReviewsForUser(user.id)
@@ -48,7 +57,7 @@ export default function ProfilePage() {
               <Star className="h-4 w-4 fill-gold text-gold" />
               {user.reputationScore.toFixed(1)}
             </span>
-            <span className="flex items-center border-l border-ink px-4 py-2 text-label text-ink-2">{user.tradeCount} trades</span>
+            <span className="flex items-center border-l border-ink px-4 py-2 text-label text-ink-2">{user.tradeCount} {user.tradeCount === 1 ? 'trade' : 'trades'}</span>
           </div>
           {user.bio && <p className="mt-6 max-w-[52ch] font-display text-[20px] leading-[1.45] text-ink">{user.bio}</p>}
           {user.lookingFor && user.lookingFor.length > 0 && (
@@ -68,7 +77,7 @@ export default function ProfilePage() {
         active={tab}
         onChange={setTab}
         tabs={[
-          { id: 'portfolio', label: 'Portfolio' },
+          { id: 'portfolio', label: 'Listings' },
           { id: 'reviews', label: 'Reviews', count: reviews.length },
         ]}
       />
@@ -76,7 +85,16 @@ export default function ProfilePage() {
       {tab === 'portfolio' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {userListings.length === 0 ? (
-            <p className="font-display text-[22px] text-muted col-span-full text-center py-12">No listings yet.</p>
+            <div className="col-span-full text-center py-12">
+              <p className="font-display text-[22px] text-muted">
+                {isMe
+                  ? "You don't have any active listings. Post one so neighbors can make offers."
+                  : `${user.displayName.split(' ')[0]} doesn't have anything listed right now.`}
+              </p>
+              {isMe && (
+                <Link to="/listing/new" className="text-label link-underline mt-4 inline-block text-ink">Post a listing</Link>
+              )}
+            </div>
           ) : (
             userListings.map((listing) => (
               <TradeCard key={listing.id} listing={listing} user={user} />
@@ -89,7 +107,9 @@ export default function ProfilePage() {
         <div className="max-w-2xl">
           {reviews.length === 0 ? (
             <div className="text-center py-12 font-display text-[22px] text-muted">
-              Reviews will appear here after completed trades.
+              {isMe
+                ? 'No reviews yet. After each trade, your neighbor can leave one here.'
+                : `No reviews yet. Reviews show up after ${user.displayName.split(' ')[0]} completes a trade.`}
             </div>
           ) : (
             reviews.map((review) => {

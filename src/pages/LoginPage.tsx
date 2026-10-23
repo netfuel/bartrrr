@@ -29,7 +29,7 @@ export default function LoginPage() {
       navigate(returnTo)
     } catch (err) {
       console.error('Login failed:', err)
-      setLoginError('Login failed. Please try again.')
+      setLoginError("We couldn't log you in. Check your connection and try again.")
     } finally {
       setIsLoggingIn(false)
     }
@@ -47,7 +47,7 @@ export default function LoginPage() {
         {/* User picker */}
         <div className="animate-fade-up stagger-1">
           <p className="text-label text-muted mb-3">
-            Choose a user to log in as:
+            Pick a demo neighbor to log in as
           </p>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -100,13 +100,13 @@ export default function LoginPage() {
             >
               {isLoggingIn
                 ? 'Signing in…'
-                : `Log in as ${selectedUser?.displayName.split(' ')[0] || '...'}`}
+                : `Log in as ${selectedUser?.displayName.split(' ')[0] || '…'}`}
             </Button>
           </form>
         </div>
 
         <p className="text-small text-muted mt-6">
-          This is a demo — pick any user to explore Bartrrr.
+          This is a demo: pick any neighbor to explore Bartrrr.
         </p>
     </AuthShell>
   )

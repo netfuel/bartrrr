@@ -11,12 +11,19 @@ export const CATEGORY_COLORS: Record<Category, string> = {
 export const CATEGORY_LABELS: Record<Category, string> = {
   goods: 'Goods',
   services: 'Services',
-  skills: 'Skills & Expertise',
-  outdoor: 'Outdoor & Garden',
+  skills: 'Skills & expertise',
+  outdoor: 'Outdoor & garden',
 }
 
 // ─── Listing ─────────────────────────────────────────────────
 export type ListingCondition = 'new' | 'like_new' | 'good' | 'fair'
+
+export const CONDITION_LABELS: Record<ListingCondition, string> = {
+  new: 'New',
+  like_new: 'Like new',
+  good: 'Good',
+  fair: 'Fair',
+}
 
 export type ListingStatus = 'active' | 'pending' | 'closed'
 
@@ -71,6 +78,13 @@ export type Offer = {
   createdAt: string
 }
 
+export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
+  pending: 'Waiting for reply',
+  countered: 'Counter-offer',
+  accepted: 'Accepted',
+  declined: 'Declined',
+}
+
 export type OfferDeclineReason =
   | 'not_interested'
   | 'looking_for_specific'
@@ -81,10 +95,10 @@ export type OfferDeclineReason =
 export const DECLINE_REASON_LABELS: Record<OfferDeclineReason, string> = {
   not_interested: "Not interested in what's being offered",
   looking_for_specific:
-    "I'm looking for something specific — check my listing tags",
+    "I'm looking for something specific: check what my listing asks for",
   not_fair: "Offer doesn't feel like a fair trade",
   accepted_another: "I've already accepted another offer",
-  no_longer_available: 'Item/service is no longer available',
+  no_longer_available: "It's no longer available",
 }
 
 // ─── Trade Agreement ─────────────────────────────────────────
@@ -109,6 +123,22 @@ export type TradeAgreement = {
   status: AgreementStatus
   createdAt: string
   completedAt?: string
+}
+
+export const AGREEMENT_STATUS_LABELS: Record<AgreementStatus, string> = {
+  draft: 'Draft',
+  under_review: 'In review',
+  pending_signatures: 'Waiting to sign',
+  active: 'Ready to swap',
+  completed: 'Completed',
+  cancelled: 'Canceled',
+  disputed: 'Flagged',
+}
+
+export const EXCHANGE_METHOD_LABELS: Record<NonNullable<TradeAgreement['exchangeMethod']>, string> = {
+  in_person: 'Meet up in person',
+  dropoff: 'Drop-off',
+  service_at_location: 'Service on site',
 }
 
 // ─── User Profile ────────────────────────────────────────────

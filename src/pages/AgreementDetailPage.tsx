@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Calendar, MapPin, Info, CheckCircle, Handshake, PartyPopper } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Button, BackLink } from '@/components/ui'
+import { Calendar, MapPin, Info, CheckCircle, Handshake, PartyPopper, MessageSquare } from 'lucide-react'
+import { cn, usePageTitle } from '@/lib/utils'
+import { Button, BackLink, ConfirmDialog } from '@/components/ui'
+import { showToast } from '@/stores/toast-store'
+import { EXCHANGE_METHOD_LABELS } from '@/types'
 import { AgreementCard, FirstTradeCelebration } from '@/components/bartrrr'
 import { useAgreementsStore, useUsersStore, useNotificationsStore } from '@/stores'
 import { useReviewsStore } from '@/stores'
@@ -22,12 +24,15 @@ export default function AgreementDetailPage() {
   const hasReviewed = useReviewsStore((s) => s.hasReviewed)
   const reviews = useReviewsStore((s) => s.reviews)
   const [showCelebration, setShowCelebration] = useState(false)
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
+  usePageTitle('Trade agreement')
 
   if (!agreement || !currentUser) {
     return (
       <div className="px-5 py-24 text-center">
-        <p className="font-display text-[28px] text-ink">Agreement not found.</p>
-        <Link to="/agreements" className="text-label link-underline mt-4 inline-block text-ink">Back to agreements</Link>
+        <p className="font-display text-[28px] text-ink">We couldn't find this trade agreement.</p>
+        <p className="text-base text-ink-2 mt-2">It may have been canceled, or the link is wrong.</p>
+        <Link to="/agreements" className="text-label link-underline mt-4 inline-block text-ink">Go to your agreements</Link>
       </div>
     )
   }
@@ -40,6 +45,8 @@ export default function AgreementDetailPage() {
     ? agreement.partyB.userId
     : agreement.partyA.userId
   const otherParty = getUserById(otherPartyId)
+  const otherFirstName = otherParty?.displayName.split(' ')[0] ?? 'your neighbor'
+  const isParticipant = agreement.partyA.userId === currentUser.id || agreement.partyB.userId === currentUser.id
 
   const alreadyReviewed = hasReviewed(agreement.id, currentUser.id)
   const agreementReviews = reviews.filter((r) => r.agreementId === agreement.id)
@@ -47,9 +54,9 @@ export default function AgreementDetailPage() {
   // Where this trade is in its journey: agree → meet & swap → done
   const journeyStep = agreement.status === 'completed' ? 2 : agreement.status === 'active' ? 1 : 0
   const journey = [
-    { label: 'You both agree', icon: Handshake },
-    { label: 'Meet & swap', icon: MapPin },
-    { label: 'Done!', icon: PartyPopper },
+    { label: 'Both sign', icon: Handshake },
+    { label: 'Meet and swap', icon: MapPin },
+    { label: 'Done', icon: PartyPopper },
   ]
 
   const handleSign = () => {
@@ -57,13 +64,22 @@ export default function AgreementDetailPage() {
     addNotification({
       userId: otherPartyId,
       type: 'agreement_ready',
-      title: 'Agreement signed',
-      body: `${currentUser.displayName} has signed the trade agreement.`,
+      title: 'Trade agreement signed',
+      body: `${currentUser.displayName} signed the trade agreement.`,
       data: { agreementId: agreement.id },
     })
+    const theyAlreadySigned =
+      agreement.partyA.userId === currentUser.id ? agreement.partyB.signed : agreement.partyA.signed
+    showToast(
+      theyAlreadySigned
+        ? 'You both signed. Time to meet up and swap.'
+        : `Signed. We'll let you know when ${otherFirstName} signs too.`,
+      'success',
+    )
   }
 
   const handleComplete = () => {
+    setShowCompleteConfirm(false)
     const isFirstTrade = !currentUser.tradeCount || currentUser.tradeCount === 0
     completeAgreement(agreement.id)
     incrementTradeCount(agreement.partyA.userId)
@@ -71,12 +87,14 @@ export default function AgreementDetailPage() {
     addNotification({
       userId: otherPartyId,
       type: 'trade_complete',
-      title: 'Trade completed!',
-      body: 'Your trade has been marked as complete. Leave a review!',
+      title: 'Trade complete',
+      body: `${currentUser.displayName} marked your trade as done. How did it go? Leave a review.`,
       data: { agreementId: agreement.id },
     })
     if (isFirstTrade) {
       setShowCelebration(true)
+    } else {
+      showToast('Trade complete. Nice swap! Leave a review below.', 'success')
     }
   }
 
@@ -91,14 +109,16 @@ export default function AgreementDetailPage() {
     addNotification({
       userId: otherPartyId,
       type: 'review_request',
-      title: 'New review received',
+      title: 'New review',
       body: `${currentUser.displayName} left you a review.`,
+      data: { agreementId: agreement.id },
     })
+    showToast('Review posted. Thanks for helping neighbors trade with confidence.', 'success')
   }
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-16">
-      <BackLink to="/agreements" className="mb-3">Back to agreements</BackLink>
+      <BackLink to="/agreements" className="mb-3">All agreements</BackLink>
 
       {/* Journey: agree → meet → done */}
       <div className="border-y border-ink/30 py-5 mb-6">
@@ -144,8 +164,9 @@ export default function AgreementDetailPage() {
       <div className="flex items-start gap-3 border-l-2 border-gold bg-gold-light/70 rounded-none px-4 py-3.5 mb-6 text-small text-ink-2 leading-relaxed">
         <Info className="h-4 w-4 shrink-0 mt-0.5 text-gold" />
         <p>
-          This is a voluntary, non-legally-binding agreement between two parties
-          facilitated by Bartrrr. It documents the terms of a barter exchange.
+          This agreement is voluntary and not legally binding. It's a shared record of what
+          you and your neighbor agreed to trade, so nobody has to remember the details.
+          Bartrrr helps you keep track; it doesn't enforce the deal.
         </p>
       </div>
 
@@ -159,14 +180,14 @@ export default function AgreementDetailPage() {
       />
 
       {/* Exchange details */}
-      {(agreement.exchangeDate || agreement.exchangeLocation || agreement.specialInstructions) && (
+      {(agreement.exchangeDate || agreement.exchangeLocation || agreement.specialInstructions) ? (
         <section className="mt-8">
-          <h3 className="text-heading-section text-ink mb-4">When & where</h3>
+          <h3 className="text-heading-section text-ink mb-4">When and where</h3>
           <div className="divide-y divide-ink/20 border-y border-ink">
           {agreement.exchangeMethod && (
             <div className="flex items-baseline gap-4 py-3.5 text-[16px]">
-              <span className="text-label w-20 shrink-0 text-muted">Method: </span>
-              <span className="text-ink capitalize">{agreement.exchangeMethod.replace(/_/g, ' ')}</span>
+              <span className="text-label w-20 shrink-0 text-muted">How: </span>
+              <span className="text-ink">{EXCHANGE_METHOD_LABELS[agreement.exchangeMethod]}</span>
             </div>
           )}
           {agreement.exchangeDate && (
@@ -191,6 +212,41 @@ export default function AgreementDetailPage() {
           )}
           </div>
         </section>
+      ) : (
+        agreement.status !== 'completed' && agreement.status !== 'cancelled' && (
+          <section className="mt-8">
+            <h3 className="text-heading-section text-ink mb-4">When and where</h3>
+            <p className="border-y border-ink py-3.5 text-[16px] text-ink-2 leading-relaxed">
+              No time or place yet. Message {otherFirstName} to pick one. A public spot like a
+              library, coffee shop, or community center is a good bet.
+            </p>
+          </section>
+        )
+      )}
+
+      {isParticipant && agreement.status !== 'completed' && agreement.status !== 'cancelled' && (
+        <Link
+          to={`/offers/${agreement.offerId}`}
+          className="mt-4 inline-flex min-h-[44px] items-center gap-2 text-label link-underline text-ink"
+        >
+          <MessageSquare className="h-4 w-4" /> Message {otherFirstName}
+        </Link>
+      )}
+
+      {/* What if plans change */}
+      {agreement.status !== 'completed' && agreement.status !== 'cancelled' && (
+        <div className="mt-6 text-small text-muted leading-relaxed space-y-2">
+          <p>
+            <span className="font-medium text-ink-2">Plans changed?</span> Let {otherFirstName} know
+            as early as you can. Canceling within 24 hours of the meetup counts as a late
+            cancellation on your profile.
+          </p>
+          <p>
+            <span className="font-medium text-ink-2">Something not right?</span> Talk it through
+            with {otherFirstName} first. Bartrrr keeps the record of what you agreed to, but it
+            can't decide who's right or guarantee an outcome.
+          </p>
+        </div>
       )}
 
       {/* Mark as complete (when both signed) */}
@@ -198,10 +254,10 @@ export default function AgreementDetailPage() {
         <div className="mt-8 border border-teal bg-teal-light rounded-none p-6 sm:p-8 text-center animate-fade-up">
           <CheckCircle className="h-9 w-9 text-teal-dark mx-auto mb-4" strokeWidth={1.25} />
           <p className="font-display text-[20px] leading-snug text-ink mb-5 max-w-[30ch] mx-auto">
-            You both agreed. Once you've met and swapped, mark it complete.
+            You both signed. After you've met up and swapped, mark the trade as done.
           </p>
-          <Button variant="confirm" size="lg" onClick={handleComplete}>
-            We made the trade
+          <Button variant="confirm" size="lg" onClick={() => setShowCompleteConfirm(true)}>
+            We made the swap
           </Button>
         </div>
       )}
@@ -225,6 +281,22 @@ export default function AgreementDetailPage() {
             />
           )}
         </div>
+      )}
+
+      {showCompleteConfirm && (
+        <ConfirmDialog
+          title="Did the swap happen?"
+          description={
+            <p>
+              Only mark it done after you and {otherFirstName} have both handed over your side of
+              the trade. This closes the agreement and can't be undone.
+            </p>
+          }
+          confirmLabel="Yes, we swapped"
+          confirmVariant="confirm"
+          onConfirm={handleComplete}
+          onClose={() => setShowCompleteConfirm(false)}
+        />
       )}
 
       {/* First trade celebration */}

@@ -58,7 +58,7 @@ export function Header({ className }: HeaderProps) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleSearch}
-          placeholder="Search listings, neighborhoods..."
+          placeholder="Search listings or neighborhoods"
           className="w-full min-w-0 rounded-full border border-ink/30 bg-paper pl-10 pr-4 py-2.5 text-[15px] placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay transition-colors"
         />
       </div>
@@ -68,7 +68,7 @@ export function Header({ className }: HeaderProps) {
         <button
           type="button"
           className="pressable relative flex h-11 w-11 items-center justify-center rounded-full hover:bg-sand-light transition-colors"
-          aria-label="Notifications"
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
           aria-expanded={showNotifications}
           onClick={() => setShowNotifications(!showNotifications)}
         >

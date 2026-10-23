@@ -5,15 +5,17 @@ import { useAuth } from '@/providers/AuthProvider'
 import { useListingsStore, useUsersStore, useOffersForUser, useAgreementsForUser, useMyActiveListings } from '@/stores'
 import { Badge, Avatar, EmptyState, Tabs, buttonStyles } from '@/components/ui'
 import { TradeCard } from '@/components/bartrrr'
+import { usePageTitle } from '@/lib/utils'
+import { OFFER_STATUS_LABELS, AGREEMENT_STATUS_LABELS } from '@/types'
 
 type Tab = 'listings' | 'incoming' | 'outgoing' | 'trades' | 'history'
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'listings', label: 'My Listings', icon: <Package className="h-4 w-4" /> },
-  { id: 'incoming', label: 'Incoming', icon: <MessageSquare className="h-4 w-4" /> },
-  { id: 'outgoing', label: 'Outgoing', icon: <Send className="h-4 w-4" /> },
-  { id: 'trades', label: 'Active Trades', icon: <FileCheck className="h-4 w-4" /> },
-  { id: 'history', label: 'History', icon: <History className="h-4 w-4" /> },
+  { id: 'listings', label: 'My listings', icon: <Package className="h-4 w-4" /> },
+  { id: 'incoming', label: 'Offers received', icon: <MessageSquare className="h-4 w-4" /> },
+  { id: 'outgoing', label: 'Offers sent', icon: <Send className="h-4 w-4" /> },
+  { id: 'trades', label: 'Active trades', icon: <FileCheck className="h-4 w-4" /> },
+  { id: 'history', label: 'Trade history', icon: <History className="h-4 w-4" /> },
 ]
 
 export default function DashboardPage() {
@@ -22,6 +24,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>('listings')
   const getUserById = useUsersStore((s) => s.getUserById)
   const getListingById = useListingsStore((s) => s.getListingById)
+  usePageTitle('Dashboard')
 
   const userId = currentUser?.id
   const userOffers = useOffersForUser(userId)
@@ -48,11 +51,11 @@ export default function DashboardPage() {
         Welcome back, <em>{currentUser.displayName.split(' ')[0]}</em>
       </h1>
 
-      {/* Stats row — one hairline ledger, serif numerals */}
+      {/* Stats row: one hairline ledger, serif numerals */}
       <dl className="grid grid-cols-2 sm:grid-cols-4 border-t border-l border-ink mb-10">
         {[
           { value: myListings.length, label: 'Active listings' },
-          { value: pendingIncoming.length, label: 'Incoming offers', accent: pendingIncoming.length > 0 },
+          { value: pendingIncoming.length, label: 'Offers to answer', accent: pendingIncoming.length > 0 },
           { value: activeAgreements.length, label: 'Active trades' },
           { value: currentUser.tradeCount, label: 'Trades completed' },
         ].map(({ value, label, accent }) => (
@@ -94,9 +97,9 @@ export default function DashboardPage() {
           </div>
           {myListings.length === 0 ? (
             <EmptyState
-              title="No active listings"
-              description="Post something you'd love to trade with your neighbors."
-              actionLabel="Create a listing"
+              title="Your dashboard is quiet, for now"
+              description="List something you'd love to trade. Neighbors can't make offers until you do."
+              actionLabel="Post a listing"
               onAction={() => navigate('/listing/new')}
             />
           ) : (
@@ -115,10 +118,10 @@ export default function DashboardPage() {
         <div className="border-t border-ink">
           {pendingIncoming.length === 0 ? (
             <EmptyState
-              title="No incoming offers"
-              description="The more you list, the more offers you'll get."
-              actionLabel="Browse listings"
-              onAction={() => navigate('/browse')}
+              title="No offers to answer"
+              description="When a neighbor makes an offer on one of your listings, it shows up here. The more you list, the more offers you'll get."
+              actionLabel="Post a listing"
+              onAction={() => navigate('/listing/new')}
             />
           ) : (
             pendingIncoming.map((offer) => {
@@ -137,7 +140,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant={offer.status === 'countered' ? 'gold' : 'teal'}>
-                        {offer.status}
+                        {OFFER_STATUS_LABELS[offer.status]}
                       </Badge>
                       <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
@@ -153,9 +156,9 @@ export default function DashboardPage() {
         <div className="border-t border-ink">
           {pendingOutgoing.length === 0 ? (
             <EmptyState
-              title="No outgoing offers"
-              description="Browse nearby listings and propose a swap."
-              actionLabel="Explore listings"
+              title="No open offers"
+              description="See something you like nearby? Make an offer and propose a swap."
+              actionLabel="Browse listings"
               onAction={() => navigate('/browse')}
             />
           ) : (
@@ -178,7 +181,7 @@ export default function DashboardPage() {
                         offer.status === 'countered' ? 'gold' :
                         offer.status === 'pending' ? 'teal' : 'clay'
                       }>
-                        {offer.status}
+                        {OFFER_STATUS_LABELS[offer.status]}
                       </Badge>
                       <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
@@ -199,7 +202,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3 border-b border-ink/15 px-1 py-3 text-muted transition-colors hover:bg-paper">
                       <Avatar name={toUser.displayName} userId={toUser.id} size="sm" src={toUser.avatarUrl} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-ink truncate">{toUser.displayName} — {listing?.title}</p>
+                        <p className="text-sm text-ink truncate">{toUser.displayName}: {listing?.title}</p>
                       </div>
                       <Badge variant="clay">Declined</Badge>
                     </div>
@@ -216,7 +219,7 @@ export default function DashboardPage() {
           {activeAgreements.length === 0 ? (
             <EmptyState
               title="No active trades"
-              description="Your agreements will live here once you've confirmed a trade."
+              description="Once you accept an offer, or a neighbor accepts yours, the trade shows up here until you've swapped."
               actionLabel="Browse listings"
               onAction={() => navigate('/browse')}
             />
@@ -239,7 +242,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant={agreement.status === 'active' ? 'teal' : 'gold'}>
-                        {agreement.status === 'pending_signatures' ? 'Pending' : 'Active'}
+                        {AGREEMENT_STATUS_LABELS[agreement.status]}
                       </Badge>
                       <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
@@ -257,7 +260,7 @@ export default function DashboardPage() {
             <EmptyState
               title="No completed trades yet"
               description="Your first trade is waiting. Explore what your neighbors have."
-              actionLabel="Explore listings"
+              actionLabel="Browse listings"
               onAction={() => navigate('/browse')}
             />
           ) : (

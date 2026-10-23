@@ -25,11 +25,12 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const getLink = (n: (typeof userNotifications)[0]) => {
     if (n.data?.offerId) return `/offers/${n.data.offerId}`
     if (n.data?.agreementId) return `/agreements/${n.data.agreementId}`
+    if (n.data?.listingId) return `/listing/${n.data.listingId}`
     return '/offers'
   }
 
   return (
-    <div className="animate-scale-in origin-top-right absolute right-0 top-full mt-3 w-[min(22rem,calc(100vw-2rem))] bg-paper rounded-none border border-ink shadow-float z-50 overflow-hidden">
+    <div role="region" aria-label="Notifications" className="animate-scale-in origin-top-right absolute right-0 top-full mt-3 w-[min(22rem,calc(100vw-2rem))] bg-paper rounded-none border border-ink shadow-float z-50 overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-ink">
         <p className="font-display text-[19px] text-ink">Notifications</p>
         {unreadCount > 0 && (
@@ -46,8 +47,8 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
       <div className="max-h-[22rem] overflow-y-auto">
         {userNotifications.length === 0 ? (
           <div className="px-5 py-10 text-center">
-            <p className="font-display text-[19px] text-ink">No notifications yet.</p>
-            <p className="text-small text-muted mt-1.5">You'll see updates about your offers and trades here.</p>
+            <p className="font-display text-[19px] text-ink">You're all caught up.</p>
+            <p className="text-small text-muted mt-1.5">New offers, messages, and trade updates will show up here.</p>
           </div>
         ) : (
           userNotifications.map((notification) => (

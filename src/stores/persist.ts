@@ -9,9 +9,9 @@ import { showToast } from './toast-store'
 export function persistError(userMessage: string) {
   return (err: unknown) => {
     if (!supabase) return
-    console.warn(`[Bartr] ${userMessage}`, err)
+    console.warn(`[Bartrrr] ${userMessage}`, err)
     showToast(
-      `${userMessage} — it may not have saved. Check your connection and try again.`,
+      `${userMessage}. Check your connection and try again.`,
       'error',
     )
   }

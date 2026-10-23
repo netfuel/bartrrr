@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { Button, Textarea, Chip, Modal } from '@/components/ui'
-import { useListingsStore, useOffersStore, useNotificationsStore, useMyActiveListings } from '@/stores'
+import { useListingsStore, useOffersStore, useNotificationsStore, useMyActiveListings, showToast } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 
 export interface OfferBuilderProps {
@@ -37,19 +37,20 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
       listingId,
       fromUserId: currentUser.id,
       toUserId,
-      content: message || `I'd like to trade for your ${listing.title}`,
+      content: message.trim() || `I'd like to trade for your ${listing.title}.`,
       items: allItems,
     })
 
     addNotification({
       userId: toUserId,
       type: 'new_offer',
-      title: 'New offer received',
-      body: `${currentUser.displayName} wants to trade for your ${listing.title}`,
+      title: 'New offer on your listing',
+      body: `${currentUser.displayName} wants to trade for your ${listing.title}. Take a look.`,
       data: { offerId },
     })
 
     onClose()
+    showToast('Offer sent. They have 72 hours to reply.', 'success')
     navigate(`/offers/${offerId}`)
   }
 
@@ -77,13 +78,22 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
           for <span className="font-display italic text-[17px] text-ink">{listing.title}</span>
         </p>
 
+        {listing.seeking && (
+          <div className="mb-5 border-l-2 border-forest bg-forest-light py-2.5 pl-3.5 pr-3">
+            <p className="text-label text-forest mb-1">
+              They're looking for
+            </p>
+            <p className="text-[15px] text-forest-dark">{listing.seeking}</p>
+          </div>
+        )}
+
         {/* User's listings as quick picks */}
         {myListings.length > 0 && (
           <div className="mb-4">
-            <p className="text-label text-ink-2 mb-2.5">
-              Offer from your listings:
+            <p id="offer-from-listings" className="text-label text-ink-2 mb-2.5">
+              Offer something you've listed
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div role="group" aria-labelledby="offer-from-listings" className="flex flex-wrap gap-2">
               {myListings.map((l) => (
                 <Chip
                   key={l.id}
@@ -98,8 +108,9 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
 
         {/* Custom items */}
         <Textarea
-          label="Or describe what you're offering"
-          placeholder="e.g. 2 hours of gardening help, homemade bread, guitar lessons..."
+          label={myListings.length > 0 ? "Or describe something else" : "What are you offering?"}
+          placeholder="One per line, like: 2 hours of gardening help"
+          helperText="Put each item or service on its own line."
           value={customItem}
           onChange={(e) => setCustomItem(e.target.value)}
           rows={3}
@@ -109,7 +120,7 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
         <div className="mt-4">
           <Textarea
             label="Add a message (optional)"
-            placeholder="Tell them why this is a fair trade..."
+            placeholder="Say hi, and why you think it's a fair trade"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={2}
@@ -126,15 +137,23 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
           </div>
         )}
 
+        {allItems.length === 0 && (
+          <p className="mt-5 text-small text-muted">
+            Pick or describe at least one thing to offer.
+          </p>
+        )}
         <Button
           variant="primary"
           size="lg"
-          className="w-full mt-6"
+          className="w-full mt-4"
           disabled={allItems.length === 0}
           onClick={handleSubmit}
         >
           Send offer
         </Button>
+        <p className="mt-2 text-small text-muted text-center">
+          They have 72 hours to accept, decline, or send a counter-offer.
+        </p>
     </Modal>
   )
 }

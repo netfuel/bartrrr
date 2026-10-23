@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button, Input, Textarea, Chip } from '@/components/ui'
-import { useListingsStore } from '@/stores'
+import { useListingsStore, showToast } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import type { Category, ListingCondition } from '@/types'
-import { CATEGORY_LABELS } from '@/types'
+import { CATEGORY_LABELS, CONDITION_LABELS } from '@/types'
+import { usePageTitle } from '@/lib/utils'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
 const conditions: ListingCondition[] = ['new', 'like_new', 'good', 'fair']
@@ -22,12 +23,14 @@ export default function EditListingPage() {
   const [category, setCategory] = useState<Category | null>(listing?.category || null)
   const [condition, setCondition] = useState<ListingCondition | null>(listing?.condition || null)
   const [seeking, setSeeking] = useState(listing?.seeking || '')
+  usePageTitle('Edit listing')
 
   if (!listing || !currentUser || listing.userId !== currentUser.id) {
     return (
       <div className="px-5 py-24 text-center">
-        <p className="font-display text-[24px] text-ink max-w-md mx-auto">Listing not found or you don't have permission to edit it.</p>
-        <Link to="/browse" className="text-label link-underline mt-4 inline-block text-ink">Back to browse</Link>
+        <p className="font-display text-[24px] text-ink max-w-md mx-auto">We couldn't open this listing for editing.</p>
+        <p className="text-base text-ink-2 mt-2 max-w-md mx-auto">It may have been removed, or it belongs to another neighbor.</p>
+        <Link to="/dashboard" className="text-label link-underline mt-4 inline-block text-ink">Go to your listings</Link>
       </div>
     )
   }
@@ -40,10 +43,13 @@ export default function EditListingPage() {
       condition: condition || undefined,
       seeking,
     })
+    showToast('Changes saved.', 'success')
     navigate(`/listing/${listing.id}`)
   }
 
-  const isValid = title.length >= 3 && category && seeking.length >= 3
+  const titleError = title.trim().length < 3 ? 'Add a title (at least 3 characters).' : ''
+  const seekingError = seeking.trim().length < 3 ? 'Tell neighbors what you’d like in return.' : ''
+  const isValid = !titleError && category && !seekingError
 
   return (
     <div className="max-w-xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -55,7 +61,7 @@ export default function EditListingPage() {
         Back to listing
       </Link>
 
-      <h1 className="text-heading-page text-ink mb-8">Edit Listing</h1>
+      <h1 className="text-heading-page text-ink mb-8">Edit listing</h1>
 
       <div className="space-y-6">
         <Input
@@ -63,18 +69,20 @@ export default function EditListingPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="What are you offering?"
+          maxLength={80}
+          error={titleError || undefined}
         />
 
         <Textarea
-          label="Description"
+          label="Description (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe your item or service..."
+          placeholder="Size, condition, how long it takes: whatever a neighbor would want to know"
         />
 
         <div>
-          <p className="text-label text-ink-2 mb-2.5">Category</p>
-          <div className="flex flex-wrap gap-2">
+          <p id="edit-category-label" className="text-label text-ink-2 mb-2.5">Category</p>
+          <div role="group" aria-labelledby="edit-category-label" className="flex flex-wrap gap-2">
             {categories.map((cat) => (
               <Chip
                 key={cat}
@@ -88,12 +96,12 @@ export default function EditListingPage() {
 
         {(category === 'goods' || category === 'outdoor') && (
           <div>
-            <p className="text-label text-ink-2 mb-2.5">Condition</p>
-            <div className="flex flex-wrap gap-2">
+            <p id="edit-condition-label" className="text-label text-ink-2 mb-2.5">Condition (optional)</p>
+            <div role="group" aria-labelledby="edit-condition-label" className="flex flex-wrap gap-2">
               {conditions.map((c) => (
                 <Chip
                   key={c}
-                  label={c.replace('_', ' ')}
+                  label={CONDITION_LABELS[c]}
                   selected={condition === c}
                   onToggle={() => setCondition(c)}
                 />
@@ -103,10 +111,11 @@ export default function EditListingPage() {
         )}
 
         <Textarea
-          label="What are you looking for?"
+          label="What would you like in return?"
           value={seeking}
           onChange={(e) => setSeeking(e.target.value)}
-          placeholder="Describe what you'd like in return..."
+          placeholder="Like: gardening help, kitchen appliances, or good books"
+          error={seekingError || undefined}
         />
 
         <div className="flex gap-3 border-t border-ink pt-6">

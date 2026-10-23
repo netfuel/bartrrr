@@ -9,7 +9,7 @@ export function ProtectedRoute() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center" aria-busy="true">
-        <div className="flex flex-col items-center gap-4">
+        <div role="status" className="flex flex-col items-center gap-4">
           <div className="h-7 w-7 border border-ink border-t-transparent rounded-full animate-spin" />
           <p className="text-label text-muted">Loading…</p>
         </div>

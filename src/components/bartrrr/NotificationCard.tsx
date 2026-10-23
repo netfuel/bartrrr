@@ -50,7 +50,7 @@ export function NotificationCard({
       <div className="flex flex-col gap-1.5 shrink-0">
         {onView && (
           <Button variant="outline" size="sm" onClick={onView}>
-            View
+            View offer
           </Button>
         )}
         {onMessage && (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Map, List, SlidersHorizontal } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, usePageTitle } from '@/lib/utils'
 import { Chip, EmptyState, Skeleton } from '@/components/ui'
 import { lazy, Suspense } from 'react'
 import { TradeCard } from '@/components/bartrrr'
@@ -40,10 +40,19 @@ export default function BrowsePage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  usePageTitle('Browse listings')
 
   const searchQuery = searchParams.get('q') || ''
   const listings = useListingsStore((s) => s.listings)
   const getUserById = useUsersStore((s) => s.getUserById)
+
+  const hasActiveListings = listings.some((l) => l.status === 'active')
+  const isFiltered = Boolean(searchQuery || maxDistance || selectedCategory)
+  const clearFilters = () => {
+    setSelectedCategory(null)
+    setMaxDistance(null)
+    if (searchQuery) navigate('/browse')
+  }
 
   const filteredListings = listings
     .filter((l) => l.status === 'active')
@@ -56,7 +65,7 @@ export default function BrowsePage() {
       {/* Filters bar */}
       <div className="no-scrollbar flex items-center gap-3 px-4 lg:px-6 py-3 bg-cream border-b border-ink overflow-x-auto">
         {/* View toggle (mobile) */}
-        <div className="flex items-center rounded-full border border-ink p-0.5 shrink-0 lg:hidden">
+        <div role="group" aria-label="View" className="flex items-center rounded-full border border-ink p-0.5 shrink-0 lg:hidden">
           <button
             type="button"
             aria-label="List view"
@@ -80,7 +89,7 @@ export default function BrowsePage() {
         <span aria-hidden="true" className="h-6 w-px shrink-0 bg-ink/20 lg:hidden" />
 
         {/* Category chips */}
-        <div className="flex items-center gap-2">
+        <div role="group" aria-label="Category" className="flex items-center gap-2">
           <Chip label="All" selected={selectedCategory === null} onToggle={() => setSelectedCategory(null)} />
           {categories.map((cat) => (
             <Chip
@@ -95,7 +104,7 @@ export default function BrowsePage() {
         {/* Distance filter toggle */}
         <button
           type="button"
-          aria-label="Distance"
+          aria-label="Distance filter"
           aria-expanded={showFilters}
           onClick={() => setShowFilters(!showFilters)}
           className={cn(
@@ -109,8 +118,8 @@ export default function BrowsePage() {
 
       {/* Distance filter bar */}
       {showFilters && (
-        <div className="no-scrollbar animate-fade-in flex items-center gap-2 px-4 lg:px-6 py-2.5 bg-paper border-b border-ink overflow-x-auto">
-          <span className="text-label text-muted shrink-0 mr-1">Distance:</span>
+        <div role="group" aria-labelledby="distance-label" className="no-scrollbar animate-fade-in flex items-center gap-2 px-4 lg:px-6 py-2.5 bg-paper border-b border-ink overflow-x-auto">
+          <span id="distance-label" className="text-label text-muted shrink-0 mr-1">Within</span>
           {distanceOptions.map((opt) => (
             <Chip
               key={opt.label}
@@ -125,8 +134,10 @@ export default function BrowsePage() {
       {/* Search indicator */}
       {searchQuery && (
         <div className="px-4 lg:px-6 py-2.5 bg-paper border-b border-ink text-[15px] text-ink-2 flex items-center justify-between gap-4">
-          <span className="min-w-0 truncate">Results for <span className="font-display italic text-ink">"{searchQuery}"</span></span>
-          <button type="button" onClick={() => navigate('/browse')} className="text-label link-underline shrink-0 text-ink">Clear</button>
+          <span aria-live="polite" className="min-w-0 truncate">
+            {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} for <span className="font-display italic text-ink">“{searchQuery}”</span>
+          </span>
+          <button type="button" onClick={() => navigate('/browse')} className="text-label link-underline shrink-0 text-ink">Clear search</button>
         </div>
       )}
 
@@ -151,12 +162,25 @@ export default function BrowsePage() {
         {/* Card grid */}
         <div className={cn('flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6', 'lg:block', view === 'list' ? 'block' : 'hidden')}>
           {filteredListings.length === 0 ? (
-            <EmptyState
-              title="No listings here yet"
-              description="Your neighbors haven't posted yet — be the first! Post something you'd love to trade."
-              actionLabel="Post a listing"
-              onAction={() => navigate('/listing/new')}
-            />
+            isFiltered && hasActiveListings ? (
+              <EmptyState
+                title="No matches"
+                description={
+                  searchQuery
+                    ? `Nothing nearby matches “${searchQuery}” with these filters. Try a different word or widen your search.`
+                    : 'Nothing nearby matches these filters. Try another category or a wider distance.'
+                }
+                actionLabel="Clear filters"
+                onAction={clearFilters}
+              />
+            ) : (
+              <EmptyState
+                title="No listings here yet"
+                description="Your neighbors haven't posted yet. Be the first: post something you'd love to trade."
+                actionLabel="Post a listing"
+                onAction={() => navigate('/listing/new')}
+              />
+            )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 min-[1800px]:grid-cols-3 gap-4 lg:gap-5">
               {filteredListings.map((listing) => {

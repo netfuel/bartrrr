@@ -7,7 +7,7 @@ import {
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { cn } from '@/lib/utils'
+import { cn, usePageTitle } from '@/lib/utils'
 import { buttonStyles, Wordmark } from '@/components/ui'
 import { mockListings } from '@/data/mock-listings'
 import { CATEGORY_LABELS } from '@/types'
@@ -22,7 +22,7 @@ const PHOTOS = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TICKER = [
-  'Goods', 'Services', 'Skills & Expertise', 'Outdoor & Garden',
+  'Goods', 'Services', 'Skills & expertise', 'Outdoor & garden',
   'Memphis, TN', 'No price tags', 'Just neighbors', "Trade, don't buy",
 ]
 
@@ -37,13 +37,13 @@ const steps = [
     num: '02',
     icon: <Repeat className="h-[18px] w-[18px]" strokeWidth={1.5} />,
     title: 'Make an offer',
-    desc: 'Spot something you like? Propose a swap. Negotiate until the deal feels right.',
+    desc: 'Spot something you like? Propose a swap, and go back and forth until it feels fair.',
   },
   {
     num: '03',
     icon: <Shield className="h-[18px] w-[18px]" strokeWidth={1.5} />,
     title: 'Swap with confidence',
-    desc: 'Sign a trade agreement, meet up, exchange. Rate your neighbor afterward.',
+    desc: 'Sign a simple trade agreement, meet up, and swap. Then leave each other a review.',
   },
 ]
 
@@ -51,12 +51,12 @@ const features = [
   {
     icon: Handshake,
     title: 'No price tags',
-    desc: 'Trade value for value. No haggling over dollars, no awkward pricing conversations.',
+    desc: 'Trade value for value. No haggling over dollars, no awkward money talk.',
   },
   {
     icon: ShieldCheck,
     title: 'Simple agreements',
-    desc: 'Every trade gets a plain-English agreement both sides sign. Everyone knows the deal.',
+    desc: 'Every trade gets a plain-language agreement you both sign. Everyone knows the deal.',
   },
   {
     icon: Star,
@@ -65,13 +65,13 @@ const features = [
   },
   {
     icon: MapPin,
-    title: 'Hyper-local by design',
-    desc: 'Memphis only. Every listing is a short drive away — most are in your neighborhood.',
+    title: 'Local by design',
+    desc: 'Memphis only. Every listing is a short drive away, and your address stays private until you agree to a trade.',
   },
   {
     icon: Sparkles,
     title: 'Smart matching',
-    desc: 'Tell us what you’re looking for and we’ll surface listings that fit, automatically.',
+    desc: 'Tell us what you’re looking for and we’ll point out listings that fit.',
   },
   {
     icon: MessageCircle,
@@ -87,11 +87,11 @@ const faqs = [
   },
   {
     q: 'How does a trade actually work?',
-    a: 'You post what you have and what you’re looking for. A neighbor makes an offer, you can accept it, decline it, or suggest a change. Once you both agree, you sign a simple agreement, pick a meeting spot, and swap.',
+    a: 'You post what you have and what you’d like in return. A neighbor makes an offer, and you can accept it, decline it, or send a counter-offer. Once you both agree, you sign a simple trade agreement, pick a meeting spot, and swap.',
   },
   {
     q: 'Is it safe to trade with strangers?',
-    a: 'Every trader has a public profile with ratings and reviews from past trades. Trade agreements document what both sides committed to, and we recommend meeting in public places for exchanges.',
+    a: 'Every neighbor has a public profile with ratings and reviews from past trades. Trade agreements spell out what each of you is giving, and we recommend meeting in a public place to swap.',
   },
   {
     q: 'What can I trade?',
@@ -99,18 +99,19 @@ const faqs = [
   },
   {
     q: 'Do I have to meet in person?',
-    a: 'Most trades happen in person because they’re local, but you and your trading partner choose — porch drop-offs and on-site services work too. The exchange method is part of your agreement.',
+    a: 'Most trades happen in person because they’re local, but you two decide. Porch drop-offs and on-site services work too, and how you’ll swap goes in your agreement.',
   },
   {
     q: 'What if a trade goes wrong?',
-    a: 'Your signed agreement documents what was promised, and the review system holds everyone accountable. If something feels off before you swap, you can decline or walk away at any point — nothing is binding until you exchange.',
+    a: 'Your trade agreement is a record of what you both promised, and reviews keep everyone accountable. Agreements aren’t legal contracts, so if something feels off before you swap, you can walk away. We just ask that you tell your neighbor early.',
   },
 ]
 
+// Product rules, not traction claims: every number here is true on day one.
 const stats = [
-  { stat: '1,200+', value: 1200, suffix: '+', label: 'Trades completed' },
-  { stat: '4.8', value: 4.8, suffix: '', label: 'Average rating' },
-  { stat: '47', value: 47, suffix: '', label: 'Neighborhoods active' },
+  { stat: '0', value: 0, suffix: '', label: 'Dollars changing hands' },
+  { stat: '72', value: 72, suffix: '', label: 'Hours to answer an offer' },
+  { stat: '30', value: 30, suffix: '', label: 'Days each listing stays up' },
 ]
 
 // Real inventory for the "trading right now" strip
@@ -125,7 +126,7 @@ const TESTIMONIALS = [
     trade: 'Yard work ⇄ KitchenAid mixer',
   },
   {
-    quote: "My kids outgrew everything at once. One weekend on Bartrrr and their closets are full again — and another family got the crib they needed.",
+    quote: "My kids outgrew everything at once. One weekend on Bartrrr and their closets are full again, and another family got the crib they needed.",
     name: 'Priya P.', neighborhood: 'Germantown', initials: 'PP',
     trade: 'Kids’ clothes ⇄ Crib',
   },
@@ -145,7 +146,7 @@ const TESTIMONIALS = [
     trade: 'Record player ⇄ Guitar lessons',
   },
   {
-    quote: "It's the neighborly Memphis I remember growing up in — just easier to find.",
+    quote: "It's the neighborly Memphis I remember growing up in, just easier to find.",
     name: 'Alex C.', neighborhood: 'Cooper-Young', initials: 'AC',
     trade: null,
   },
@@ -154,6 +155,7 @@ const TESTIMONIALS = [
 export default function LandingPage() {
   const container = useRef<HTMLDivElement>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  usePageTitle()
 
   useGSAP(
     () => {
@@ -251,7 +253,7 @@ export default function LandingPage() {
             <Wordmark />
           </a>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#listings" className="text-label link-underline">En stock</a>
+            <a href="#listings" className="text-label link-underline">Listings</a>
             <a href="#how" className="text-label link-underline">How it works</a>
             <a href="#faq" className="text-label link-underline">FAQ</a>
           </div>
@@ -308,16 +310,16 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-[1400px] gap-8 px-5 py-10 sm:py-14 lg:grid-cols-12 lg:items-end lg:gap-10 lg:px-8">
           <div className="lg:col-span-7">
             <p className="max-w-[34ch] font-display text-[clamp(1.5rem,2.6vw,2.125rem)] font-normal leading-[1.2] tracking-[-0.015em] text-ink">
-              Swap goods, skills, and services with your Memphis neighbors — no cash,
-              no awkward pricing, just fair exchange.
+              Swap goods, skills, and services with your Memphis neighbors. No cash,
+              no awkward money talk, just a fair trade.
             </p>
             <p className="text-label mt-6 text-muted">
-              1,200+ trades &nbsp;·&nbsp; 4.8 average rating &nbsp;·&nbsp; Free forever
+              Memphis only &nbsp;·&nbsp; Free to use &nbsp;·&nbsp; No cash, ever
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:col-span-5 lg:justify-end">
             <Link to="/auth/signup" className={buttonStyles({ variant: 'primary', size: 'lg', className: 'text-label w-full px-8 sm:w-auto' })}>
-              Start trading free
+              Start trading
             </Link>
             <Link to="/browse" className={buttonStyles({ variant: 'outline', size: 'lg', className: 'text-label w-full px-8 sm:w-auto' })}>
               See live listings
@@ -343,7 +345,7 @@ export default function LandingPage() {
         <div data-reveal className="mx-auto max-w-[1400px] px-5 lg:px-8">
           <div className="mb-10 sm:mb-14 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="eyebrow mb-6">En stock — live in Memphis</p>
+              <p className="eyebrow mb-6">Live in Memphis</p>
               <h2 className="text-heading-editorial">Trading<br />right now</h2>
             </div>
             <Link to="/browse" className="text-label link-underline shrink-0 self-start sm:self-auto">
@@ -393,7 +395,7 @@ export default function LandingPage() {
             <span className="font-display text-[88px] font-light leading-none transition-transform duration-500 ease-out-soft group-hover:translate-x-2">→</span>
             <span>
               <span className="block font-display text-[28px] font-normal italic leading-tight tracking-[-0.015em]">Your listing here</span>
-              <span className="text-label mt-3 block text-cream/70">Post something. See offers.</span>
+              <span className="text-label mt-3 block text-cream/70">Post something. Get offers.</span>
             </span>
           </Link>
           <span aria-hidden="true" className="w-px shrink-0" />
@@ -410,7 +412,7 @@ export default function LandingPage() {
           <div className="mt-12 sm:mt-16 grid gap-6 border-t border-ink pt-8 lg:grid-cols-12 lg:gap-10">
             <p className="text-label text-clay lg:col-span-4">From handyman help to homemade meals</p>
             <p className="max-w-[46ch] text-[19px] leading-[1.55] text-ink-2 lg:col-span-6 lg:col-start-6">
-              Memphis neighbors are already trading every day. Bartrrr makes it official —
+              Memphis neighbors already trade favors every day. Bartrrr gives it a home:
               a place to list what you have, find what you need, and agree on a fair swap
               without a dollar changing hands.
             </p>
@@ -419,7 +421,7 @@ export default function LandingPage() {
         <div className="editorial-photo relative h-[52svh] min-h-[320px] overflow-hidden border-t border-ink sm:h-[72vh]">
           <img
             src={PHOTOS.editorial}
-            alt="Neighbors exchanging"
+            alt="Two neighbors looking at a phone together"
             loading="lazy"
             decoding="async"
             className="editorial-img photo-warm absolute inset-0 h-[115%] w-full object-cover object-[50%_40%]"
@@ -481,8 +483,8 @@ export default function LandingPage() {
       <section className="border-b border-ink">
         <div className="mx-auto max-w-[1400px] px-5 py-20 sm:py-28 lg:px-8">
           <div data-reveal className="mb-12 sm:mb-16">
-            <p className="eyebrow mb-6">Neighbors are talking</p>
-            <h2 className="text-heading-editorial">Real trades,<br />real people</h2>
+            <p className="eyebrow mb-6">Trades like these</p>
+            <h2 className="text-heading-editorial">What a swap<br />can look like</h2>
           </div>
 
           <div data-reveal-group className="columns-1 gap-5 sm:columns-2 lg:columns-3">
@@ -520,7 +522,7 @@ export default function LandingPage() {
         <div className="relative z-10 mx-auto max-w-[1400px] px-5 lg:px-8 text-cream">
           <p data-reveal className="text-label mb-12 sm:mb-16 flex items-center gap-3 text-cream/85">
             <span aria-hidden="true" className="h-px w-5 bg-clay-mid" />
-            Growing every day
+            Fair by design
           </p>
           <div data-reveal-group className="grid gap-12 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-cream/25">
             {stats.map((item) => (
@@ -603,9 +605,9 @@ export default function LandingPage() {
             <h2 className="text-display mb-14">Ready<br /><em>to swap?</em></h2>
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
               <Link to="/auth/signup" className={buttonStyles({ variant: 'primary', size: 'lg', className: 'text-label w-full px-10 sm:w-auto' })}>
-                Get started — it's free
+                Get started
               </Link>
-              <p className="text-label text-muted">Free forever · No credit card</p>
+              <p className="text-label text-muted">Free to use · No cash, ever</p>
             </div>
           </div>
           <div className="relative min-h-[320px] border-t border-ink lg:col-span-5 lg:border-l lg:border-t-0">
