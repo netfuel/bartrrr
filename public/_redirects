@@ -1,0 +1,16 @@
+# Cloudflare Pages redirects. https://developers.cloudflare.com/pages/configuration/redirects/
+#
+# SPA routing needs no rule here: with no top-level 404.html, Pages serves
+# index.html for any path that isn't a static file, and React Router renders
+# the route (or its own 404 page). A "/* /index.html 200" rule would also
+# answer for missing /assets/* chunks with HTML, which breaks clients
+# running an old build after a deploy.
+#
+# www → apex is a domain-level redirect, which _redirects can't express;
+# set it up as a Cloudflare Redirect Rule (see DEPLOY.md).
+
+# Legacy / convenience paths
+/login        /auth/login         301
+/signup       /auth/signup        301
+/register     /auth/signup        301
+/join         /auth/signup        301

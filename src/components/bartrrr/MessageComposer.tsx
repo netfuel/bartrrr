@@ -33,7 +33,7 @@ export function MessageComposer({
         onChange={(e) => setText(e.target.value)}
         placeholder={placeholder}
         aria-label={label}
-        maxLength={1000}
+        maxLength={2000}
         className="flex-1 min-w-0 min-h-[48px] rounded-full border border-ink/40 bg-paper px-5 text-base placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay transition-colors"
       />
       <button

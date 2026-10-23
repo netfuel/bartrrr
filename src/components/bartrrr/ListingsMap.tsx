@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import type mapboxgl from 'mapbox-gl'
 import { Map as MapIcon } from 'lucide-react'
 import type { Listing, UserProfile } from '@/types'
 import { formatDistance } from '@/lib/utils'
+import { MAPBOX_TOKEN } from '@/lib/env'
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
+type MapboxModule = typeof mapboxgl
+
+// mapbox-gl (~1.7 MB) is fetched only when a map actually mounts, so the
+// Browse list view (and phones that never open the map) never download it.
+let mapboxPromise: Promise<MapboxModule> | null = null
+function loadMapbox(): Promise<MapboxModule> {
+  mapboxPromise ??= Promise.all([
+    import('mapbox-gl'),
+    import('mapbox-gl/dist/mapbox-gl.css'),
+  ]).then(([mod]) => mod.default)
+  return mapboxPromise
+}
 
 // Memphis, TN service area center
 const DEFAULT_LNG = -90.049
@@ -30,33 +41,47 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
+  const mapboxRef = useRef<MapboxModule | null>(null)
+  const [mapReady, setMapReady] = useState(false)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
     if (!MAPBOX_TOKEN || !mapContainer.current || map.current) return
+    let cancelled = false
+    const container = mapContainer.current
 
-    mapboxgl.accessToken = MAPBOX_TOKEN
+    loadMapbox()
+      .then((mapboxgl) => {
+        if (cancelled || map.current) return
+        mapboxRef.current = mapboxgl
+        mapboxgl.accessToken = MAPBOX_TOKEN
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [DEFAULT_LNG, DEFAULT_LAT],
-      zoom: 13,
-    })
+        map.current = new mapboxgl.Map({
+          container,
+          style: 'mapbox://styles/mapbox/light-v11',
+          center: [DEFAULT_LNG, DEFAULT_LAT],
+          zoom: 13,
+        })
 
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
+        map.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
+        setMapReady(true)
+      })
+      .catch((err) => console.warn('[Bartrrr] Map failed to load', err))
 
     return () => {
+      cancelled = true
       markersRef.current.forEach((m) => m.remove())
       map.current?.remove()
       map.current = null
+      setMapReady(false)
     }
   }, [])
 
   // Add/update markers when listings change
   useEffect(() => {
-    if (!map.current || !MAPBOX_TOKEN) return
+    const mapboxgl = mapboxRef.current
+    if (!mapReady || !map.current || !mapboxgl || !MAPBOX_TOKEN) return
 
     // Remove old markers
     markersRef.current.forEach((m) => m.remove())
@@ -109,7 +134,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
 
       markersRef.current.push(marker)
     })
-  }, [listings])
+  }, [listings, mapReady])
 
   // No token — show instructions
   if (!MAPBOX_TOKEN) {

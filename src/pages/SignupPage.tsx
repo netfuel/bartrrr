@@ -1,28 +1,53 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Star, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { Button, Avatar, Input, buttonStyles } from '@/components/ui'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { MapPin, Loader2, AlertCircle, CheckCircle2, MailCheck } from 'lucide-react'
+import { Button, Input, AuthDivider, buttonStyles } from '@/components/ui'
 import { AuthShell } from '@/components/layout'
+import { OAuthButtons } from '@/components/auth'
 import { useAuth } from '@/providers/AuthProvider'
-import { useUsersStore } from '@/stores'
 import { requestLocation, getZipFromCoords } from '@/lib/utils/geolocation'
 import { isMemphisZip } from '@/lib/utils/zip'
+import { usePageTitle } from '@/lib/utils'
+import { DEMO_MODE, HAS_SUPABASE } from '@/lib/env'
+import { authPathWithReturn, friendlyAuthError, sanitizeReturnTo, signUpWithEmail } from '@/lib/auth'
+import { ValidationError } from '@/lib/validation'
+
+// Demo-only picker: never bundled unless VITE_DEMO_MODE=true at build time
+// (the env check must be inline so the bundler can drop the import)
+const DemoUserPicker =
+  import.meta.env.VITE_DEMO_MODE === 'true' && DEMO_MODE
+    ? lazy(() => import('@/components/auth/DemoUserPicker'))
+    : null
 
 type GeoState = 'idle' | 'checking' | 'allowed' | 'outside' | 'denied' | 'manual'
 
 export default function SignupPage() {
+  usePageTitle('Join')
   const navigate = useNavigate()
-  const { login } = useAuth()
-  const users = useUsersStore((s) => s.users)
-  const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '')
+  const [searchParams] = useSearchParams()
+  const { isAuthenticated, isLoading } = useAuth()
+  const returnTo = sanitizeReturnTo(searchParams.get('returnTo'))
   const [geoState, setGeoState] = useState<GeoState>('idle')
   const [detectedZip, setDetectedZip] = useState<string | null>(null)
   const [manualZip, setManualZip] = useState('')
   const [manualError, setManualError] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [isSigningUp, setIsSigningUp] = useState(false)
   const [signupError, setSignupError] = useState<string | null>(null)
+  const [confirmationSentTo, setConfirmationSentTo] = useState<string | null>(null)
+  const [awaitingSession, setAwaitingSession] = useState(false)
 
-  const selectedUser = users.find((u) => u.id === selectedUserId)
+  // Email signup without confirmation signs in immediately; continue once
+  // AuthProvider has the profile. New accounts go through onboarding.
+  useEffect(() => {
+    if (awaitingSession && isAuthenticated) navigate('/onboarding', { replace: true })
+  }, [awaitingSession, isAuthenticated, navigate])
+
+  if (isAuthenticated && !awaitingSession && !isLoading) {
+    return <Navigate to={returnTo ?? '/browse'} replace />
+  }
 
   const checkLocation = async () => {
     setGeoState('checking')
@@ -59,20 +84,36 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    const selectedUser = users.find((u) => u.id === selectedUserId)
-    if (!selectedUser) return
     setIsSigningUp(true)
     setSignupError(null)
     try {
-      await login(selectedUser.displayName.split(' ')[0].toLowerCase())
-      navigate('/onboarding')
+      const { needsEmailConfirmation } = await signUpWithEmail({
+        displayName,
+        email,
+        password,
+        returnTo,
+      })
+      if (needsEmailConfirmation) setConfirmationSentTo(email.trim())
+      else setAwaitingSession(true)
     } catch (err) {
-      console.error('Signup failed:', err)
-      setSignupError("We couldn't create your account. Check your connection and try again.")
+      if (err instanceof ValidationError) {
+        const [field, message] = err.message.split(': ')
+        const label: Record<string, string> = { displayName: 'Name', email: 'Email', password: 'Password' }
+        setSignupError(message ? `${label[field] ?? field}: ${message}` : err.message)
+      } else {
+        setSignupError(friendlyAuthError(err))
+      }
     } finally {
       setIsSigningUp(false)
     }
   }
+
+  const busy = isSigningUp || awaitingSession
+  const missingFields = [
+    !displayName.trim() && 'your name',
+    !email && 'your email',
+    !password && 'a password',
+  ].filter(Boolean) as string[]
 
   return (
     <AuthShell image="/photo-community.jpg" caption={<>Your neighbor has <em>exactly</em> what you need.</>}>
@@ -180,63 +221,117 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* ── Allowed: show user picker ── */}
-          {geoState === 'allowed' && (
-            <div className="border-t border-ink pt-6 space-y-5">
+          {/* ── Allowed: create the account ── */}
+          {geoState === 'allowed' && !confirmationSentTo && (
+            <div className="border-t border-ink pt-6 space-y-6">
               <div className="flex items-center gap-2 bg-teal-light px-4 py-3 text-teal-dark text-[15px] font-medium">
-                <CheckCircle2 className="h-5 w-5 shrink-0" />
+                <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
                 <span>
                   {detectedZip
                     ? `Good news: ${detectedZip} is in our area.`
                     : "Good news: you're in our area."}
                 </span>
               </div>
-              <p className="text-label text-muted">Pick a demo neighbor to explore as</p>
-              <form onSubmit={handleSignup} className="space-y-5">
-                <div className="-mx-1 space-y-1 max-h-80 overflow-y-auto px-1">
-                  {users.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onClick={() => setSelectedUserId(user.id)}
-                      aria-pressed={selectedUserId === user.id}
-                      className={`pressable w-full flex items-center gap-3 px-4 py-3 rounded-none border text-left transition-[background-color,border-color] duration-300 ${
-                        selectedUserId === user.id
-                          ? 'border-ink bg-paper'
-                          : 'border-transparent hover:border-ink/30 hover:bg-paper/60'
-                      }`}
+
+              {HAS_SUPABASE && (
+                <>
+                  <OAuthButtons returnTo={returnTo} onError={setSignupError} disabled={busy} />
+
+                  <AuthDivider>or sign up with email</AuthDivider>
+
+                  <form onSubmit={handleSignup} className="space-y-5" noValidate>
+                    <Input
+                      id="signup-name"
+                      label="Your name"
+                      autoComplete="name"
+                      required
+                      maxLength={60}
+                      helperText="Your first name is fine. Neighbors see it on your listings and offers."
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                    />
+                    <Input
+                      id="signup-email"
+                      label="Email"
+                      type="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <Input
+                      id="signup-password"
+                      label="Password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      helperText="At least 8 characters, with letters and numbers."
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    {signupError && (
+                      <p role="alert" className="text-small text-clay-dark text-center animate-fade-in">{signupError}</p>
+                    )}
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      type="submit"
+                      loading={busy}
+                      disabled={missingFields.length > 0}
                     >
-                      <Avatar name={user.displayName} userId={user.id} src={user.avatarUrl} size="lg" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-medium text-ink truncate">{user.displayName}</p>
-                        <p className="text-small text-muted">{user.neighborhood}</p>
-                      </div>
-                      <div className="flex items-center gap-1 text-small tabular-nums text-ink-2 shrink-0">
-                        <Star className="h-3.5 w-3.5 fill-gold text-gold" />
-                        {user.reputationScore.toFixed(1)}
-                      </div>
-                    </button>
-                  ))}
+                      {busy ? 'Creating your account…' : 'Create account'}
+                    </Button>
+                    {!busy && missingFields.length > 0 && (
+                      <p className="text-small text-muted text-center">
+                        Add {missingFields.join(', ').replace(/, ([^,]*)$/, ' and $1')} to continue.
+                      </p>
+                    )}
+                  </form>
+                </>
+              )}
+
+              {!HAS_SUPABASE && signupError && (
+                <p role="alert" className="text-small text-clay-dark text-center animate-fade-in">{signupError}</p>
+              )}
+
+              {DemoUserPicker && (
+                <div className={HAS_SUPABASE ? 'border-t border-ink/20 pt-6' : undefined}>
+                  <Suspense fallback={null}>
+                    <DemoUserPicker mode="signup" onDone={() => navigate('/onboarding', { replace: true })} />
+                  </Suspense>
                 </div>
-                {signupError && (
-                  <p role="alert" className="text-small text-clay-dark text-center animate-fade-in">{signupError}</p>
-                )}
-                <Button variant="primary" size="lg" className="w-full" type="submit" loading={isSigningUp} disabled={!selectedUserId}>
-                  {isSigningUp ? 'Joining…' : `Join as ${selectedUser?.displayName.split(' ')[0] || '…'}`}
-                </Button>
-              </form>
+              )}
+            </div>
+          )}
+
+          {/* ── Email confirmation sent ── */}
+          {confirmationSentTo && (
+            <div className="border-t border-ink pt-6 space-y-5" role="status">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-ink text-clay">
+                <MailCheck className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-heading-section text-ink">Check your email</p>
+                <p className="text-base text-ink-2 mt-2 leading-relaxed">
+                  We sent a link to <span className="font-medium text-ink">{confirmationSentTo}</span>.
+                  Open it on this device to finish creating your account.
+                </p>
+                <p className="text-small text-muted mt-3">
+                  Don't see it? Check your spam folder, or wait a minute and sign up again.
+                </p>
+              </div>
             </div>
           )}
 
         </div>
 
         <div className="mt-10 space-y-2 border-t border-ink/20 pt-6">
-          <p className="text-small text-muted">
-            This is a demo: pick any neighbor to explore Bartrrr.
-          </p>
           <p className="text-base text-ink-2">
             Already have an account?{' '}
-            <Link to="/auth/login" className="font-medium text-ink underline decoration-clay decoration-1 underline-offset-4 hover:decoration-2">Log in</Link>
+            <Link to={authPathWithReturn('/auth/login', returnTo)} className="font-medium text-ink underline decoration-clay decoration-1 underline-offset-4 hover:decoration-2">Log in</Link>
           </p>
         </div>
     </AuthShell>

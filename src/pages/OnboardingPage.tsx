@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapPin, ArrowRight, CheckCircle, Sparkles } from 'lucide-react'
-import { Button, Chip, Wordmark } from '@/components/ui'
+import { Button, Chip, Input, Wordmark } from '@/components/ui'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore } from '@/stores'
 
@@ -54,7 +54,11 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<Step>('welcome')
   const [neighborhood, setNeighborhood] = useState(currentUser?.neighborhood || '')
-  const [interests, setInterests] = useState<string[]>([])
+  const [interests, setInterests] = useState<string[]>(currentUser?.interests ?? [])
+  // Sign in with Apple (web) never shares the person's name, so their
+  // profile starts as the placeholder "Neighbor": ask for it here.
+  const needsName = !currentUser?.displayName || currentUser.displayName === 'Neighbor'
+  const [displayName, setDisplayName] = useState('')
 
   if (!currentUser) return null
 
@@ -66,11 +70,18 @@ export default function OnboardingPage() {
     )
   }
 
-  const handleFinish = () => {
-    if (neighborhood) {
-      updateUser(currentUser.id, { neighborhood, interests })
-    }
+  const saveProfile = () => {
+    const name = displayName.trim().slice(0, 60)
+    updateUser(currentUser.id, {
+      ...(neighborhood ? { neighborhood } : {}),
+      interests,
+      ...(needsName && name ? { displayName: name } : {}),
+    })
     markOnboarded(currentUser.id)
+  }
+
+  const handleFinish = () => {
+    saveProfile()
     navigate('/browse')
   }
 
@@ -105,7 +116,7 @@ export default function OnboardingPage() {
                 <Sparkles className="h-6 w-6 text-clay" />
               </div>
               <h1 className="text-display !text-[clamp(3rem,10vw,5.5rem)] text-ink mb-6">
-                Welcome, <em>{currentUser.displayName.split(' ')[0]}!</em>
+                Welcome, <em>{needsName ? 'neighbor' : currentUser.displayName.split(' ')[0]}!</em>
               </h1>
               <p className="font-display text-[22px] leading-snug text-ink-2 mb-2">
                 Trade what you have for what you need.
@@ -113,10 +124,24 @@ export default function OnboardingPage() {
               <p className="text-base text-muted mb-10">
                 No cash. Just neighbors swapping with neighbors.
               </p>
+              {needsName && (
+                <div className="mb-6 text-left">
+                  <Input
+                    id="onboarding-name"
+                    label="What should neighbors call you?"
+                    autoComplete="name"
+                    maxLength={60}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    helperText="Add a name to continue. Your first name is fine: neighbors see it on your listings and offers."
+                  />
+                </div>
+              )}
               <Button
                 variant="primary"
                 size="lg"
                 className="w-full"
+                disabled={needsName && !displayName.trim()}
                 onClick={() => setStep('neighborhood')}
               >
                 Get started <ArrowRight className="h-5 w-5 ml-1" />
@@ -245,7 +270,7 @@ export default function OnboardingPage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  onClick={() => { if (neighborhood) updateUser(currentUser.id, { neighborhood, interests }); markOnboarded(currentUser.id); navigate('/listing/new') }}
+                  onClick={() => { saveProfile(); navigate('/listing/new') }}
                   className="w-full"
                 >
                   Post your first listing

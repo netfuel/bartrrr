@@ -10,15 +10,26 @@
  */
 
 import { supabase } from './supabase'
-
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string
+import { VAPID_PUBLIC_KEY } from './env'
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 
+/**
+ * Register /sw.js. `updateViaCache: 'none'` makes the browser always check
+ * the network for a new sw.js, so a deploy is picked up on the next visit
+ * instead of being stuck behind HTTP caching.
+ */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null
   try {
-    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    const reg = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    })
+    // Check for a new deploy when the app comes back to the foreground
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().catch(() => {})
+    })
     await navigator.serviceWorker.ready
     return reg
   } catch (err) {
@@ -28,6 +39,11 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 }
 
 // ── Subscription management ───────────────────────────────────────────────────
+
+async function requireSessionUser(userId: string) {
+  const { data } = await supabase!.auth.getSession()
+  if (data.session?.user.id !== userId) throw new Error('Not signed in as this user')
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -56,13 +72,17 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
     return false
   }
 
-  // Request permission
-  const permission = await Notification.requestPermission()
+  // Request permission (only prompts if the user hasn't decided yet)
+  const permission =
+    Notification.permission === 'default'
+      ? await Notification.requestPermission()
+      : Notification.permission
   if (permission !== 'granted') return false
 
   try {
     const reg = await registerServiceWorker()
     if (!reg) return false
+    await requireSessionUser(userId)
 
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
@@ -85,7 +105,6 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
       return false
     }
 
-    console.log('[Push] Subscribed successfully')
     return true
   } catch (err) {
     console.warn('[Push] Subscription failed', err)
@@ -113,7 +132,14 @@ export async function unsubscribeFromPush(userId: string): Promise<void> {
 }
 
 export function isPushSupported(): boolean {
-  return 'PushManager' in window && 'serviceWorker' in navigator && !!VAPID_PUBLIC_KEY
+  return (
+    typeof window !== 'undefined' &&
+    'PushManager' in window &&
+    'Notification' in window &&
+    'serviceWorker' in navigator &&
+    !!VAPID_PUBLIC_KEY &&
+    !!supabase
+  )
 }
 
 export function getPushPermissionState(): NotificationPermission | 'unsupported' {
@@ -132,19 +158,24 @@ interface SendPushPayload {
 
 /**
  * Trigger a push notification for a user via the Edge Function.
- * Fire-and-forget — errors are logged but not thrown.
+ * Fire-and-forget — errors are logged but not thrown. The caller's access
+ * token is sent so the function can verify who is pushing to whom.
  */
 export function sendPushNotification(payload: SendPushPayload): void {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  if (!supabaseUrl) return
-
-  fetch(`${supabaseUrl}/functions/v1/send-push`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Include the anon key so the edge function can auth with Supabase
-      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify(payload),
-  }).catch((err) => console.warn('[Push] Edge function call failed', err))
+  if (!supabase) return
+  const client = supabase
+  void (async () => {
+    try {
+      const { data } = await client.auth.getSession()
+      const token = data.session?.access_token
+      if (!token) return
+      const { error } = await client.functions.invoke('send-push', {
+        body: payload,
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (error) console.warn('[Push] Edge function call failed', error)
+    } catch (err) {
+      console.warn('[Push] Edge function call failed', err)
+    }
+  })()
 }

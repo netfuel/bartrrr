@@ -1,9 +1,10 @@
 import { create } from 'zustand'
-import type { Listing, Category, ListingCondition } from '@/types'
+import { LISTING_TTL_DAYS, type Listing, type Category, type ListingCondition } from '@/types'
 import { mockListings } from '@/data/mock-listings'
+import { DEMO_MODE } from '@/lib/env'
 import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
-import { persistError } from './persist'
+import { persist } from './persist'
 
 interface NewListingData {
   title: string
@@ -27,65 +28,101 @@ interface ListingsState {
   renewListing: (id: string) => void
 }
 
-export const useListingsStore = create<ListingsState>((set, get) => ({
-  listings: [...mockListings],
+const ttlFromNow = () =>
+  new Date(Date.now() + LISTING_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
-  setListings: (listings) => set({ listings }),
+/**
+ * Never keep more precision than ~1 km. Listings are public; the PRD only
+ * allows neighborhood-level location until both parties agree to a trade.
+ * The database enforces the same rounding (migration 004).
+ */
+const coarsen = (n: number) => Math.round(n * 100) / 100
 
-  getListingById: (id) => get().listings.find((l) => l.id === id),
+export const initialListings = (): Listing[] => (DEMO_MODE ? [...mockListings] : [])
 
-  getListingsByUser: (userId) =>
-    get().listings.filter((l) => l.userId === userId),
-
-  addListing: (data) => {
-    const id = generateId()
-    const listing: Listing = {
-      id,
-      ...data,
-      distanceMi: Math.random() * 3,
-      createdAt: new Date().toISOString(),
-      status: 'active',
-    }
-    set((state) => ({ listings: [listing, ...state.listings] }))
-    // Persist to Supabase (fire and forget). If a realtime event already
-    // delivered the server copy, drop the temp instead of swapping.
-    svc.createListing(data).then((saved) => {
-      set((state) => ({
-        listings: state.listings.some((l) => l.id === saved.id)
-          ? state.listings.filter((l) => l.id !== id)
-          : state.listings.map((l) => (l.id === id ? saved : l)),
-      }))
-    }).catch(persistError("Couldn't save your new listing"))
-    return id
-  },
-
-  updateListing: (id, data) => {
+export const useListingsStore = create<ListingsState>((set, get) => {
+  const replace = (id: string, listing: Listing | undefined) => {
+    if (!listing) return
     set((state) => ({
-      listings: state.listings.map((l) =>
-        l.id === id ? { ...l, ...data } : l,
-      ),
+      listings: state.listings.map((l) => (l.id === id ? listing : l)),
     }))
-    svc.updateListing(id, data).catch(persistError("Couldn't save your listing changes"))
-  },
+  }
 
-  withdrawListing: (id) => {
+  const patch = (id: string, data: Partial<Listing>, error: string) => {
+    const previous = get().listings.find((l) => l.id === id)
     set((state) => ({
-      listings: state.listings.map((l) =>
-        l.id === id ? { ...l, status: 'closed' as const } : l,
-      ),
+      listings: state.listings.map((l) => (l.id === id ? { ...l, ...data } : l)),
     }))
-    svc.updateListing(id, { status: 'closed' }).catch(persistError("Couldn't take down your listing"))
-  },
+    persist(() => svc.updateListing(id, data), {
+      error,
+      onSuccess: (saved) => replace(id, saved),
+      rollback: () => replace(id, previous),
+    })
+  }
 
-  renewListing: (id) => {
-    const now = new Date().toISOString()
-    set((state) => ({
-      listings: state.listings.map((l) =>
-        l.id === id
-          ? { ...l, status: 'active' as const, createdAt: now }
-          : l,
-      ),
-    }))
-    svc.updateListing(id, { status: 'active' }).catch(persistError("Couldn't relist your listing"))
-  },
-}))
+  return {
+    listings: initialListings(),
+
+    setListings: (listings) => set({ listings }),
+
+    getListingById: (id) => get().listings.find((l) => l.id === id),
+
+    getListingsByUser: (userId) =>
+      get().listings.filter((l) => l.userId === userId),
+
+    addListing: (data) => {
+      // Same id format as the DB so links made right away stay valid
+      const id = generateId('listing')
+      const location = {
+        neighborhood: data.location.neighborhood,
+        lat: coarsen(data.location.lat),
+        lng: coarsen(data.location.lng),
+      }
+      const listing: Listing = {
+        id,
+        ...data,
+        location,
+        distanceMi: 0,
+        createdAt: new Date().toISOString(),
+        expiresAt: ttlFromNow(),
+        status: 'active',
+      }
+      set((state) => ({ listings: [listing, ...state.listings] }))
+      persist(() => svc.createListing({ ...data, location, id }), {
+        error: "Couldn't save your new listing",
+        onSuccess: (saved) => replace(id, saved),
+        rollback: () =>
+          set((state) => ({ listings: state.listings.filter((l) => l.id !== id) })),
+      })
+      return id
+    },
+
+    updateListing: (id, data) => {
+      // Ownership, status and dates are server-controlled; only content edits here
+      const { title, description, category, condition, seeking, images, status } = data
+      const location = data.location && {
+        neighborhood: data.location.neighborhood,
+        lat: coarsen(data.location.lat),
+        lng: coarsen(data.location.lng),
+      }
+      const clean = Object.fromEntries(
+        Object.entries({ title, description, category, condition, seeking, images, status, location })
+          .filter(([, v]) => v !== undefined),
+      ) as Partial<Listing>
+      patch(id, clean, "Couldn't save your listing changes")
+    },
+
+    withdrawListing: (id) => {
+      patch(id, { status: 'closed' }, "Couldn't take down your listing")
+    },
+
+    renewListing: (id) => {
+      // The server restarts the 30-day window when a listing is reactivated
+      patch(
+        id,
+        { status: 'active', expiresAt: ttlFromNow() },
+        "Couldn't relist your listing",
+      )
+    },
+  }
+})

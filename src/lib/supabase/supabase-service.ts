@@ -1,11 +1,14 @@
 /**
  * Supabase service layer for Bartrrr.
  *
- * Provides async functions that mirror Zustand store actions so stores can be
- * migrated incrementally. Each function:
- *  1. Guards against a null supabase client (offline/no-credentials mode).
- *  2. Maps DB snake_case column names ↔ app camelCase TypeScript types.
- *  3. Throws on unexpected errors so callers can handle them.
+ * Each function:
+ *  1. Guards against a null supabase client (offline demo mode).
+ *  2. Validates user-supplied input with zod before it leaves the browser.
+ *  3. Maps DB snake_case column names ↔ app camelCase TypeScript types.
+ *  4. Throws on every error so callers can roll back / tell the user.
+ *
+ * Authorization is enforced by RLS and triggers (migration 004), not here:
+ * the acting user is always auth.uid() on the server, never a client-sent id.
  */
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
@@ -36,37 +39,65 @@ import type {
   TradeAgreement,
   UserProfile,
 } from '@/types'
+import {
+  listingInputSchema,
+  offerItemsSchema,
+  offerMessageSchema,
+  parseOrThrow,
+  profileUpdateSchema,
+  reviewSchema,
+} from '@/lib/validation'
 
 // ─── Guards ──────────────────────────────────────────────────────────────────
 
-function assertClient(
-  client: typeof supabase,
-): asserts client is NonNullable<typeof supabase> {
-  if (!client) {
+function client() {
+  if (!supabase) {
     throw new Error(
       'Supabase client is not initialized. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
     )
+  }
+  return supabase
+}
+
+/** Throw if the user isn't the one signed in. Defense in depth over RLS. */
+async function requireSelf(userId: string): Promise<void> {
+  const { data, error } = await client().auth.getSession()
+  if (error) throw error
+  if (data.session?.user.id !== userId) {
+    throw new Error('Not signed in as this user')
   }
 }
 
 // ─── Row → App type mappers ───────────────────────────────────────────────────
 
-function mapListingRow(row: ListingRow): Listing {
-  // DB status 'completed'|'withdrawn' → app status 'closed'
-  const statusMap: Record<ListingRow['status'], ListingStatus> = {
-    active: 'active',
-    pending: 'pending',
-    completed: 'closed',
-    withdrawn: 'closed',
+/** User-supplied URLs only ever render as https images. */
+const httpsOnly = (url: string | null | undefined): string | undefined => {
+  if (!url) return undefined
+  try {
+    return new URL(url).protocol === 'https:' ? url : undefined
+  } catch {
+    return undefined
   }
+}
+
+const LISTING_STATUS: Record<ListingRow['status'], ListingStatus> = {
+  active: 'active',
+  pending: 'pending',
+  completed: 'closed',
+  withdrawn: 'closed',
+}
+
+export function mapListingRow(row: ListingRow): Listing {
+  // A listing past its 30-day window reads as closed until its owner renews it
+  const expired = row.status === 'active' && row.expires_at && new Date(row.expires_at) <= new Date()
   return {
     id: row.id,
     title: row.title,
     description: row.description,
     category: row.category as Category,
-    condition: row.condition as ListingCondition | undefined,
+    condition: (row.condition ?? undefined) as ListingCondition | undefined,
     seeking: row.seeking,
-    images: row.images,
+    images: (row.images ?? []).map(httpsOnly).filter((u): u is string => Boolean(u)),
     userId: row.user_id,
     location: {
       lat: row.lat ?? 0,
@@ -75,7 +106,8 @@ function mapListingRow(row: ListingRow): Listing {
     },
     distanceMi: row.distance_mi,
     createdAt: row.created_at,
-    status: statusMap[row.status],
+    expiresAt: row.expires_at ?? undefined,
+    status: expired ? 'closed' : LISTING_STATUS[row.status],
   }
 }
 
@@ -84,16 +116,13 @@ function mapOfferMessages(msgs: OfferMessageRow[]): OfferMessage[] {
     id: m.id,
     fromUserId: m.from_user_id,
     content: m.content,
-    items: m.items.length > 0 ? m.items : undefined,
+    items: m.items && m.items.length > 0 ? m.items : undefined,
     type: m.type as OfferMessageType,
     createdAt: m.created_at,
   }))
 }
 
-function mapOfferRow(
-  row: OfferRow,
-  messages: OfferMessageRow[] = [],
-): Offer {
+export function mapOfferRow(row: OfferRow, messages: OfferMessageRow[] = []): Offer {
   return {
     id: row.id,
     listingId: row.listing_id,
@@ -103,12 +132,12 @@ function mapOfferRow(
     status: row.status as Offer['status'],
     round: row.round,
     maxRounds: row.max_rounds,
-    expiresAt: row.expires_at ?? new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+    expiresAt: row.expires_at ?? new Date(new Date(row.created_at).getTime() + OFFER_TTL_MS).toISOString(),
     createdAt: row.created_at,
   }
 }
 
-function mapAgreementRow(row: AgreementRow): TradeAgreement {
+export function mapAgreementRow(row: AgreementRow): TradeAgreement {
   return {
     id: row.id,
     offerId: row.offer_id,
@@ -122,7 +151,7 @@ function mapAgreementRow(row: AgreementRow): TradeAgreement {
       item: row.party_b_item,
       signed: row.party_b_signed,
     },
-    exchangeMethod: row.exchange_method as TradeAgreement['exchangeMethod'],
+    exchangeMethod: (row.exchange_method ?? undefined) as TradeAgreement['exchangeMethod'],
     exchangeDate: row.exchange_date ?? undefined,
     exchangeLocation: row.exchange_location ?? undefined,
     specialInstructions: row.special_instructions ?? undefined,
@@ -144,7 +173,7 @@ function mapReviewRow(row: ReviewRow): Review {
   }
 }
 
-function mapNotificationRow(row: NotificationRow): AppNotification {
+export function mapNotificationRow(row: NotificationRow): AppNotification {
   return {
     id: row.id,
     userId: row.user_id,
@@ -157,17 +186,17 @@ function mapNotificationRow(row: NotificationRow): AppNotification {
   }
 }
 
-function mapUserRow(row: UserRow): UserProfile {
+export function mapUserRow(row: UserRow): UserProfile {
   const prefs = row.notification_prefs as Record<string, boolean> | null
   return {
     id: row.id,
     username: row.username,
     displayName: row.display_name,
-    avatarUrl: row.avatar_url ?? undefined,
+    avatarUrl: httpsOnly(row.avatar_url),
     bio: row.bio ?? undefined,
     neighborhood: row.neighborhood,
-    interests: row.interests,
-    reputationScore: row.reputation_score,
+    interests: row.interests ?? [],
+    reputationScore: Number(row.reputation_score),
     tradeCount: row.trade_count,
     joinedAt: row.joined_at,
     notificationPrefs: prefs
@@ -185,48 +214,40 @@ function mapUserRow(row: UserRow): UserProfile {
 // ─── Listings ─────────────────────────────────────────────────────────────────
 
 export async function fetchListings(): Promise<Listing[]> {
-  assertClient(supabase)
-  const { data, error } = await supabase
+  const { data, error } = await client()
     .from('listings')
     .select('*')
     .order('created_at', { ascending: false })
+    .limit(1000)
   if (error) throw error
   return (data ?? []).map(mapListingRow)
 }
 
 export async function fetchListing(id: string): Promise<Listing | null> {
-  assertClient(supabase)
-  const { data, error } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('id', id)
-    .single()
-  if (error) {
-    if (error.code === 'PGRST116') return null // no rows
-    throw error
-  }
+  const { data, error } = await client().from('listings').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
   return data ? mapListingRow(data) : null
 }
 
 export async function createListing(
-  data: Omit<Listing, 'id' | 'createdAt' | 'distanceMi' | 'status'>,
+  data: Omit<Listing, 'createdAt' | 'distanceMi' | 'status' | 'expiresAt'> & { id?: string },
 ): Promise<Listing> {
-  assertClient(supabase)
-  // Map app status 'closed' → db 'withdrawn'
-  const { data: row, error } = await supabase
+  const input = parseOrThrow(listingInputSchema, data)
+  await requireSelf(data.userId)
+  const { data: row, error } = await client()
     .from('listings')
     .insert({
-      title: data.title,
-      description: data.description,
-      category: data.category,
-      condition: data.condition ?? null,
-      seeking: data.seeking,
-      images: data.images,
+      ...(data.id ? { id: data.id } : {}),
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      condition: input.condition ?? null,
+      seeking: input.seeking,
+      images: input.images,
       user_id: data.userId,
       neighborhood: data.location.neighborhood,
       lat: data.location.lat,
       lng: data.location.lng,
-      status: 'active',
     })
     .select()
     .single()
@@ -234,267 +255,237 @@ export async function createListing(
   return mapListingRow(row)
 }
 
-export async function updateListing(
-  id: string,
-  partial: Partial<Listing>,
-): Promise<void> {
-  assertClient(supabase)
-  // Map app ListingStatus → db status values
-  const dbStatusMap: Record<string, ListingRow['status']> = {
+export async function updateListing(id: string, partial: Partial<Listing>): Promise<Listing> {
+  const dbStatusMap: Record<ListingStatus, ListingRow['status']> = {
     active: 'active',
     pending: 'pending',
     closed: 'withdrawn',
   }
+  const checked = parseOrThrow(listingInputSchema.partial(), {
+    title: partial.title,
+    description: partial.description,
+    category: partial.category,
+    condition: partial.condition,
+    seeking: partial.seeking,
+    images: partial.images,
+  })
   const update: ListingUpdate = {}
-  if (partial.title !== undefined) update.title = partial.title
-  if (partial.description !== undefined) update.description = partial.description
-  if (partial.category !== undefined) update.category = partial.category
-  if (partial.condition !== undefined) update.condition = partial.condition
-  if (partial.seeking !== undefined) update.seeking = partial.seeking
-  if (partial.images !== undefined) update.images = partial.images
-  if (partial.status !== undefined) update.status = dbStatusMap[partial.status] ?? partial.status
+  if (checked.title !== undefined) update.title = checked.title
+  if (checked.description !== undefined) update.description = checked.description
+  if (checked.category !== undefined) update.category = checked.category
+  if (partial.condition !== undefined) update.condition = checked.condition ?? null
+  if (checked.seeking !== undefined) update.seeking = checked.seeking
+  if (checked.images !== undefined) update.images = checked.images
+  if (partial.status !== undefined) update.status = dbStatusMap[partial.status]
   if (partial.location !== undefined) {
     update.neighborhood = partial.location.neighborhood
     update.lat = partial.location.lat
     update.lng = partial.location.lng
   }
 
-  const { error } = await supabase.from('listings').update(update).eq('id', id)
+  const { data, error } = await client().from('listings').update(update).eq('id', id).select().single()
   if (error) throw error
+  return mapListingRow(data)
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function fetchAllUsers(): Promise<UserProfile[]> {
-  assertClient(supabase)
-  const { data, error } = await supabase.from('users').select('*').order('joined_at', { ascending: true })
+  const { data, error } = await client()
+    .from('users')
+    .select('*')
+    .order('joined_at', { ascending: true })
+    .limit(1000)
   if (error) throw error
   return (data ?? []).map(mapUserRow)
 }
 
 export async function fetchUser(id: string): Promise<UserProfile | null> {
-  assertClient(supabase)
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', id)
-    .single()
-  if (error) {
-    if (error.code === 'PGRST116') return null
-    throw error
-  }
+  const { data, error } = await client().from('users').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
   return data ? mapUserRow(data) : null
 }
 
-export async function upsertUser(profile: UserProfile): Promise<void> {
-  assertClient(supabase)
-  const { error } = await supabase.from('users').upsert({
-    id: profile.id,
-    username: profile.username,
-    display_name: profile.displayName,
-    avatar_url: profile.avatarUrl ?? null,
-    bio: profile.bio ?? null,
-    neighborhood: profile.neighborhood,
-    interests: profile.interests ?? [],
-    reputation_score: profile.reputationScore,
-    trade_count: profile.tradeCount,
-    notification_prefs: profile.notificationPrefs ?? null,
-    joined_at: profile.joinedAt,
-  })
-  if (error) throw error
+/**
+ * Create the profile row for the signed-in user if the auth trigger hasn't
+ * (e.g. migration 004 not applied yet). Only writable columns are sent;
+ * reputation and trade counts are server-maintained.
+ */
+export async function ensureOwnProfile(seed: {
+  id: string
+  displayName: string
+  avatarUrl?: string
+}): Promise<UserProfile> {
+  const existing = await fetchUser(seed.id)
+  if (existing) return existing
+
+  const base =
+    seed.displayName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 20) || 'neighbor'
+  const username = `${base.length >= 2 ? base : 'neighbor'}_${seed.id.replace(/-/g, '').slice(0, 5)}`
+
+  const { error } = await client()
+    .from('users')
+    .insert({
+      id: seed.id,
+      username,
+      display_name: seed.displayName.slice(0, 60) || 'Neighbor',
+      avatar_url: seed.avatarUrl?.startsWith('https://') ? seed.avatarUrl : null,
+      neighborhood: '',
+    })
+  // 23505: the trigger (or another tab) created it first. That's fine.
+  if (error && error.code !== '23505') throw error
+
+  const created = await fetchUser(seed.id)
+  if (!created) throw new Error('Profile could not be created')
+  return created
 }
 
-export async function updateUser(
-  id: string,
-  partial: Partial<UserProfile>,
-): Promise<void> {
-  assertClient(supabase)
+export async function updateUser(id: string, partial: Partial<UserProfile>): Promise<void> {
+  await requireSelf(id)
+  const checked = parseOrThrow(profileUpdateSchema, {
+    username: partial.username,
+    displayName: partial.displayName,
+    avatarUrl: partial.avatarUrl || undefined,
+    bio: partial.bio,
+    neighborhood: partial.neighborhood,
+    interests: partial.interests,
+    notificationPrefs: partial.notificationPrefs,
+  })
   const update: UserUpdate = {}
-  if (partial.username !== undefined) update.username = partial.username
-  if (partial.displayName !== undefined) update.display_name = partial.displayName
-  if (partial.avatarUrl !== undefined) update.avatar_url = partial.avatarUrl
-  if (partial.bio !== undefined) update.bio = partial.bio
-  if (partial.neighborhood !== undefined) update.neighborhood = partial.neighborhood
-  if (partial.interests !== undefined) update.interests = partial.interests
-  if (partial.reputationScore !== undefined) update.reputation_score = partial.reputationScore
-  if (partial.tradeCount !== undefined) update.trade_count = partial.tradeCount
-  if (partial.notificationPrefs !== undefined) update.notification_prefs = partial.notificationPrefs
+  if (checked.username !== undefined) update.username = checked.username
+  if (checked.displayName !== undefined) update.display_name = checked.displayName
+  if (partial.avatarUrl !== undefined) update.avatar_url = checked.avatarUrl ?? null
+  if (checked.bio !== undefined) update.bio = checked.bio
+  if (checked.neighborhood !== undefined) update.neighborhood = checked.neighborhood
+  if (checked.interests !== undefined) update.interests = checked.interests
+  if (checked.notificationPrefs !== undefined) update.notification_prefs = checked.notificationPrefs
+  // reputation_score / trade_count are server-maintained and not writable
+  if (Object.keys(update).length === 0) return
 
-  const { error } = await supabase.from('users').update(update).eq('id', id)
+  const { error } = await client().from('users').update(update).eq('id', id)
   if (error) throw error
 }
 
 // ─── Offers ───────────────────────────────────────────────────────────────────
+
+export const OFFER_TTL_MS = 72 * 60 * 60 * 1000
+
+async function fetchOfferWithMessages(id: string): Promise<Offer | null> {
+  const db = client()
+  const [{ data: row, error: offerErr }, { data: msgs, error: msgErr }] = await Promise.all([
+    db.from('offers').select('*').eq('id', id).maybeSingle(),
+    db.from('offer_messages').select('*').eq('offer_id', id).order('created_at', { ascending: true }),
+  ])
+  if (offerErr) throw offerErr
+  if (msgErr) throw msgErr
+  return row ? mapOfferRow(row, msgs ?? []) : null
+}
 
 /**
  * Fetch all offers where userId is either the sender or receiver,
  * with their message thread eager-loaded.
  */
 export async function fetchOffers(userId: string): Promise<Offer[]> {
-  assertClient(supabase)
-
-  // Fetch offers for this user
-  const { data: offerRows, error: offersErr } = await supabase
+  // RLS already restricts rows to the caller's offers; the filter keeps the
+  // query explicit. userId comes from the session, not user input.
+  const db = client()
+  const { data: offerRows, error: offersErr } = await db
     .from('offers')
     .select('*')
     .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
     .order('created_at', { ascending: false })
   if (offersErr) throw offersErr
-
   if (!offerRows || offerRows.length === 0) return []
 
-  // Fetch all messages for those offers in one query
   const offerIds = offerRows.map((o) => o.id)
-  const { data: msgRows, error: msgsErr } = await supabase
+  const { data: msgRows, error: msgsErr } = await db
     .from('offer_messages')
     .select('*')
     .in('offer_id', offerIds)
     .order('created_at', { ascending: true })
   if (msgsErr) throw msgsErr
 
-  const msgsByOfferId = (msgRows ?? []).reduce<Record<string, OfferMessageRow[]>>(
-    (acc, m) => {
-      ;(acc[m.offer_id] ??= []).push(m)
-      return acc
-    },
-    {},
-  )
+  const msgsByOfferId = (msgRows ?? []).reduce<Record<string, OfferMessageRow[]>>((acc, m) => {
+    ;(acc[m.offer_id] ??= []).push(m)
+    return acc
+  }, {})
 
   return offerRows.map((row) => mapOfferRow(row, msgsByOfferId[row.id] ?? []))
 }
 
 export async function createOffer(data: {
+  id: string
+  messageId: string
   listingId: string
-  fromUserId: string
-  toUserId: string
   content: string
   items: string[]
 }): Promise<Offer> {
-  assertClient(supabase)
-
-  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
-
-  const { data: offerRow, error: offerErr } = await supabase
-    .from('offers')
-    .insert({
-      listing_id: data.listingId,
-      from_user_id: data.fromUserId,
-      to_user_id: data.toUserId,
-      status: 'pending',
-      round: 1,
-      max_rounds: 5,
-      expires_at: expiresAt,
-    })
-    .select()
-    .single()
-  if (offerErr) throw offerErr
-
-  const { data: msgRow, error: msgErr } = await supabase
-    .from('offer_messages')
-    .insert({
-      offer_id: offerRow.id,
-      from_user_id: data.fromUserId,
-      type: 'offer',
-      content: data.content,
-      items: data.items,
-    })
-    .select()
-    .single()
-  if (msgErr) throw msgErr
-
-  return mapOfferRow(offerRow, [msgRow])
-}
-
-export async function acceptOffer(id: string, userId: string): Promise<void> {
-  assertClient(supabase)
-
-  const { error: updateErr } = await supabase
-    .from('offers')
-    .update({ status: 'accepted', updated_at: new Date().toISOString() })
-    .eq('id', id)
-  if (updateErr) throw updateErr
-
-  const { error: msgErr } = await supabase.from('offer_messages').insert({
-    offer_id: id,
-    from_user_id: userId,
-    type: 'accept',
-    content: 'Offer accepted.',
-    items: [],
+  const content = parseOrThrow(offerMessageSchema, data.content)
+  const items = parseOrThrow(offerItemsSchema.min(1), data.items)
+  const { error } = await client().rpc('make_offer', {
+    p_offer_id: data.id,
+    p_listing_id: data.listingId,
+    p_message_id: data.messageId,
+    p_content: content,
+    p_items: items,
   })
-  if (msgErr) throw msgErr
+  if (error) throw error
+  const saved = await fetchOfferWithMessages(data.id)
+  if (!saved) throw new Error('Offer was not saved')
+  return saved
 }
 
-export async function declineOffer(
+async function respond(
   id: string,
-  userId: string,
-  reason: string,
-  note?: string,
-): Promise<void> {
-  assertClient(supabase)
-
-  const { error: updateErr } = await supabase
-    .from('offers')
-    .update({ status: 'declined', updated_at: new Date().toISOString() })
-    .eq('id', id)
-  if (updateErr) throw updateErr
-
-  const { error: msgErr } = await supabase.from('offer_messages').insert({
-    offer_id: id,
-    from_user_id: userId,
-    type: 'decline',
-    content: note || reason,
-    items: [],
-  })
-  if (msgErr) throw msgErr
-}
-
-export async function counterOffer(
-  id: string,
-  userId: string,
+  action: 'accept' | 'decline' | 'counter' | 'withdraw',
+  messageId: string,
   content: string,
-  items: string[],
-): Promise<void> {
-  assertClient(supabase)
-
-  // Increment round
-  const { data: offer, error: fetchErr } = await supabase
-    .from('offers')
-    .select('round')
-    .eq('id', id)
-    .single()
-  if (fetchErr) throw fetchErr
-
-  const { error: updateErr } = await supabase
-    .from('offers')
-    .update({
-      status: 'countered',
-      round: offer.round + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-  if (updateErr) throw updateErr
-
-  const { error: msgErr } = await supabase.from('offer_messages').insert({
-    offer_id: id,
-    from_user_id: userId,
-    type: 'counter',
-    content,
-    items,
+  items: string[] = [],
+): Promise<Offer> {
+  const checkedContent = parseOrThrow(offerMessageSchema, content)
+  const checkedItems = parseOrThrow(offerItemsSchema, items)
+  const { error } = await client().rpc('respond_to_offer', {
+    p_offer_id: id,
+    p_action: action,
+    p_message_id: messageId,
+    p_content: checkedContent,
+    p_items: checkedItems,
   })
-  if (msgErr) throw msgErr
+  if (error) throw error
+  const saved = await fetchOfferWithMessages(id)
+  if (!saved) throw new Error('Offer not found')
+  return saved
+}
+
+export function acceptOffer(id: string, messageId: string): Promise<Offer> {
+  return respond(id, 'accept', messageId, 'Offer accepted.')
+}
+
+export function declineOffer(id: string, messageId: string, reason: string, note?: string): Promise<Offer> {
+  return respond(id, 'decline', messageId, note?.trim() || reason)
+}
+
+export function counterOffer(id: string, messageId: string, content: string, items: string[]): Promise<Offer> {
+  return respond(id, 'counter', messageId, content, items)
 }
 
 export async function addOfferMessage(
   offerId: string,
+  messageId: string,
   fromUserId: string,
   content: string,
 ): Promise<void> {
-  assertClient(supabase)
-  const { error } = await supabase.from('offer_messages').insert({
+  const checked = parseOrThrow(offerMessageSchema, content)
+  const { error } = await client().from('offer_messages').insert({
+    id: messageId,
     offer_id: offerId,
     from_user_id: fromUserId,
     type: 'message',
-    content,
+    content: checked,
     items: [],
   })
   if (error) throw error
@@ -503,8 +494,7 @@ export async function addOfferMessage(
 // ─── Agreements ───────────────────────────────────────────────────────────────
 
 export async function fetchAgreements(userId: string): Promise<TradeAgreement[]> {
-  assertClient(supabase)
-  const { data, error } = await supabase
+  const { data, error } = await client()
     .from('agreements')
     .select('*')
     .or(`party_a_user_id.eq.${userId},party_b_user_id.eq.${userId}`)
@@ -513,107 +503,60 @@ export async function fetchAgreements(userId: string): Promise<TradeAgreement[]>
   return (data ?? []).map(mapAgreementRow)
 }
 
-export async function createAgreement(
-  offerId: string,
-  partyA: { userId: string; item: string },
-  partyB: { userId: string; item: string },
-): Promise<TradeAgreement> {
-  assertClient(supabase)
-  const { data, error } = await supabase
-    .from('agreements')
-    .insert({
-      offer_id: offerId,
-      party_a_user_id: partyA.userId,
-      party_a_item: partyA.item,
-      party_a_signed: false,
-      party_b_user_id: partyB.userId,
-      party_b_item: partyB.item,
-      party_b_signed: false,
-      status: 'pending_signatures',
-    })
-    .select()
-    .single()
+export async function fetchAgreement(id: string): Promise<TradeAgreement | null> {
+  const { data, error } = await client().from('agreements').select('*').eq('id', id).maybeSingle()
   if (error) throw error
-  return mapAgreementRow(data)
+  return data ? mapAgreementRow(data) : null
 }
 
-export async function signAgreement(id: string, userId: string): Promise<void> {
-  assertClient(supabase)
-
-  // Fetch current state to determine which party is signing
-  const { data: agreement, error: fetchErr } = await supabase
+/** The server signs only the caller's side (agreements_guard). */
+export async function signAgreement(id: string, userId: string): Promise<TradeAgreement> {
+  const db = client()
+  const { data: agreement, error: fetchErr } = await db
     .from('agreements')
-    .select('party_a_user_id, party_a_signed, party_b_user_id, party_b_signed')
+    .select('party_a_user_id, party_b_user_id')
     .eq('id', id)
     .single()
   if (fetchErr) throw fetchErr
 
   const update: AgreementUpdate = {}
   if (agreement.party_a_user_id === userId) update.party_a_signed = true
-  if (agreement.party_b_user_id === userId) update.party_b_signed = true
+  else if (agreement.party_b_user_id === userId) update.party_b_signed = true
+  else throw new Error('You are not a party to this agreement')
 
-  const bothSigned =
-    (agreement.party_a_user_id === userId ? true : agreement.party_a_signed) &&
-    (agreement.party_b_user_id === userId ? true : agreement.party_b_signed)
-
-  if (bothSigned) update.status = 'active'
-
-  const { error: updateErr } = await supabase
-    .from('agreements')
-    .update(update)
-    .eq('id', id)
-  if (updateErr) throw updateErr
+  const { data, error } = await db.from('agreements').update(update).eq('id', id).select().single()
+  if (error) throw error
+  return mapAgreementRow(data)
 }
 
-export async function completeAgreement(id: string): Promise<void> {
-  assertClient(supabase)
-  const { error } = await supabase
+export async function completeAgreement(id: string): Promise<TradeAgreement> {
+  const { data, error } = await client()
     .from('agreements')
-    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .update({ status: 'completed' })
     .eq('id', id)
+    .select()
+    .single()
   if (error) throw error
+  return mapAgreementRow(data)
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
+// Created server-side by triggers (migration 004). Clients only read and
+// mark them read.
 
 export async function fetchNotifications(userId: string): Promise<AppNotification[]> {
-  assertClient(supabase)
-  const { data, error } = await supabase
+  const { data, error } = await client()
     .from('notifications')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
+    .limit(200)
   if (error) throw error
   return (data ?? []).map(mapNotificationRow)
 }
 
-export async function addNotification(data: {
-  userId: string
-  type: NotificationType
-  title: string
-  body: string
-  data?: Record<string, string>
-  listingId?: string
-  offerId?: string
-  agreementId?: string
-}): Promise<void> {
-  assertClient(supabase)
-  const { error } = await supabase.from('notifications').insert({
-    user_id: data.userId,
-    type: data.type,
-    title: data.title,
-    body: data.body,
-    data: data.data ?? {},
-    listing_id: data.listingId ?? null,
-    offer_id: data.offerId ?? null,
-    agreement_id: data.agreementId ?? null,
-  })
-  if (error) throw error
-}
-
 export async function markNotificationRead(id: string): Promise<void> {
-  assertClient(supabase)
-  const { error } = await supabase
+  const { error } = await client()
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('id', id)
@@ -621,8 +564,7 @@ export async function markNotificationRead(id: string): Promise<void> {
 }
 
 export async function markAllNotificationsRead(userId: string): Promise<void> {
-  assertClient(supabase)
-  const { error } = await supabase
+  const { error } = await client()
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('user_id', userId)
@@ -633,8 +575,7 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 // ─── Reviews ──────────────────────────────────────────────────────────────────
 
 export async function fetchReviews(userId: string): Promise<Review[]> {
-  assertClient(supabase)
-  const { data, error } = await supabase
+  const { data, error } = await client()
     .from('reviews')
     .select('*')
     .eq('reviewee_id', userId)
@@ -643,33 +584,35 @@ export async function fetchReviews(userId: string): Promise<Review[]> {
   return (data ?? []).map(mapReviewRow)
 }
 
-/** All reviews — profile pages show reviews for any user. */
+/** Recent reviews (profile pages show reviews for any user). */
 export async function fetchAllReviews(): Promise<Review[]> {
-  assertClient(supabase)
-  const { data, error } = await supabase
+  const { data, error } = await client()
     .from('reviews')
     .select('*')
     .order('created_at', { ascending: false })
+    .limit(1000)
   if (error) throw error
   return (data ?? []).map(mapReviewRow)
 }
 
 export async function addReview(data: {
+  id: string
   agreementId: string
   reviewerId: string
   revieweeId: string
   rating: number
   comment: string
 }): Promise<Review> {
-  assertClient(supabase)
-  const { data: row, error } = await supabase
+  const checked = parseOrThrow(reviewSchema, { rating: data.rating, comment: data.comment })
+  const { data: row, error } = await client()
     .from('reviews')
     .insert({
+      id: data.id,
       agreement_id: data.agreementId,
       reviewer_id: data.reviewerId,
       reviewee_id: data.revieweeId,
-      rating: data.rating,
-      comment: data.comment,
+      rating: checked.rating,
+      comment: checked.comment || null,
     })
     .select()
     .single()
@@ -687,13 +630,12 @@ export function subscribeToAgreements(
   userId: string,
   callback: (agreement: TradeAgreement) => void,
 ): RealtimeChannel {
-  if (!supabase) throw new Error('Supabase client not initialized')
-
   const handle = (payload: { new: unknown }) => {
-    callback(mapAgreementRow(payload.new as AgreementRow))
+    const row = payload.new as AgreementRow | null
+    if (row && row.id) callback(mapAgreementRow(row))
   }
 
-  return supabase
+  return client()
     .channel(`agreements:${userId}`)
     .on(
       'postgres_changes',
@@ -708,55 +650,56 @@ export function subscribeToAgreements(
     .subscribe()
 }
 
-
 /**
- * Subscribe to offer changes (inserts + updates) where userId is a party.
- * The callback receives full Offer objects including their messages.
- * Returns the RealtimeChannel so the caller can unsubscribe.
+ * Subscribe to offer changes (inserts + updates) and new thread messages
+ * for offers where userId is a party. The callback receives full Offer
+ * objects including their messages.
  */
 export function subscribeToOffers(
   userId: string,
   callback: (offer: Offer) => void,
 ): RealtimeChannel {
-  if (!supabase) throw new Error('Supabase client not initialized')
+  // Coalesce bursts (offer update + message insert arrive together)
+  const pending = new Map<string, ReturnType<typeof setTimeout>>()
+  const refresh = (offerId: string) => {
+    clearTimeout(pending.get(offerId))
+    pending.set(
+      offerId,
+      setTimeout(() => {
+        pending.delete(offerId)
+        fetchOfferWithMessages(offerId)
+          .then((offer) => {
+            if (offer) callback(offer)
+          })
+          .catch((err) => console.warn('[Bartrrr] realtime offer refresh failed', err))
+      }, 150),
+    )
+  }
 
-  return supabase
+  const onOffer = (payload: { new: unknown }) => {
+    const row = payload.new as OfferRow | null
+    if (row?.id) refresh(row.id)
+  }
+
+  return client()
     .channel(`offers:${userId}`)
     .on(
       'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'offers',
-        filter: `from_user_id=eq.${userId}`,
-      },
-      async (payload) => {
-        const row = payload.new as OfferRow
-        // Re-fetch messages for the updated offer
-        const { data: msgs } = await supabase!
-          .from('offer_messages')
-          .select('*')
-          .eq('offer_id', row.id)
-          .order('created_at', { ascending: true })
-        callback(mapOfferRow(row, msgs ?? []))
-      },
+      { event: '*', schema: 'public', table: 'offers', filter: `from_user_id=eq.${userId}` },
+      onOffer,
     )
     .on(
       'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'offers',
-        filter: `to_user_id=eq.${userId}`,
-      },
-      async (payload) => {
-        const row = payload.new as OfferRow
-        const { data: msgs } = await supabase!
-          .from('offer_messages')
-          .select('*')
-          .eq('offer_id', row.id)
-          .order('created_at', { ascending: true })
-        callback(mapOfferRow(row, msgs ?? []))
+      { event: '*', schema: 'public', table: 'offers', filter: `to_user_id=eq.${userId}` },
+      onOffer,
+    )
+    // RLS limits message events to offers the user is a party to
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'offer_messages' },
+      (payload) => {
+        const row = payload.new as OfferMessageRow | null
+        if (row?.offer_id) refresh(row.offer_id)
       },
     )
     .subscribe()
@@ -770,9 +713,7 @@ export function subscribeToNotifications(
   userId: string,
   callback: (notification: AppNotification) => void,
 ): RealtimeChannel {
-  if (!supabase) throw new Error('Supabase client not initialized')
-
-  return supabase
+  return client()
     .channel(`notifications:${userId}`)
     .on(
       'postgres_changes',

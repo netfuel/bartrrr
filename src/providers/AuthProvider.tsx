@@ -1,15 +1,18 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import type { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import * as svc from '@/lib/supabase/supabase-service'
-import { subscribeToPush, isPushSupported } from '@/lib/push'
+import { DEMO_MODE } from '@/lib/env'
+import { subscribeToPush, isPushSupported, getPushPermissionState } from '@/lib/push'
 import { useAuthStore } from '@/stores/auth-store'
 import { useUsersStore } from '@/stores/users-store'
 import { useListingsStore } from '@/stores/listings-store'
@@ -17,240 +20,279 @@ import { useOffersStore } from '@/stores/offers-store'
 import { useAgreementsStore } from '@/stores/agreements-store'
 import { useNotificationsStore } from '@/stores/notifications-store'
 import { useReviewsStore } from '@/stores/reviews-store'
+import { resetDataStores } from '@/stores/reset'
+import { useOfferExpiryTicker } from '@/stores/expiry'
 import type { UserProfile } from '@/types'
 
 interface AuthContextValue {
   currentUser: UserProfile | null
   isAuthenticated: boolean
+  /** True until the initial session (and profile, if signed in) has loaded */
   isLoading: boolean
+  /** Set when the signed-in user's profile/data couldn't load */
+  loadError: string | null
+  /** True after a password-recovery link signed the user in */
+  isPasswordRecovery: boolean
+  /** Demo mode only: sign in as a sample user by first name */
   login: (username: string) => Promise<void>
   logout: () => Promise<void>
+  retryLoad: () => void
   markOnboarded: (userId: string) => void
   hasOnboarded: (userId: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+/** Best-effort display name + avatar from provider metadata (Google / Apple). */
+function profileSeedFromSession(session: Session) {
+  const meta = (session.user.user_metadata ?? {}) as Record<string, unknown>
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined)
+  const email = session.user.email ?? ''
+  const fromEmail = email && !email.endsWith('@privaterelay.appleid.com')
+    ? email.split('@')[0].replace(/[._+-]+/g, ' ')
+    : undefined
+  return {
+    id: session.user.id,
+    displayName:
+      str(meta.full_name) ||
+      str(meta.name) ||
+      [str(meta.given_name), str(meta.family_name)].filter(Boolean).join(' ') ||
+      fromEmail ||
+      'Neighbor',
+    avatarUrl: str(meta.avatar_url) ?? str(meta.picture),
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const {
-    currentUserId,
-    login: storeLogin,
-    logout: storeLogout,
-    markOnboarded,
-    hasOnboarded,
-  } = useAuthStore()
+  const currentUserId = useAuthStore((s) => s.currentUserId)
+  const storeLogin = useAuthStore((s) => s.login)
+  const storeLogout = useAuthStore((s) => s.logout)
+  const markOnboarded = useAuthStore((s) => s.markOnboarded)
+  const hasOnboarded = useAuthStore((s) => s.hasOnboarded)
+  const currentUser = useUsersStore((s) =>
+    currentUserId ? (s.users.find((u) => u.id === currentUserId) ?? null) : null,
+  )
 
-  const setUsers = useUsersStore((s) => s.setUsers)
-  const getUserById = useUsersStore((s) => s.getUserById)
-  const setListings = useListingsStore((s) => s.setListings)
-  const setOffers = useOffersStore((s) => s.setOffers)
-  const setAgreements = useAgreementsStore((s) => s.setAgreements)
-  const setNotifications = useNotificationsStore((s) => s.setNotifications)
-  const setReviews = useReviewsStore((s) => s.setReviews)
-  const addNotification = useNotificationsStore((s) => s.addNotification)
+  const [isLoading, setIsLoading] = useState(Boolean(supabase))
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
 
-  const [isLoading, setIsLoading] = useState(true)
-
-  // Track realtime channels so we can tear them down on logout
-  const offersChannelRef = useRef<RealtimeChannel | null>(null)
-  const notifChannelRef = useRef<RealtimeChannel | null>(null)
-  const agreementsChannelRef = useRef<RealtimeChannel | null>(null)
-  // Which user the data load + realtime wiring currently belongs to.
-  // getSession and SIGNED_IN both fire on page load, and token refreshes
-  // re-emit SIGNED_IN — without this guard we double-load and re-wire.
+  const channelsRef = useRef<RealtimeChannel[]>([])
+  // Which user the data load + realtime wiring belongs to, and a generation
+  // counter so a slow load for a previous session can't clobber a newer one
+  // (user A signs out and B signs in while A's fetches are in flight).
   const wiredUserIdRef = useRef<string | null>(null)
+  const generationRef = useRef(0)
 
-  const currentUser = currentUserId ? (getUserById(currentUserId) ?? null) : null
   const isAuthenticated = !!currentUserId && !!currentUser
 
-  // ── Load all data from Supabase for a logged-in user ─────────────────────
-  const loadUserData = async (userId: string) => {
-    try {
-      const [dbUsers, dbListings, dbOffers, dbAgreements, dbNotifications, dbReviews] = await Promise.all([
-        svc.fetchAllUsers(),
-        svc.fetchListings(),
-        svc.fetchOffers(userId),
-        svc.fetchAgreements(userId),
-        svc.fetchNotifications(userId),
-        svc.fetchAllReviews(),
-      ])
-      setUsers(dbUsers)
-      setListings(dbListings)
-      setOffers(dbOffers)
-      setAgreements(dbAgreements)
-      setNotifications(dbNotifications)
-      setReviews(dbReviews)
-    } catch (err) {
-      console.warn('[Bartrrr] Supabase data load failed — falling back to mock data', err)
+  useOfferExpiryTicker()
+
+  const teardownRealtime = useCallback(() => {
+    for (const ch of channelsRef.current) {
+      void supabase?.removeChannel(ch)
     }
+    channelsRef.current = []
+  }, [])
 
-    // Request push permission and subscribe (non-blocking)
-    if (isPushSupported()) {
-      subscribeToPush(userId).catch(() => { /* permission denied is fine */ })
-    }
-  }
+  const wireRealtime = useCallback(
+    (userId: string) => {
+      teardownRealtime()
+      const upsertBy = <T extends { id: string }>(list: T[], item: T) =>
+        list.some((x) => x.id === item.id)
+          ? list.map((x) => (x.id === item.id ? item : x))
+          : [item, ...list]
 
-  // ── Subscribe to realtime updates ─────────────────────────────────────────
-  const wireRealtime = (userId: string) => {
-    if (!supabase) return
+      channelsRef.current = [
+        svc.subscribeToOffers(userId, (offer) => {
+          useOffersStore.setState((s) => ({ offers: upsertBy(s.offers, offer) }))
+        }),
+        svc.subscribeToAgreements(userId, (agreement) => {
+          useAgreementsStore.setState((s) => ({ agreements: upsertBy(s.agreements, agreement) }))
+        }),
+        svc.subscribeToNotifications(userId, (notif) => {
+          // Server id passes through so a notification that also arrived via
+          // fetchNotifications isn't inserted twice.
+          useNotificationsStore.getState().receiveNotification(notif)
+        }),
+      ]
+    },
+    [teardownRealtime],
+  )
 
-    // Tear down existing channels
-    offersChannelRef.current?.unsubscribe()
-    notifChannelRef.current?.unsubscribe()
-    agreementsChannelRef.current?.unsubscribe()
+  const loadSession = useCallback(
+    async (session: Session) => {
+      const userId = session.user.id
+      const generation = ++generationRef.current
+      wiredUserIdRef.current = userId
+      setLoadError(null)
+      setIsLoading(true)
+      const stale = () => generationRef.current !== generation
 
-    offersChannelRef.current = svc.subscribeToOffers(userId, (updatedOffer) => {
-      // Merge the updated offer into the local store
-      useOffersStore.setState((s) => ({
-        offers: s.offers.some((o) => o.id === updatedOffer.id)
-          ? s.offers.map((o) => (o.id === updatedOffer.id ? updatedOffer : o))
-          : [updatedOffer, ...s.offers],
-      }))
-    })
+      try {
+        // Profile first: the trigger normally created it; create it here if not.
+        const me = await svc.ensureOwnProfile(profileSeedFromSession(session))
+        if (stale()) return
+        useUsersStore.getState().upsertUser(me)
+        storeLogin(userId)
 
-    agreementsChannelRef.current = svc.subscribeToAgreements(userId, (updatedAgreement) => {
-      useAgreementsStore.setState((s) => ({
-        agreements: s.agreements.some((a) => a.id === updatedAgreement.id)
-          ? s.agreements.map((a) => (a.id === updatedAgreement.id ? updatedAgreement : a))
-          : [updatedAgreement, ...s.agreements],
-      }))
-    })
+        const [users, listings, offers, agreements, notifications, reviews] = await Promise.all([
+          svc.fetchAllUsers(),
+          svc.fetchListings(),
+          svc.fetchOffers(userId),
+          svc.fetchAgreements(userId),
+          svc.fetchNotifications(userId),
+          svc.fetchAllReviews(),
+        ])
+        if (stale()) return
+        useUsersStore.getState().setUsers(users.some((u) => u.id === me.id) ? users : [me, ...users])
+        useListingsStore.getState().setListings(listings)
+        useOffersStore.getState().setOffers(offers)
+        useAgreementsStore.getState().setAgreements(agreements)
+        useNotificationsStore.getState().setNotifications(notifications)
+        useReviewsStore.getState().setReviews(reviews)
 
-    notifChannelRef.current = svc.subscribeToNotifications(userId, (notif) => {
-      // Pass the server id through so a notification that also arrived via
-      // fetchNotifications isn't inserted twice.
-      addNotification({
-        id: notif.id,
-        userId: notif.userId,
-        type: notif.type,
-        title: notif.title,
-        body: notif.body,
-        data: notif.data,
-      })
-    })
-  }
+        wireRealtime(userId)
 
-  // ── One-time setup per logged-in user ─────────────────────────────────────
-  const initSession = async (userId: string) => {
-    if (wiredUserIdRef.current === userId) return
-    wiredUserIdRef.current = userId
-    storeLogin(userId)
-    await loadUserData(userId)
-    // A different user may have logged in while we were loading — don't
-    // wire realtime for a session that's no longer current.
-    if (wiredUserIdRef.current === userId) wireRealtime(userId)
-  }
+        // Only re-subscribe silently if permission was already granted;
+        // asking for permission needs a user gesture (Settings).
+        if (isPushSupported() && getPushPermissionState() === 'granted') {
+          subscribeToPush(userId).catch(() => {})
+        }
+      } catch (err) {
+        if (stale()) return
+        console.error('[Bartrrr] Failed to load your account', err)
+        setLoadError("We couldn't load your account. Check your connection and try again.")
+      } finally {
+        if (!stale()) setIsLoading(false)
+      }
+    },
+    [storeLogin, wireRealtime],
+  )
 
-  const teardownSession = () => {
-    offersChannelRef.current?.unsubscribe()
-    notifChannelRef.current?.unsubscribe()
-    agreementsChannelRef.current?.unsubscribe()
-    offersChannelRef.current = null
-    notifChannelRef.current = null
-    agreementsChannelRef.current = null
+  const clearSession = useCallback(() => {
+    generationRef.current++
     wiredUserIdRef.current = null
-  }
+    teardownRealtime()
+    storeLogout()
+    resetDataStores()
+    setLoadError(null)
+    setIsPasswordRecovery(false)
+    setIsLoading(false)
+  }, [storeLogout, teardownRealtime])
 
   // ── Supabase auth lifecycle ───────────────────────────────────────────────
   useEffect(() => {
     if (!supabase) {
-      // No Supabase — keep mock auth running, just mark done loading
+      // Offline demo mode: a persisted demo login is not restored, so start signed out
       setIsLoading(false)
       return
     }
+    const client = supabase
+    const generation = generationRef
 
-    // Check for an existing session (e.g. page refresh)
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        await initSession(session.user.id)
-      }
-      setIsLoading(false)
-    })
-
-    // Listen for login / logout events
+    // onAuthStateChange fires INITIAL_SESSION once on subscribe (after any
+    // ?code= exchange), then SIGNED_IN / TOKEN_REFRESHED / SIGNED_OUT etc.
+    // Callbacks must not await Supabase calls directly (deadlocks the auth
+    // lock), so work is deferred with setTimeout.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        await initSession(session.user.id)
-        setIsLoading(false)
-      } else if (event === 'SIGNED_OUT') {
-        teardownSession()
-        storeLogout()
-        setIsLoading(false)
-      }
+    } = client.auth.onAuthStateChange((event, session) => {
+      setTimeout(() => {
+        if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true)
+
+        if (event === 'SIGNED_OUT' || !session) {
+          if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') clearSession()
+          return
+        }
+        // Token refreshes and USER_UPDATED for the same user need no reload
+        if (wiredUserIdRef.current === session.user.id) {
+          setIsLoading(false)
+          return
+        }
+        void loadSession(session)
+      }, 0)
     })
 
     return () => {
       subscription.unsubscribe()
-      teardownSession()
+      // Invalidate any in-flight load (it's a counter, not a DOM ref)
+      generation.current++
+      teardownRealtime()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [clearSession, loadSession, teardownRealtime])
 
   // ── Public auth actions ───────────────────────────────────────────────────
 
-  // Demo-mode login: find by first name match in the mock users store
-  const offlineLogin = (username: string) => {
-    const user = useUsersStore.getState().users.find(
-      (u) => u.displayName.split(' ')[0].toLowerCase() === username,
-    )
-    if (user) storeLogin(user.id)
-  }
-
-  // A fetch that never reached Supabase (dead/paused project, no network) —
-  // as opposed to a real auth rejection like a wrong password.
-  const isNetworkError = (err: unknown) =>
-    err instanceof Error &&
-    (err.name === 'AuthRetryableFetchError' || err.message.includes('Failed to fetch'))
-
-  const login = async (username: string) => {
-    if (!supabase) {
-      offlineLogin(username)
-      return
-    }
-    const email = `${username}@bartrrr.demo`
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password: 'bartrrr-demo-2024',
-      })
-      if (error) throw error
-      // onAuthStateChange handles the rest
-    } catch (err) {
-      if (isNetworkError(err)) {
-        console.warn('Supabase unreachable — falling back to demo mode.')
-        offlineLogin(username)
+  const login = useCallback(
+    async (username: string) => {
+      if (!DEMO_MODE) throw new Error('Demo login is disabled')
+      if (supabase) {
+        // Demo against a real Supabase project with seeded demo accounts
+        const { error } = await supabase.auth.signInWithPassword({
+          email: `${username}@bartrrr.demo`,
+          password: import.meta.env.VITE_DEMO_PASSWORD ?? '',
+        })
+        if (error) throw error
         return
       }
-      throw err
-    }
-  }
-
-  const logout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut().catch(() => {})
-    }
-    // Always clear local state too: demo-mode logins have no Supabase
-    // session, so onAuthStateChange never fires for them.
-    storeLogout()
-  }
-
-  return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        isAuthenticated,
-        isLoading,
-        login,
-        logout,
-        markOnboarded,
-        hasOnboarded,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+      const user = useUsersStore
+        .getState()
+        .users.find((u) => u.displayName.split(' ')[0].toLowerCase() === username)
+      if (!user) throw new Error('Demo user not found')
+      storeLogin(user.id)
+    },
+    [storeLogin],
   )
+
+  const logout = useCallback(async () => {
+    if (supabase) {
+      const { error } = await supabase.auth.signOut()
+      if (error) console.warn('[Bartrrr] Sign-out request failed; clearing local session', error)
+    }
+    // Always clear local state too: offline demo logins have no Supabase
+    // session, and a failed network sign-out must still sign out locally.
+    clearSession()
+  }, [clearSession])
+
+  const retryLoad = useCallback(() => {
+    if (!supabase) return
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        wiredUserIdRef.current = null
+        void loadSession(data.session)
+      }
+    })
+  }, [loadSession])
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      currentUser,
+      isAuthenticated,
+      isLoading,
+      loadError,
+      isPasswordRecovery,
+      login,
+      logout,
+      retryLoad,
+      markOnboarded,
+      hasOnboarded,
+    }),
+    [
+      currentUser,
+      isAuthenticated,
+      isLoading,
+      loadError,
+      isPasswordRecovery,
+      login,
+      logout,
+      retryLoad,
+      markOnboarded,
+      hasOnboarded,
+    ],
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

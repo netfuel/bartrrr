@@ -1,13 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
+import { HAS_SUPABASE, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/env'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.warn('Supabase credentials not set. Running in offline mode with mock data.')
-}
-
-export const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY)
-  ? createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY)
+/**
+ * Null only in offline demo mode (VITE_DEMO_MODE=true with no Supabase env).
+ * Outside demo mode, main.tsx refuses to boot without credentials.
+ *
+ * PKCE is the recommended flow for browser apps: OAuth, email confirmation
+ * and password-recovery links come back as ?code=… which the client
+ * exchanges on load (detectSessionInUrl).
+ */
+export const supabase = HAS_SUPABASE
+  ? createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        flowType: 'pkce',
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
   : null

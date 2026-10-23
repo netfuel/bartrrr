@@ -6,6 +6,7 @@ import { Button, Input, Textarea, Chip } from '@/components/ui'
 import { CATEGORY_LABELS, CONDITION_LABELS, type Category, type ListingCondition } from '@/types'
 import { useListingsStore, useUsersStore, useNotificationsStore, showToast } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
+import { neighborhoodCenter } from '@/data/neighborhoods'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
 const conditions = (Object.keys(CONDITION_LABELS) as ListingCondition[]).map((value) => ({
@@ -77,9 +78,9 @@ export default function CreateListingPage() {
       seeking,
       images,
       userId: currentUser.id,
+      // Neighborhood center, never the user's address (PRD: neighborhood-level only)
       location: {
-        lat: 35.1495,
-        lng: -90.049,
+        ...neighborhoodCenter(currentUser.neighborhood),
         neighborhood: currentUser.neighborhood,
       },
     })

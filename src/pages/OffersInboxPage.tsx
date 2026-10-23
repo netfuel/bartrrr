@@ -5,15 +5,17 @@ import { useOffersForUser, useUsersStore, useListingsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { MessageSquare } from 'lucide-react'
 import { usePageTitle } from '@/lib/utils'
-import { OFFER_STATUS_LABELS } from '@/types'
+import { OFFER_STATUS_LABELS, type OfferStatus } from '@/types'
 
 type Tab = 'incoming' | 'outgoing'
 
-const statusBadge: Record<string, { variant: 'teal' | 'gold' | 'clay' | 'closed'; label: string }> = {
+const statusBadge: Record<OfferStatus, { variant: 'teal' | 'gold' | 'clay' | 'closed'; label: string }> = {
   pending: { variant: 'gold', label: OFFER_STATUS_LABELS.pending },
   countered: { variant: 'gold', label: OFFER_STATUS_LABELS.countered },
   accepted: { variant: 'teal', label: OFFER_STATUS_LABELS.accepted },
   declined: { variant: 'clay', label: OFFER_STATUS_LABELS.declined },
+  withdrawn: { variant: 'closed', label: OFFER_STATUS_LABELS.withdrawn },
+  expired: { variant: 'closed', label: OFFER_STATUS_LABELS.expired },
 }
 
 export default function OffersInboxPage() {
@@ -74,7 +76,9 @@ export default function OffersInboxPage() {
             const lastMessage = offer.messages[offer.messages.length - 1]
             const isOpen = offer.status === 'pending' || offer.status === 'countered'
             const myTurn = isOpen && lastMessage?.fromUserId !== currentUser.id
-            const sb = myTurn ? { variant: 'teal' as const, label: 'Your turn' } : statusBadge[offer.status]
+            const sb = myTurn
+              ? { variant: 'teal' as const, label: 'Your turn' }
+              : statusBadge[offer.status]
 
             return (
               <Link

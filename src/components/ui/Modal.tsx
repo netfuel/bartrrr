@@ -12,7 +12,7 @@ export interface ModalProps {
 }
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 /**
  * Accessible modal primitive: backdrop, Escape to close, focus moved into
@@ -20,15 +20,25 @@ const FOCUSABLE =
  */
 export function Modal({ onClose, labelledBy, align = 'center', className, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+  // Callers pass inline closures; reading the latest via a ref keeps the
+  // effect below mount-only, so a parent re-render (e.g. a realtime update)
+  // doesn't yank focus out of the field the user is typing in.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null
     panelRef.current?.focus()
+    // Keep the page behind the dialog from scrolling
+    const { overflow } = document.body.style
+    document.body.style.overflow = 'hidden'
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        onClose()
+        onCloseRef.current()
         return
       }
       if (e.key === 'Tab' && panelRef.current) {
@@ -49,9 +59,10 @@ export function Modal({ onClose, labelledBy, align = 'center', className, childr
     document.addEventListener('keydown', handleKey)
     return () => {
       document.removeEventListener('keydown', handleKey)
-      previouslyFocused?.focus()
+      document.body.style.overflow = overflow
+      if (previouslyFocused?.isConnected) previouslyFocused.focus()
     }
-  }, [onClose])
+  }, [])
 
   return (
     <div

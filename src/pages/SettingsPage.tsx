@@ -85,6 +85,7 @@ export default function SettingsPage() {
             <label htmlFor="settings-bio" className="text-label text-ink-2">Bio</label>
             <textarea
               id="settings-bio"
+              maxLength={500}
               placeholder="A line or two about you and what you like to trade"
               className="rounded-none border border-ink/40 bg-paper px-4 py-3 text-base text-ink placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay resize-y min-h-[110px] transition-colors"
               value={bio}

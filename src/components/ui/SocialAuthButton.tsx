@@ -5,13 +5,14 @@ import { cn } from '@/lib/utils'
 export type SocialProvider = 'google' | 'apple'
 
 export interface SocialAuthButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  provider: SocialProvider
+  /** Known providers get their brand mark; any other id renders text only */
+  provider: SocialProvider | (string & {})
   loading?: boolean
 }
 
 /* Brand marks drawn per each provider's guidelines (monochrome Apple,
    full-color Google "G"); sized to the 20px icon grid. */
-function ProviderMark({ provider }: { provider: SocialProvider }) {
+function ProviderMark({ provider }: { provider: string }) {
   if (provider === 'apple') {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
@@ -19,6 +20,7 @@ function ProviderMark({ provider }: { provider: SocialProvider }) {
       </svg>
     )
   }
+  if (provider !== 'google') return null
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z" />
@@ -32,7 +34,7 @@ function ProviderMark({ provider }: { provider: SocialProvider }) {
 /**
  * Visual slot for third-party sign-in. Full-width, outline treatment so a
  * stack of providers reads as secondary to the primary form action.
- * Wiring (onClick → supabase.auth.signInWithOAuth) lives with the caller.
+ * Wiring lives with the caller: see components/auth/OAuthButtons.
  */
 export const SocialAuthButton = forwardRef<HTMLButtonElement, SocialAuthButtonProps>(
   ({ provider, loading = false, disabled, className, children, ...props }, ref) => (
@@ -40,6 +42,7 @@ export const SocialAuthButton = forwardRef<HTMLButtonElement, SocialAuthButtonPr
       ref={ref}
       type="button"
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
         'pressable relative flex min-h-[52px] w-full items-center justify-center gap-3 border border-ink/40 bg-paper px-5 text-[15px] font-medium text-ink',
         'transition-[border-color,background-color,transform] duration-300 ease-out-soft hover:border-ink hover:bg-cream',
@@ -48,7 +51,7 @@ export const SocialAuthButton = forwardRef<HTMLButtonElement, SocialAuthButtonPr
       )}
       {...props}
     >
-      {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ProviderMark provider={provider} />}
+      {loading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <ProviderMark provider={provider} />}
       {children}
     </button>
   ),
@@ -59,7 +62,7 @@ SocialAuthButton.displayName = 'SocialAuthButton'
 /** Hairline "or" divider between provider buttons and the email form. */
 export function AuthDivider({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-4 text-label text-muted" role="separator">
+    <div className="flex items-center gap-4 text-label text-muted" role="separator" aria-label={typeof children === 'string' ? children : undefined}>
       <span className="h-px flex-1 bg-ink/25" />
       {children}
       <span className="h-px flex-1 bg-ink/25" />

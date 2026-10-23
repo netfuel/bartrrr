@@ -10,6 +10,7 @@ const ListingsMap = lazy(() =>
   import('@/components/bartrrr/ListingsMap').then((m) => ({ default: m.ListingsMap })),
 )
 import { useListingsStore, useUsersStore } from '@/stores'
+import { useMediaQuery } from '@/lib/utils/use-media-query'
 import type { Category } from '@/types'
 import { CATEGORY_LABELS } from '@/types'
 
@@ -41,6 +42,11 @@ export default function BrowsePage() {
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   usePageTitle('Browse listings')
+
+  // Only mount the map (and download mapbox-gl) when it's actually visible:
+  // always on desktop (lg split view), on mobile only in map view.
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const showMap = isDesktop || view === 'map'
 
   const searchQuery = searchParams.get('q') || ''
   const listings = useListingsStore((s) => s.listings)
@@ -145,7 +151,7 @@ export default function BrowsePage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Map panel */}
         <div className={cn('lg:w-[46%] xl:w-1/2 lg:block lg:border-r lg:border-ink', view === 'map' ? 'w-full' : 'hidden')}>
-          <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
+          {showMap && <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
             <ListingsMap
               listings={filteredListings}
               users={Object.fromEntries(
@@ -156,7 +162,7 @@ export default function BrowsePage() {
               )}
               className="h-full"
             />
-          </Suspense>
+          </Suspense>}
         </div>
 
         {/* Card grid */}
