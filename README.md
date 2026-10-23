@@ -1,222 +1,119 @@
-# Bartrrr — Trade, don't buy.
+# Bartrrr: Trade, don't buy
 
-> A hyperlocal peer-to-peer trading app for the greater Memphis, TN metro area. No price tags. No cash. Just fair exchange between neighbors.
+A hyperlocal trading app for the greater Memphis, TN metro. Neighbors swap goods, services and skills. No price tags, no cash.
 
-**Live repo:** [github.com/netfuel-bartrrr/bartrrr](https://github.com/netfuel-bartrrr/bartrrr)
-
----
-
-## What is Bartrrr?
-
-Bartrrr lets neighbors swap goods, services, and skills without any money changing hands. You list what you have, say what you want in return, and negotiate directly with people in your zip code. Once both parties agree, you sign a trade agreement and make the exchange.
+Live at **https://bartrrr.app** · Repo: [github.com/netfuel/bartrrr](https://github.com/netfuel/bartrrr)
 
 ---
 
-## Service Area
+## What it does
 
-Bartrrr is currently available exclusively in the **greater Memphis, TN metro area**.
+You post a listing and say what you'd like in return. Neighbors make offers, you go back and forth with counter-offers (up to 5 rounds), and once someone accepts, you both sign a simple, non-binding trade agreement, make the swap, and leave each other a review.
 
-Supported zip codes: `38103–38109`, `38111–38120`, `38125–38128`, `38131–38135`, `38138–38139`, `38141`, `38157`, `38016–38018`, `38027`, `38053`, `38060`
+- **Browse:** grid or Mapbox map of nearby listings, filter by category, search by keyword or neighborhood. Locations are neighborhood-level only (coordinates are rounded to ~1 km in the database).
+- **Offers:** offer, counter-offer, accept or decline with a reason. Offers expire after 72 hours without a reply; the thread shows whose move it is and how many rounds are left.
+- **Trade agreements:** drafted automatically when an offer is accepted. Each neighbor signs for themselves; both signatures make it ready to swap. Exchange method, date, place and notes live on the agreement.
+- **Reviews and reputation:** star rating and comment after a completed trade. Ratings and trade counts are maintained by the database, never by the client.
+- **Dashboard, feed, notifications:** your listings, offers in and out, agreements, neighborhood activity, in-app notifications (server-generated) and optional web push.
+- **Onboarding:** name, neighborhood, interests. Signup checks you're in a supported Memphis-area ZIP code (device location via Mapbox, or manual entry).
 
-Signup uses **device geolocation** (via Mapbox reverse geocoding) to verify the user is within the service area. A manual zip code entry fallback is also available.
+## Sign-in
 
----
+- **Continue with Google**
+- **Continue with Apple** (Apple never returns a name on the web, so onboarding asks for one)
+- **Email and password**, with email confirmation and password reset
 
-## Features
+All three run through Supabase Auth and return to `/auth/callback`. `VITE_AUTH_PROVIDERS` can limit which OAuth buttons show (for example `google` while Apple setup is pending).
 
-### Browse & Discover
-- Filterable listing grid by category: **Goods**, **Services**, **Skills & Expertise**, **Outdoor & Garden**
-- Toggle between grid view and an interactive **Mapbox GL JS map** with color-coded pins by category
-- Search by keyword or neighborhood
-- Distance display from your neighborhood
+**Demo mode** exists for development and design review only. It is compiled in only when the build sets `VITE_DEMO_MODE=true`: it adds sample neighbors, listings and offers, and a "log in as" picker. Without Supabase variables, demo mode runs fully offline in the browser. Production builds never include the picker or sample data.
 
-### Listing Details
-- Photo gallery, condition badge, "looking for" section
-- Direct **Make an Offer** flow from any listing
-
-### Offer & Negotiation
-- Multi-round offer/counter-offer system (up to 5 rounds)
-- Inline **OfferTimeline** showing the full negotiation history
-- Decline with reason, or counter with new items/terms
-- Real-time message thread between the two parties
-
-### Trade Agreements
-- Formal trade agreement generated once an offer is accepted
-- Both parties must sign digitally before the trade is confirmed
-- Exchange method: in-person, drop-off, or service at location
-- Optional special instructions and exchange date/location
-
-### Reviews
-- Post-trade star rating + written review
-- Reviews visible on user profiles and listing cards
-
-### Dashboard
-Tabbed personal dashboard:
-- **My Listings** — active listings with quick actions (renew, withdraw)
-- **Incoming** — offers received on your listings
-- **Outgoing** — offers you've made
-- **Active Trades** — agreements in progress
-- **History** — completed trades with dates
-
-### Notifications
-- Bell icon in header with unread count badge
-- Dropdown showing the 10 most recent notifications
-- Mark individual or all as read
-- Deep links into the relevant offer or agreement
-
-### Onboarding
-4-step flow for new users:
-1. Welcome
-2. Neighborhood selection (16 Memphis neighborhoods)
-3. Interest categories (min 3 of 16)
-4. Done — redirects to Browse or Create Listing
-
-Onboarding is tracked per-user so switching demo users re-triggers it correctly.
-
-### Settings & Profile
-- Edit display name, bio, neighborhood, avatar URL
-- Public profile page with listings, reviews, and trade stats
-- Log out
-
----
-
-## Neighborhoods
-
-Users and listings are seeded across these Memphis neighborhoods:
-
-| Neighborhood | Area |
-|---|---|
-| Downtown Memphis | Core |
-| Midtown | Core |
-| Cooper-Young | Core |
-| South Main Arts District | Core |
-| Overton Square | Core |
-| East Memphis | East |
-| Germantown | East |
-| Cordova | East |
-| Bartlett | North |
-| Binghampton | Mid-East |
-| Whitehaven | South |
-| Collierville | Southeast |
-| Harbor Town | River |
-| Frayser | North |
-| Millington | North |
-| Raleigh | North |
-
----
-
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Framework | React 19 + Vite |
-| Language | TypeScript |
+| App | React 19, TypeScript, Vite |
 | Styling | Tailwind CSS v4 |
-| State | Zustand (with `persist` middleware) |
+| State | Zustand |
 | Routing | React Router v7 |
-| Map | Mapbox GL JS v3 |
-| Icons | Lucide React |
-| Linting | ESLint + `react-hooks` + `@typescript-eslint` |
+| Backend | Supabase (Postgres with RLS, Auth, Realtime, Edge Functions) |
+| Map | Mapbox GL JS v3 (loaded only when a map is shown) |
+| Hosting | Cloudflare Pages |
 
----
+## Getting started
 
-## Project Structure
+Requires Node.js 22.
+
+```sh
+npm ci
+cp .env.example .env.local   # then fill it in (see below)
+npm run dev                  # http://localhost:5173
+```
+
+Quickest start with no backend: set only `VITE_DEMO_MODE=true` in `.env.local`.
+
+### Environment variables
+
+All are read at build time and ship to the browser. Never put a secret in a `VITE_*` variable. `.env.example` has the details.
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Yes, unless demo mode | `https://<ref>.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Yes, unless demo mode | Supabase anon (public) key; RLS protects the data |
+| `VITE_MAPBOX_TOKEN` | Recommended | Public `pk.` token for the map and location-based ZIP check |
+| `VITE_SITE_URL` | Recommended | Canonical origin, defaults to `https://bartrrr.app` |
+| `VITE_VAPID_PUBLIC_KEY` | Optional | Web push public key |
+| `VITE_AUTH_PROVIDERS` | Optional | Comma-separated OAuth buttons to show (`google,apple`) |
+| `VITE_DEMO_MODE` | Dev only | `true` enables sample data and the demo picker |
+| `VITE_DEMO_PASSWORD` | Dev only | Password for seeded `*@bartrrr.demo` users when demo mode talks to a Supabase project |
+
+If the required Supabase variables are missing in a non-demo build, the app shows a "We'll be right back" screen and logs which variables are missing to the console.
+
+### Database
+
+Schema and security rules live in `supabase/migrations/` (apply with `npx supabase db push`). Demo data is in `supabase/seed.sql` and only loads on a local `npx supabase db reset`, never in production.
+
+### Checks
+
+```sh
+npm run typecheck
+npm run lint
+npm run build
+```
+
+## Deploying
+
+See **[DEPLOY.md](DEPLOY.md)** for the full checklist: Supabase project and auth URLs, Google and Apple sign-in setup, SMTP, push notifications, Cloudflare Pages build settings and domains, and the launch checklist.
+
+## Project structure
 
 ```
 src/
 ├── components/
-│   ├── bartrrr/       # Domain components (TradeCard, OfferThread, ListingsMap, etc.)
-│   ├── layout/        # Shell, Sidebar, Header, BottomBar, NotificationDropdown
-│   └── ui/            # Base components (Button, Input, Avatar, Badge, etc.)
-├── data/              # Mock seed data (users, listings, offers, agreements)
-├── lib/utils/         # cn, formatDistance, geolocation, zip validation
+│   ├── auth/          # OAuth buttons, demo picker (demo builds only)
+│   ├── bartrrr/       # Domain components (TradeCard, OfferThread, ListingsMap…)
+│   ├── layout/        # PageShell, Header, Sidebar, BottomBar, ProtectedRoute
+│   ├── system/        # Error boundary, config error screen, route effects
+│   └── ui/            # Button, Input, Modal, ConfirmDialog, Toast…
+├── data/              # Demo-mode sample data and Memphis neighborhoods
+├── lib/               # env, auth helpers, Supabase service, validation, utils
 ├── pages/             # One file per route
-├── providers/         # AuthProvider + useAuth hook
-├── stores/            # Zustand stores (auth, listings, offers, agreements, reviews, notifications, users)
-├── styles/            # globals.css (Tailwind + design tokens)
-└── types/             # Shared TypeScript types
+├── providers/         # AuthProvider
+├── stores/            # Zustand stores
+├── styles/            # globals.css (Tailwind and design tokens)
+└── types/             # Shared types and user-facing labels
+supabase/
+├── migrations/        # Schema, RLS, triggers
+├── functions/send-push/
+└── seed.sql           # Local demo data
+docs/content-style-guide.md   # Voice, terminology and UI copy rules
 ```
 
----
-
-## Design System
-
-Earthy, warm color palette:
-
-| Token | Value | Usage |
-|---|---|---|
-| `clay` | `#C05A35` | Primary actions, brand |
-| `forest` | `#2D5016` | CTA sections, success |
-| `teal` | `#3AABA6` | Services category |
-| `gold` | `#C88A2A` | Skills category, ratings |
-| `cream` | `#F5F0E8` | Page background |
-| `ink` | `#1C1917` | Primary text |
-| `sand` | `#D4C4A8` | Borders |
-
-Typography uses a display serif for headings and system sans-serif for body.
-
----
-
-## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- A [Mapbox](https://mapbox.com) account and public token (for the map view)
-
-### Install
-
-```bash
-npm install
-```
-
-### Environment
-
-Create `.env.local` in the project root:
-
-```env
-VITE_MAPBOX_TOKEN=pk.your_token_here
-```
-
-Without a token the map view shows a setup prompt; all other features work normally.
-
-### Run
-
-```bash
-npm run dev
-```
-
-### Lint & Type Check
-
-```bash
-npx eslint src --ext .ts,.tsx
-npx tsc --noEmit
-```
-
----
-
-## Demo Users
-
-The app ships with 8 pre-seeded demo users. On signup/login you pick one to explore as:
-
-| Name | Neighborhood | Specialty |
-|---|---|---|
-| Jamie Oakley | Downtown Memphis | Gardening & furniture |
-| Maria Santos | Midtown | Math tutoring |
-| Alex Chen | Cooper-Young | Handyman & woodworking |
-| Priya Patel | Germantown | Plants & pottery |
-| Jordan Williams | Binghampton | Student swap |
-| Sam Nguyen | Overton Square | Bike repair |
-| Nina Rodriguez | South Main Arts District | Graphic design |
-| Dave Morrison | East Memphis | Home cooking |
-
----
+Copy follows [docs/content-style-guide.md](docs/content-style-guide.md): "Bartrrr", sentence case, no money language.
 
 ## Roadmap
 
-- [ ] Smart matching ("Perfect Match" alerts based on interests)
-- [ ] Neighborhood activity feed
-- [ ] "First Trade" celebration animation
+- [ ] Smart matching ("Perfect Match" alerts based on what you're looking for)
+- [ ] Safe meetup spot suggestions on the map
+- [ ] Listing photo uploads (listings currently take image links)
 - [ ] Dark mode
-- [ ] Supabase backend (auth, real-time offers, persistent data)
-- [ ] Push notifications
-- [ ] Expand to additional cities
+- [ ] Expand beyond Memphis
