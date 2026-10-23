@@ -75,7 +75,7 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
         return updated
       }),
     }))
-    svc.signAgreement(id, userId).catch(persistError("Couldn't sign the agreement"))
+    svc.signAgreement(id, userId).catch(persistError("Couldn't sign the trade agreement"))
     // Notify the other party
     const ag = get().agreements.find((a) => a.id === id)
     if (ag) {

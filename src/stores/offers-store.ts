@@ -98,7 +98,7 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         return { ...o, status: 'accepted' as const, messages: [...o.messages, msg] }
       }),
     }))
-    svc.acceptOffer(offerId, userId).catch(persistError("Couldn't accept the offer"))
+    svc.acceptOffer(offerId, userId).catch(persistError("Couldn't accept the trade"))
     // Notify the original offer sender
     const offer = get().offers.find((o) => o.id === offerId)
     if (offer) {
