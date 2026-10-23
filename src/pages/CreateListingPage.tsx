@@ -83,41 +83,45 @@ export default function CreateListingPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Link to="/browse" className="p-2 rounded-full hover:bg-sand-light transition-colors">
-          <ArrowLeft className="h-5 w-5 text-muted" />
+    <div className="max-w-xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="flex items-center gap-2 mb-6">
+        <Link to="/browse" aria-label="Back to browse" className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full hover:bg-sand-light transition-colors">
+          <ArrowLeft className="h-5 w-5 text-ink" />
         </Link>
-        <h1 className="text-[20px] font-medium tracking-tight text-ink">Post a listing</h1>
+        <h1 className="text-heading-page text-ink">Post a listing</h1>
       </div>
 
       {/* Progress */}
-      <div className="flex items-center gap-2 mb-8">
+      <ol className="grid grid-cols-4 gap-2 mb-10">
         {steps.map((s, i) => (
-          <div key={s} className="flex items-center gap-2 flex-1">
-            <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0', i < step ? 'bg-teal text-white' : i === step ? 'bg-ink text-cream' : 'bg-sand-light text-muted')}>
-              {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
+          <li key={s} className="flex flex-col gap-2" aria-current={i === step ? 'step' : undefined}>
+            <div className="h-px bg-ink/20">
+              <div className={cn('h-px transition-[width] duration-700 ease-out-soft', i <= step ? 'w-full bg-ink' : 'w-0')} />
             </div>
-            {i < steps.length - 1 && <div className={cn('h-0.5 flex-1', i < step ? 'bg-teal' : 'bg-sand-light')} />}
-          </div>
+            <span className={cn('flex items-center gap-1.5 text-label', i === step ? 'text-ink' : i < step ? 'text-ink-2' : 'text-muted')}>
+              {i < step ? <Check className="h-3 w-3 text-teal-dark" /> : <span className="tabular-nums">{String(i + 1).padStart(2, '0')}</span>}
+              <span className="hidden sm:inline">{s}</span>
+            </span>
+          </li>
         ))}
-      </div>
+      </ol>
 
       <div className="space-y-6">
         {step === 0 && (
           <>
-            <h2 className="font-display text-lg font-semibold">Add some photos</h2>
-            <p className="text-sm text-muted">Listings with photos get 3x more offers. Paste image URLs below.</p>
+            <h2 className="text-heading-section text-ink">Add some photos</h2>
+            <p className="text-[15px] text-ink-2 -mt-3">Listings with photos get 3x more offers. Paste image URLs below.</p>
 
             {/* Image URL input */}
-            <div className="flex gap-2">
+            <div className="flex items-start gap-2">
+              <div className="flex-1">
               <Input
                 placeholder="Paste image URL..."
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
-                className="flex-1"
               />
-              <Button variant="outline" onClick={addImage} disabled={!imageUrl.trim()}>
+              </div>
+              <Button variant="outline" aria-label="Add photo" className="h-[50px] w-[50px] shrink-0 px-0" onClick={addImage} disabled={!imageUrl.trim()}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -125,21 +129,22 @@ export default function CreateListingPage() {
             {/* Image previews */}
             <div className="grid grid-cols-3 gap-3">
               {images.map((url, i) => (
-                <div key={url} className="relative aspect-square rounded-none overflow-hidden bg-sand-light">
-                  <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                <div key={url} className="animate-scale-in relative aspect-square rounded-none overflow-hidden border border-ink bg-sand-light">
+                  <img src={url} alt={`Photo ${i + 1}`} className="photo-warm w-full h-full object-cover" />
                   <button
                     type="button"
+                    aria-label={`Remove photo ${i + 1}`}
                     onClick={() => setImages((prev) => prev.filter((u) => u !== url))}
-                    className="absolute top-1 right-1 p-0.5 rounded-full bg-ink/60 text-white"
+                    className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-ink/70 text-cream backdrop-blur-sm hover:bg-ink"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
               {images.length === 0 && (
-                <div className="aspect-square rounded-none border border-dashed border-ink/50 flex flex-col items-center justify-center gap-1 text-muted">
-                  <Camera className="h-6 w-6" />
-                  <span className="text-xs">No photos yet</span>
+                <div className="col-span-3 aspect-[3/1] rounded-none border border-dashed border-ink/40 bg-paper flex flex-col items-center justify-center gap-2 text-muted">
+                  <Camera className="h-6 w-6 text-clay" />
+                  <span className="text-label">No photos yet</span>
                 </div>
               )}
             </div>
@@ -148,11 +153,11 @@ export default function CreateListingPage() {
 
         {step === 1 && (
           <>
-            <h2 className="font-display text-lg font-semibold">Describe your listing</h2>
+            <h2 className="text-heading-section text-ink">Describe your listing</h2>
             <Input label="Title" placeholder="e.g. Vintage Lamp, 2 Hours of Gardening Help" value={title} onChange={(e) => setTitle(e.target.value)} />
             <Textarea label="Description" placeholder="Tell your neighbors about it..." value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
             <div>
-              <p className="text-sm font-medium text-ink-2 mb-2">Category</p>
+              <p className="text-label text-ink-2 mb-2.5">Category</p>
               <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => (
                   <Chip key={cat} label={CATEGORY_LABELS[cat]} selected={category === cat} onToggle={() => setCategory(cat)} />
@@ -161,7 +166,7 @@ export default function CreateListingPage() {
             </div>
             {(category === 'goods' || category === 'outdoor') && (
               <div>
-                <p className="text-sm font-medium text-ink-2 mb-2">Condition</p>
+                <p className="text-label text-ink-2 mb-2.5">Condition</p>
                 <div className="flex flex-wrap gap-2">
                   {conditions.map((c) => (
                     <Chip key={c.value} label={c.label} selected={condition === c.value} onToggle={() => setCondition(c.value)} />
@@ -174,47 +179,47 @@ export default function CreateListingPage() {
 
         {step === 2 && (
           <>
-            <h2 className="font-display text-lg font-semibold">What are you looking for?</h2>
-            <p className="text-sm text-muted">Help neighbors know what you'd trade for.</p>
+            <h2 className="text-heading-section text-ink">What are you looking for?</h2>
+            <p className="text-[15px] text-ink-2 -mt-3">Help neighbors know what you'd trade for.</p>
             <Textarea label="I'd trade this for..." placeholder="e.g. gardening help, kitchen appliances, interesting books" value={seeking} onChange={(e) => setSeeking(e.target.value)} rows={4} />
           </>
         )}
 
         {step === 3 && (
           <>
-            <h2 className="font-display text-lg font-semibold">Review your listing</h2>
-            <div className="border border-ink bg-cream p-4 space-y-3">
+            <h2 className="text-heading-section text-ink">Review your listing</h2>
+            <div className="border border-ink bg-paper p-5 space-y-4">
               {images.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
                   {images.map((url) => (
-                    <img key={url} src={url} alt="" className="w-20 h-20 rounded-none object-cover shrink-0" />
+                    <img key={url} src={url} alt="" className="photo-warm w-20 h-20 rounded-none border border-ink object-cover shrink-0" />
                   ))}
                 </div>
               )}
               <div>
-                <p className="text-xs text-muted">Title</p>
-                <p className="text-sm font-medium text-ink">{title || 'Untitled'}</p>
+                <p className="text-label text-muted">Title</p>
+                <p className="font-display text-[22px] leading-tight text-ink mt-1">{title || 'Untitled'}</p>
               </div>
               {description && (
                 <div>
-                  <p className="text-xs text-muted">Description</p>
-                  <p className="text-sm text-ink-2">{description}</p>
+                  <p className="text-label text-muted">Description</p>
+                  <p className="text-[15px] text-ink-2 mt-1">{description}</p>
                 </div>
               )}
               <div>
-                <p className="text-xs text-muted">Category</p>
-                <p className="text-sm text-ink">{category ? CATEGORY_LABELS[category] : '—'}</p>
+                <p className="text-label text-muted">Category</p>
+                <p className="text-[15px] text-ink mt-1">{category ? CATEGORY_LABELS[category] : '—'}</p>
               </div>
-              <div className="bg-forest-light rounded-none p-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-forest mb-0.5">Looking for</p>
-                <p className="text-sm text-forest-dark">{seeking}</p>
+              <div className="border-l-2 border-clay bg-clay-light/60 py-2.5 pl-3.5 pr-3">
+                <p className="text-label text-clay-dark mb-1">Looking for</p>
+                <p className="text-[15px] text-ink-2">{seeking}</p>
               </div>
             </div>
           </>
         )}
       </div>
 
-      <div className="flex gap-3 mt-8">
+      <div className="flex gap-3 mt-10 border-t border-ink pt-6">
         {step > 0 && (
           <Button variant="ghost" onClick={() => setStep((s) => s - 1)} className="flex-1">Back</Button>
         )}

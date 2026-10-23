@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapPin, ArrowRight, CheckCircle, Sparkles } from 'lucide-react'
-import { Button, Chip } from '@/components/ui'
+import { Button, Chip, Wordmark } from '@/components/ui'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore } from '@/stores'
 
@@ -75,28 +75,24 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
+    <div className="min-h-[100svh] bg-cream flex flex-col px-5 py-6">
+      <div className="mx-auto flex w-full max-w-xl items-center justify-between">
+        <Wordmark />
+        {step !== 'done' && (
+          <p className="text-label text-muted tabular-nums">Step {stepIndex + 1} of 3</p>
+        )}
+      </div>
+      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-10">
 
-        {/* Step progress */}
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            {STEPS.map((s, i) => (
+        {/* Step progress — a hairline that fills */}
+        <div className="mb-12 grid grid-cols-4 gap-1.5" aria-hidden="true">
+          {STEPS.map((s, i) => (
+            <div key={s} className="h-px bg-ink/20">
               <div
-                key={s}
-                className={`h-2 rounded-full transition-all duration-300 ease-out-soft ${
-                  s === step
-                    ? 'w-10 bg-ink'
-                    : stepIndex > i
-                      ? 'w-5 bg-ink/40'
-                      : 'w-5 bg-sand'
-                }`}
+                className={`h-px bg-ink transition-[width] duration-700 ease-out-soft ${stepIndex >= i ? 'w-full' : 'w-0'}`}
               />
-            ))}
-          </div>
-          {step !== 'done' && (
-            <p className="text-small text-muted">Step {stepIndex + 1} of 3</p>
-          )}
+            </div>
+          ))}
         </div>
 
         {/* key replays the entrance animation on every step change */}
@@ -104,17 +100,17 @@ export default function OnboardingPage() {
 
           {/* ── Step 1: Welcome ── */}
           {step === 'welcome' && (
-            <div className="text-center">
-              <div className="w-20 h-20 rounded-full border border-ink flex items-center justify-center mx-auto mb-6 animate-scale-in">
-                <Sparkles className="h-9 w-9 text-ink" strokeWidth={1.5} />
+            <div>
+              <div className="w-14 h-14 rounded-full border border-ink flex items-center justify-center mb-8 animate-scale-in">
+                <Sparkles className="h-6 w-6 text-clay" />
               </div>
-              <h1 className="text-heading-page text-ink mb-4">
-                Welcome, {currentUser.displayName.split(' ')[0]}!
+              <h1 className="text-display !text-[clamp(3rem,10vw,5.5rem)] text-ink mb-6">
+                Welcome, <em>{currentUser.displayName.split(' ')[0]}!</em>
               </h1>
-              <p className="text-lg text-ink-2 mb-2">
+              <p className="font-display text-[22px] leading-snug text-ink-2 mb-2">
                 Trade what you have for what you need.
               </p>
-              <p className="text-base text-muted mb-8">
+              <p className="text-base text-muted mb-10">
                 No money. Just neighbors helping neighbors.
               </p>
               <Button
@@ -131,27 +127,27 @@ export default function OnboardingPage() {
           {/* ── Step 2: Neighborhood ── */}
           {step === 'neighborhood' && (
             <div>
-              <div className="w-14 h-14 rounded-full bg-forest-light flex items-center justify-center mb-4">
-                <MapPin className="h-7 w-7 text-forest" />
+              <div className="w-12 h-12 rounded-full border border-ink flex items-center justify-center mb-6">
+                <MapPin className="h-5 w-5 text-clay" />
               </div>
-              <h2 className="text-heading-page text-ink mb-2">
+              <h2 className="text-heading-page text-ink mb-3">
                 Where do you live?
               </h2>
-              <p className="text-base text-muted mb-6">
+              <p className="text-base text-ink-2 mb-8">
                 Pick your Memphis neighborhood and we'll show trades closest to you.
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 border-t border-l border-ink mb-8">
                 {NEIGHBORHOODS.map((n) => (
                   <button
                     key={n}
                     type="button"
                     onClick={() => setNeighborhood(n)}
                     aria-pressed={neighborhood === n}
-                    className={`pressable min-h-[56px] p-3 rounded-none border-2 text-[15px] font-medium text-left transition-colors ${
+                    className={`pressable min-h-[60px] px-4 py-3 rounded-none border-b border-r border-ink text-[15px] font-medium text-left transition-colors duration-300 ${
                       neighborhood === n
-                        ? 'border-ink bg-ink text-cream'
-                        : 'border-sand hover:border-ink text-ink'
+                        ? 'bg-ink text-cream'
+                        : 'text-ink hover:bg-paper'
                     }`}
                   >
                     {n}
@@ -179,10 +175,10 @@ export default function OnboardingPage() {
           {/* ── Step 3: Interests ── */}
           {step === 'interests' && (
             <div>
-              <h2 className="text-heading-page text-ink mb-2">
+              <h2 className="text-heading-page text-ink mb-3">
                 What are you looking for?
               </h2>
-              <p className="text-base text-muted mb-6">
+              <p className="text-base text-ink-2 mb-8">
                 Pick at least 3 categories and we'll personalize your feed.
               </p>
 
@@ -229,14 +225,14 @@ export default function OnboardingPage() {
           {/* ── Step 4: Done ── */}
           {step === 'done' && (
             <div className="text-center">
-              <div className="w-20 h-20 rounded-full bg-teal-light flex items-center justify-center mx-auto mb-6 animate-scale-in">
-                <CheckCircle className="h-9 w-9 text-teal" />
+              <div className="w-16 h-16 rounded-full border border-teal bg-teal-light flex items-center justify-center mx-auto mb-8 animate-scale-in">
+                <CheckCircle className="h-7 w-7 text-teal-dark" />
               </div>
-              <h2 className="text-heading-page text-ink mb-3">
-                You're all set!
+              <h2 className="text-display !text-[clamp(3rem,10vw,5rem)] text-ink mb-5">
+                <em>You're all set!</em>
               </h2>
               <p className="text-base text-muted mb-1">
-                You're in <span className="font-medium text-ink">{neighborhood}</span>.
+                You're in <span className="font-display italic text-[18px] text-ink">{neighborhood}</span>.
               </p>
               <p className="text-base text-muted mb-8">
                 Explore nearby listings or post your first item to start trading.
