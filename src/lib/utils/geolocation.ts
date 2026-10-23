@@ -1,14 +1,21 @@
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
+import { MAPBOX_TOKEN } from '@/lib/env'
 
 /** Reverse geocode coordinates to a US zip code using Mapbox */
 export async function getZipFromCoords(lat: number, lng: number): Promise<string | null> {
   if (!MAPBOX_TOKEN) return null
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
   try {
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=postcode&country=US&access_token=${MAPBOX_TOKEN}`
+    const url = new URL(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng.toFixed(5)},${lat.toFixed(5)}.json`,
+    )
+    url.searchParams.set('types', 'postcode')
+    url.searchParams.set('country', 'US')
+    url.searchParams.set('access_token', MAPBOX_TOKEN)
     const res = await fetch(url)
     if (!res.ok) return null
     const data = await res.json()
-    return (data.features?.[0]?.text as string) ?? null
+    const zip = data.features?.[0]?.text
+    return typeof zip === 'string' && /^\d{5}$/.test(zip) ? zip : null
   } catch {
     return null
   }
