@@ -126,7 +126,7 @@ const TESTIMONIALS = [
     trade: 'Yard work ⇄ KitchenAid mixer',
   },
   {
-    quote: "My kids outgrew everything at once. One weekend on Bartrrr and their closets are full again — and another family got the crib they needed.",
+    quote: "My kids outgrew everything at once. One weekend on Bartrrr and their closets are full again, and another family got the crib they needed.",
     name: 'Priya P.', neighborhood: 'Germantown', initials: 'PP',
     trade: 'Kids’ clothes ⇄ Crib',
   },
@@ -146,7 +146,7 @@ const TESTIMONIALS = [
     trade: 'Record player ⇄ Guitar lessons',
   },
   {
-    quote: "It's the neighborly Memphis I remember growing up in — just easier to find.",
+    quote: "It's the neighborly Memphis I remember growing up in, just easier to find.",
     name: 'Alex C.', neighborhood: 'Cooper-Young', initials: 'AC',
     trade: null,
   },

@@ -57,7 +57,7 @@ export function Header({ className }: HeaderProps) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleSearch}
-          placeholder="Search listings, neighborhoods..."
+          placeholder="Search listings or neighborhoods"
           className="w-full rounded-full border border-ink bg-cream pl-9 pr-4 py-2.5 text-[15px] placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ink transition-colors"
         />
       </div>

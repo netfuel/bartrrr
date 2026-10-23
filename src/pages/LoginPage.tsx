@@ -101,7 +101,7 @@ export default function LoginPage() {
             >
               {isLoggingIn
                 ? 'Signing in…'
-                : `Log in as ${selectedUser?.displayName.split(' ')[0] || '...'}`}
+                : `Log in as ${selectedUser?.displayName.split(' ')[0] || '…'}`}
             </Button>
           </form>
         </div>
