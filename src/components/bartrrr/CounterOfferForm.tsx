@@ -4,10 +4,28 @@ import { Button, Textarea } from '@/components/ui'
 export interface CounterOfferFormProps {
   onSubmit: (content: string, items: string[]) => void
   onCancel: () => void
+  /** Items on the table right now; the form starts from these so a counter is an edit, not a blank slate */
+  initialItems?: string[]
+  /** First name of the other neighbor, for friendlier copy */
+  otherName?: string
+  /** True when this counter-offer uses the final round */
+  isLastRound?: boolean
+  /**
+   * Counter items always describe what the offer-maker gives. The offer-maker
+   * edits their own side; the listing owner edits what they'd want in return.
+   */
+  isOfferMaker?: boolean
 }
 
-export function CounterOfferForm({ onSubmit, onCancel }: CounterOfferFormProps) {
-  const [items, setItems] = useState('')
+export function CounterOfferForm({
+  onSubmit,
+  onCancel,
+  initialItems = [],
+  otherName = 'your neighbor',
+  isLastRound = false,
+  isOfferMaker = false,
+}: CounterOfferFormProps) {
+  const [items, setItems] = useState(initialItems.join('\n'))
   const [message, setMessage] = useState('')
 
   const parsedItems = items
@@ -17,16 +35,21 @@ export function CounterOfferForm({ onSubmit, onCancel }: CounterOfferFormProps) 
 
   const handleSubmit = () => {
     if (parsedItems.length === 0) return
-    onSubmit(message || 'Here is my counter offer', parsedItems)
+    onSubmit(message.trim() || 'Here’s a counter-offer.', parsedItems)
   }
 
   return (
     <div className="border border-ink bg-cream p-4 space-y-3">
-      <p className="text-sm font-medium text-ink">Counter offer</p>
+      <p className="text-sm font-medium text-ink">Counter-offer</p>
+      <p className="text-small text-muted">
+        Change what’s being traded and send it back to {otherName}.
+        {isLastRound && ' This is the last counter-offer either of you can send.'}
+      </p>
 
       <Textarea
-        label="What are you offering instead?"
-        placeholder="List your items (one per line)..."
+        label={isOfferMaker ? 'What will you offer instead?' : `What would you want from ${otherName} instead?`}
+        placeholder="One item or service per line"
+        helperText={parsedItems.length === 0 ? 'Add at least one item or service to send a counter-offer.' : undefined}
         value={items}
         onChange={(e) => setItems(e.target.value)}
         rows={3}
@@ -34,7 +57,7 @@ export function CounterOfferForm({ onSubmit, onCancel }: CounterOfferFormProps) 
 
       <Textarea
         label="Message (optional)"
-        placeholder="Explain your counter..."
+        placeholder="Say what you changed and why"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         rows={2}
@@ -51,7 +74,7 @@ export function CounterOfferForm({ onSubmit, onCancel }: CounterOfferFormProps) 
           disabled={parsedItems.length === 0}
           className="flex-1"
         >
-          Send counter
+          Send counter-offer
         </Button>
       </div>
     </div>

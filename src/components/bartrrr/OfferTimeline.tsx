@@ -12,7 +12,7 @@ interface TimelineStep {
 function buildSteps(offer: Offer): TimelineStep[] {
   const steps: TimelineStep[] = [
     {
-      label: 'Offer Sent',
+      label: 'Offer sent',
       timestamp: offer.createdAt,
       status: 'complete',
       icon: <Send className="h-3.5 w-3.5" />,
@@ -31,7 +31,7 @@ function buildSteps(offer: Offer): TimelineStep[] {
 
   if (offer.round > 1) {
     steps.push({
-      label: `Counter #${offer.round - 1}`,
+      label: `Counter-offer ${offer.round - 1} of ${offer.maxRounds - 1}`,
       timestamp: offer.messages.find((m) => m.type === 'counter')?.createdAt,
       status: 'complete',
       icon: <Eye className="h-3.5 w-3.5" />,
@@ -40,7 +40,7 @@ function buildSteps(offer: Offer): TimelineStep[] {
 
   if (offer.status === 'countered') {
     steps.push({
-      label: 'Awaiting Response',
+      label: 'Waiting for reply',
       status: 'waiting',
       icon: <Clock className="h-3.5 w-3.5" />,
     })
@@ -54,7 +54,7 @@ function buildSteps(offer: Offer): TimelineStep[] {
       icon: <Check className="h-3.5 w-3.5" />,
     })
     steps.push({
-      label: 'Agreement',
+      label: 'Sign agreement',
       status: 'active',
       icon: <FileCheck className="h-3.5 w-3.5" />,
     })
@@ -62,7 +62,7 @@ function buildSteps(offer: Offer): TimelineStep[] {
 
   if (offer.status === 'pending') {
     steps.push({
-      label: 'Awaiting Response',
+      label: 'Waiting for reply',
       status: 'waiting',
       icon: <Clock className="h-3.5 w-3.5" />,
     })

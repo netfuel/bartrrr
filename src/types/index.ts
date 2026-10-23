@@ -78,6 +78,13 @@ export type Offer = {
   createdAt: string
 }
 
+export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
+  pending: 'Waiting for reply',
+  countered: 'Counter-offer',
+  accepted: 'Accepted',
+  declined: 'Declined',
+}
+
 export type OfferDeclineReason =
   | 'not_interested'
   | 'looking_for_specific'
@@ -116,6 +123,22 @@ export type TradeAgreement = {
   status: AgreementStatus
   createdAt: string
   completedAt?: string
+}
+
+export const AGREEMENT_STATUS_LABELS: Record<AgreementStatus, string> = {
+  draft: 'Draft',
+  under_review: 'In review',
+  pending_signatures: 'Waiting to sign',
+  active: 'Ready to swap',
+  completed: 'Completed',
+  cancelled: 'Canceled',
+  disputed: 'Flagged',
+}
+
+export const EXCHANGE_METHOD_LABELS: Record<NonNullable<TradeAgreement['exchangeMethod']>, string> = {
+  in_person: 'Meet up in person',
+  dropoff: 'Drop-off',
+  service_at_location: 'Service on site',
 }
 
 // ─── User Profile ────────────────────────────────────────────
