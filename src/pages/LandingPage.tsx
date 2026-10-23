@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Repeat, MapPin, Shield, Star, Handshake, ShieldCheck,
@@ -9,8 +9,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { cn, usePageTitle } from '@/lib/utils'
 import { buttonStyles, Wordmark } from '@/components/ui'
-import { mockListings } from '@/data/mock-listings'
-import { CATEGORY_LABELS } from '@/types'
+import { CATEGORY_LABELS, type Listing } from '@/types'
+import { DEMO_MODE, HAS_SUPABASE } from '@/lib/env'
+import { fetchShowcaseListings } from '@/lib/supabase/supabase-service'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
@@ -114,47 +115,83 @@ const stats = [
   { stat: '30', value: 30, suffix: '', label: 'Days each listing stays up' },
 ]
 
-// Real inventory for the "trading right now" strip
-const showcaseListings = mockListings
-  .filter((l) => l.status === 'active' && l.images[0])
-  .slice(0, 8)
+const SHOWCASE_SIZE = 8
 
-const TESTIMONIALS = [
+/**
+ * Inventory for the "trading right now" strip. Demo builds show sample
+ * listings; real builds show real active listings (publicly readable) and
+ * fall back to a "be one of the first" invitation when there are none.
+ * Sample data is imported lazily so it never ships in production chunks.
+ */
+function useShowcaseListings(): Listing[] | null {
+  const [listings, setListings] = useState<Listing[] | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const load: Promise<Listing[]> = DEMO_MODE
+      ? import('@/data/mock-listings').then(({ mockListings }) =>
+          mockListings.filter((l) => l.status === 'active' && l.images[0]).slice(0, SHOWCASE_SIZE),
+        )
+      : HAS_SUPABASE
+        ? fetchShowcaseListings(SHOWCASE_SIZE)
+        : Promise.resolve([])
+    load
+      .catch((err) => {
+        console.warn('[Bartrrr] Landing showcase failed to load', err)
+        return [] as Listing[]
+      })
+      .then((result) => {
+        if (cancelled) return
+        setListings(result)
+        // Section height changed: recompute scroll-triggered reveals below it
+        requestAnimationFrame(() => ScrollTrigger.refresh())
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return listings
+}
+
+// Illustrations of the kinds of trades Bartrrr is for. These are examples,
+// not reviews: no names, no first-person quotes, labeled as such on the page.
+const EXAMPLE_TRADES = [
   {
-    quote: 'I traded two hours of yard work for a stand mixer that runs better than the one I almost bought. Never opened my wallet once.',
-    name: 'Dave M.', neighborhood: 'East Memphis', initials: 'DM',
-    trade: 'Yard work ⇄ KitchenAid mixer',
+    story: 'Two hours of yard work for a stand mixer, so nobody has to buy a new one.',
+    neighborhood: 'East Memphis',
+    trade: 'Yard work ⇄ Stand mixer',
   },
   {
-    quote: "My kids outgrew everything at once. One weekend on Bartrrr and their closets are full again, and another family got the crib they needed.",
-    name: 'Priya P.', neighborhood: 'Germantown', initials: 'PP',
+    story: 'A bag of outgrown kids’ clothes for a crib that another family is done with.',
+    neighborhood: 'Germantown',
     trade: 'Kids’ clothes ⇄ Crib',
   },
   {
-    quote: "I fix bikes. My neighbor bakes bread. We've been trading for three months now and I'm never buying bread again.",
-    name: 'Sam N.', neighborhood: 'Overton Square', initials: 'SN',
+    story: 'A bike tune-up every season for a fresh sourdough loaf every week.',
+    neighborhood: 'Overton Square',
     trade: 'Bike repair ⇄ Sourdough',
   },
   {
-    quote: "My pension doesn't stretch like it used to. Trading my sewing for fresh produce has honestly changed my month-to-month.",
-    name: 'Nina R.', neighborhood: 'South Main Arts District', initials: 'NR',
+    story: 'Hemming and alterations for a share of a neighbor’s garden harvest.',
+    neighborhood: 'South Main Arts District',
     trade: 'Alterations ⇄ Garden produce',
   },
   {
-    quote: 'Posted my old record player at lunch. By dinner I had guitar lessons lined up for my daughter.',
-    name: 'Jamie O.', neighborhood: 'Downtown Memphis', initials: 'JO',
+    story: 'A record player that sat in a closet for guitar lessons for a 10-year-old.',
+    neighborhood: 'Downtown Memphis',
     trade: 'Record player ⇄ Guitar lessons',
   },
   {
-    quote: "It's the neighborly Memphis I remember growing up in, just easier to find.",
-    name: 'Alex C.', neighborhood: 'Cooper-Young', initials: 'AC',
-    trade: null,
+    story: 'An afternoon of help moving furniture for a home-cooked dinner for four.',
+    neighborhood: 'Cooper-Young',
+    trade: 'Moving help ⇄ Dinner',
   },
 ]
 
 export default function LandingPage() {
   const container = useRef<HTMLDivElement>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const showcaseListings = useShowcaseListings()
+  const hasShowcase = showcaseListings !== null && showcaseListings.length > 0
   usePageTitle()
 
   useGSAP(
@@ -341,11 +378,12 @@ export default function LandingPage() {
       </div>
 
       {/* ── Trading right now: real inventory strip ── */}
+      {hasShowcase && (
       <section id="listings" className="scroll-mt-16 border-b border-ink py-20 sm:py-28 overflow-hidden">
-        <div data-reveal className="mx-auto max-w-[1400px] px-5 lg:px-8">
+        <div className="mx-auto max-w-[1400px] px-5 lg:px-8 animate-fade-up">
           <div className="mb-10 sm:mb-14 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="eyebrow mb-6">Live in Memphis</p>
+              <p className="eyebrow mb-6">{DEMO_MODE ? 'Sample listings' : 'Live in Memphis'}</p>
               <h2 className="text-heading-editorial">Trading<br />right now</h2>
             </div>
             <Link to="/browse" className="text-label link-underline shrink-0 self-start sm:self-auto">
@@ -354,13 +392,12 @@ export default function LandingPage() {
           </div>
         </div>
         <div
-          data-reveal-group
-          className="no-scrollbar flex snap-x snap-mandatory gap-4 sm:gap-5 overflow-x-auto px-5 pb-2 scroll-px-5 lg:scroll-px-8 lg:px-[max(2rem,calc((100vw-1400px)/2+2rem))]"
+          className="no-scrollbar flex snap-x snap-mandatory gap-4 sm:gap-5 overflow-x-auto px-5 pb-2 scroll-px-5 lg:scroll-px-8 lg:px-[max(2rem,calc((100vw-1400px)/2+2rem))] animate-fade-up stagger-1"
         >
           {showcaseListings.map((l, i) => (
             <Link
               key={l.id}
-              to="/browse"
+              to={`/listing/${l.id}`}
               className="group flex w-[78vw] max-w-[300px] shrink-0 snap-start flex-col border border-ink bg-paper transition-colors duration-500 hover:bg-sand-light sm:w-[300px]"
             >
               <div className="relative aspect-[4/5] overflow-hidden border-b border-ink bg-sand-light">
@@ -401,6 +438,35 @@ export default function LandingPage() {
           <span aria-hidden="true" className="w-px shrink-0" />
         </div>
       </section>
+      )}
+
+      {/* ── Nothing listed yet: invite the first neighbors ── */}
+      {showcaseListings !== null && !hasShowcase && (
+      <section id="listings" className="scroll-mt-16 border-b border-ink">
+        <div className="mx-auto grid max-w-[1400px] animate-fade-up lg:grid-cols-12">
+          <div className="px-5 py-20 sm:py-28 lg:col-span-7 lg:px-8">
+            <p className="eyebrow mb-6">Just opening in Memphis</p>
+            <h2 className="text-heading-editorial max-w-[14ch]">
+              Be one of the <em>first</em> to trade.
+            </h2>
+            <p className="mt-8 max-w-[44ch] text-[19px] leading-[1.55] text-ink-2">
+              Bartrrr is brand new, so the shelves are still empty. Post the first listing in your
+              neighborhood and you'll be the one neighbors find when they open the map.
+            </p>
+          </div>
+          <Link
+            to="/auth/signup"
+            className="group pressable flex flex-col items-start justify-between gap-6 border-t border-ink bg-ink p-8 text-cream transition-colors duration-500 hover:bg-clay-dark sm:p-10 lg:col-span-5 lg:border-l lg:border-t-0"
+          >
+            <span className="font-display text-[88px] font-light leading-none transition-transform duration-500 ease-out-soft group-hover:translate-x-2">→</span>
+            <span>
+              <span className="block font-display text-[32px] font-normal italic leading-tight tracking-[-0.015em]">Post the first listing</span>
+              <span className="text-label mt-3 block text-cream/70">Join free. No money changes hands.</span>
+            </span>
+          </Link>
+        </div>
+      </section>
+      )}
 
       {/* ── Editorial statement ── */}
       <section className="border-b border-ink">
@@ -479,35 +545,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Neighbors are talking ── */}
+      {/* ── Example trades (illustrative, not reviews) ── */}
       <section className="border-b border-ink">
         <div className="mx-auto max-w-[1400px] px-5 py-20 sm:py-28 lg:px-8">
           <div data-reveal className="mb-12 sm:mb-16">
             <p className="eyebrow mb-6">Trades like these</p>
             <h2 className="text-heading-editorial">What a swap<br />can look like</h2>
+            <p className="text-label mt-6 text-muted">Examples of the trades Bartrrr is made for</p>
           </div>
 
           <div data-reveal-group className="columns-1 gap-5 sm:columns-2 lg:columns-3">
-            {TESTIMONIALS.map((t) => (
-              <figure key={t.name} className="mb-5 break-inside-avoid border border-ink bg-paper p-7">
-                <span aria-hidden="true" className="-mb-3 block font-display text-[64px] leading-none text-clay">“</span>
-                <blockquote className="font-display text-[21px] font-normal leading-[1.38] tracking-[-0.01em] text-ink">{t.quote}</blockquote>
-                {t.trade && (
-                  <p className="text-label mt-6 inline-flex items-center rounded-full border border-ink/40 px-3.5 py-1.5 text-ink-2">
-                    {t.trade}
-                  </p>
-                )}
-                <figcaption className="mt-6 flex items-center gap-3 border-t border-ink/30 pt-5">
-                  <span
-                    aria-hidden="true"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-sand-light font-display text-[14px] italic text-ink"
-                  >
-                    {t.initials}
-                  </span>
-                  <span>
-                    <span className="block text-[15px] font-medium">{t.name}</span>
-                    <span className="text-label block text-muted">{t.neighborhood}</span>
-                  </span>
+            {EXAMPLE_TRADES.map((t) => (
+              <figure key={t.trade} className="mb-5 break-inside-avoid border border-ink bg-paper p-7">
+                <p className="text-label mb-5 inline-flex items-center rounded-full border border-ink/40 px-3.5 py-1.5 text-ink-2">
+                  {t.trade}
+                </p>
+                <p className="font-display text-[21px] font-normal leading-[1.38] tracking-[-0.01em] text-ink">{t.story}</p>
+                <figcaption className="text-label mt-6 border-t border-ink/30 pt-5 text-muted">
+                  Example · {t.neighborhood}
                 </figcaption>
               </figure>
             ))}

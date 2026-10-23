@@ -223,6 +223,26 @@ export async function fetchListings(): Promise<Listing[]> {
   return (data ?? []).map(mapListingRow)
 }
 
+/**
+ * A few active listings with photos for the public landing page. Listings
+ * are readable without a session (RLS select policy is public), so this
+ * works for signed-out visitors.
+ */
+export async function fetchShowcaseListings(limit = 8): Promise<Listing[]> {
+  const { data, error } = await client()
+    .from('listings')
+    .select('*')
+    .eq('status', 'active')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(limit * 3)
+  if (error) throw error
+  return (data ?? [])
+    .map(mapListingRow)
+    .filter((l) => l.images.length > 0)
+    .slice(0, limit)
+}
+
 export async function fetchListing(id: string): Promise<Listing | null> {
   const { data, error } = await client().from('listings').select('*').eq('id', id).maybeSingle()
   if (error) throw error
