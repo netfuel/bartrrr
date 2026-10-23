@@ -48,19 +48,20 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      <h1 className="text-heading-page text-ink mb-6">Settings</h1>
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <h1 className="text-heading-page text-ink mb-10">Settings</h1>
 
       {/* Profile section */}
-      <section className="border border-ink bg-cream p-6 mb-6">
-        <h2 className="font-display text-lg font-semibold text-ink mb-4">Profile</h2>
-        <div className="space-y-4">
+      <section className="grid gap-6 border-t border-ink py-8 md:grid-cols-[180px_1fr] md:gap-10">
+        <h2 className="text-heading-section text-ink">Profile</h2>
+        <div className="space-y-5">
           <Input label="Display name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           <Input label="Neighborhood" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-ink-2">Bio</label>
+            <label htmlFor="settings-bio" className="text-label text-ink-2">Bio</label>
             <textarea
-              className="rounded-none border border-ink bg-cream px-3 py-2.5 text-[15px] text-ink placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ink resize-y min-h-[80px]"
+              id="settings-bio"
+              className="rounded-none border border-ink/40 bg-paper px-4 py-3 text-base text-ink placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay resize-y min-h-[110px] transition-colors"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
             />
@@ -69,34 +70,49 @@ export default function SettingsPage() {
       </section>
 
       {/* Notifications */}
-      <section className="border border-ink bg-cream p-6 mb-6">
-        <h2 className="font-display text-lg font-semibold text-ink mb-4">Notifications</h2>
-        <div className="space-y-3">
+      <section className="grid gap-6 border-t border-ink py-8 md:grid-cols-[180px_1fr] md:gap-10">
+        <h2 className="text-heading-section text-ink">Notifications</h2>
+        <div className="divide-y divide-ink/15 border-y border-ink/15">
           {NOTIF_LABELS.map(({ key, label }) => (
-            <label key={key} className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-ink-2">{label}</span>
-              <input
-                type="checkbox"
-                checked={prefs[key]}
-                onChange={() => togglePref(key)}
-                className="w-4 h-4 accent-clay"
-              />
+            <label key={key} className="group flex min-h-[56px] items-center justify-between gap-4 cursor-pointer">
+              <span className="text-[16px] text-ink">{label}</span>
+              {/* Switch: native checkbox kept for semantics, drawn as a track */}
+              <span className="relative inline-flex shrink-0">
+                <input
+                  type="checkbox"
+                  checked={prefs[key]}
+                  onChange={() => togglePref(key)}
+                  className="peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none rounded-full"
+                />
+                <span
+                  aria-hidden="true"
+                  className="h-7 w-12 rounded-full border border-ink bg-cream transition-colors duration-300 peer-checked:bg-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-clay"
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-ink transition-[transform,background-color] duration-300 ease-spring peer-checked:translate-x-5 peer-checked:bg-cream"
+                />
+              </span>
             </label>
           ))}
         </div>
       </section>
 
       {/* Save button */}
-      <Button variant="primary" size="sm" onClick={handleSave} className="mb-6">
-        {saved ? '✓ Saved!' : 'Save changes'}
-      </Button>
+      <div className="flex justify-end border-t border-ink py-6">
+        <Button variant="primary" onClick={handleSave} className="min-w-[160px]">
+          {saved ? '✓ Saved!' : 'Save changes'}
+        </Button>
+      </div>
 
       {/* Account */}
-      <section className="border border-ink bg-cream p-6">
-        <h2 className="font-display text-lg font-semibold text-ink mb-4">Account</h2>
-        <Button variant="outline" size="sm" onClick={() => { logout().then(() => navigate('/auth/login')) }}>
-          Log out
-        </Button>
+      <section className="grid gap-6 border-t border-ink py-8 md:grid-cols-[180px_1fr] md:gap-10">
+        <h2 className="text-heading-section text-ink">Account</h2>
+        <div>
+          <Button variant="outline" onClick={() => { logout().then(() => navigate('/auth/login')) }}>
+            Log out
+          </Button>
+        </div>
       </section>
     </div>
   )

@@ -93,30 +93,27 @@ export default function ActivityFeedPage() {
   if (!currentUser) return null
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <Rss className="h-5 w-5 text-clay" />
-          <h1 className="text-[20px] font-medium tracking-tight text-ink">
-            What's happening in {currentUser.neighborhood}
-          </h1>
-        </div>
-        <p className="text-sm text-muted pl-7">
+      <div className="mb-10">
+        <p className="eyebrow mb-4">
           Recent listings and completed trades in your neighborhood
         </p>
+        <h1 className="text-heading-page text-ink">
+          What's happening in <em>{currentUser.neighborhood}</em>
+        </h1>
       </div>
 
       {/* Feed */}
       {feedItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-14 h-14 rounded-full bg-sand-light flex items-center justify-center mb-4">
-            <Rss className="h-7 w-7 text-muted" />
+          <div className="w-14 h-14 rounded-full border border-ink flex items-center justify-center mb-6">
+            <Rss className="h-6 w-6 text-clay" />
           </div>
-          <p className="font-display text-base font-semibold text-ink mb-1">
+          <p className="font-display text-[28px] text-ink mb-2">
             No activity yet
           </p>
-          <p className="text-sm text-muted max-w-xs">
+          <p className="text-base text-ink-2 max-w-xs">
             When neighbors in {currentUser.neighborhood} post listings or complete
             trades, you'll see them here.
           </p>
@@ -124,53 +121,53 @@ export default function ActivityFeedPage() {
       ) : (
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-[19px] top-0 bottom-0 w-px bg-sand" />
+          <div className="absolute left-[19px] top-2 bottom-6 w-px bg-ink/25" />
 
           <div className="space-y-0">
             {feedItems.map((item) => (
-              <div key={`${item.type}-${item.id}`} className="relative flex gap-4 pb-6">
+              <div key={`${item.type}-${item.id}`} className="relative flex gap-5 pb-8">
                 {/* Icon bubble */}
                 <div
-                  className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${
+                  className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full border flex items-center justify-center ${
                     item.type === 'listing'
-                      ? 'bg-clay-light'
-                      : 'bg-forest-light'
+                      ? 'border-clay bg-cream text-clay'
+                      : 'border-forest bg-forest text-cream'
                   }`}
                 >
                   {item.type === 'listing' ? (
-                    <MapPin className="h-4.5 w-4.5 text-clay" />
+                    <MapPin className="h-4 w-4" />
                   ) : (
-                    <Repeat className="h-4.5 w-4.5 text-forest" />
+                    <Repeat className="h-4 w-4" />
                   )}
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 pt-1 min-w-0">
+                <div className="flex-1 pt-1.5 min-w-0">
                   {item.type === 'listing' ? (
                     <>
-                      <p className="text-sm font-medium text-ink leading-snug">
-                        <span className="text-clay">{item.displayerName}</span>{' '}
+                      <p className="text-[16px] text-ink-2 leading-snug">
+                        <span className="font-medium text-ink">{item.displayerName}</span>{' '}
                         listed{' '}
-                        <span className="font-semibold">{item.title}</span>
+                        <span className="font-display text-[19px] text-ink">{item.title}</span>
                       </p>
-                      <p className="text-xs text-muted mt-0.5">
+                      <p className="text-small text-muted mt-1">
                         {item.neighborhood} · {item.category}
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-medium text-ink leading-snug">
-                        <span className="text-forest">{item.partyAName}</span>{' '}
+                      <p className="text-[16px] text-ink-2 leading-snug">
+                        <span className="font-medium text-ink">{item.partyAName}</span>{' '}
                         &amp;{' '}
-                        <span className="text-forest">{item.partyBName}</span>{' '}
+                        <span className="font-medium text-ink">{item.partyBName}</span>{' '}
                         completed a trade
                       </p>
-                      <p className="text-xs text-muted mt-0.5">
+                      <p className="text-small text-muted mt-1">
                         2 items exchanged
                       </p>
                     </>
                   )}
-                  <p className="text-xs text-muted mt-1">{timeAgo(item.timestamp)}</p>
+                  <p className="text-label text-muted mt-2">{timeAgo(item.timestamp)}</p>
                 </div>
               </div>
             ))}

@@ -20,20 +20,20 @@ export default function ProfilePage() {
   const user = username === 'me' ? currentUser : getUserByUsername(username || '')
 
   if (!user) {
-    return <div className="p-8 text-center text-muted">Profile not found.</div>
+    return <div className="px-5 py-24 text-center font-display text-[28px] text-ink">Profile not found.</div>
   }
 
   const userListings = listings.filter((l) => l.userId === user.id && l.status === 'active')
   const reviews = getReviewsForUser(user.id)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
       {/* Profile header */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-        <Avatar src={user.avatarUrl} name={user.displayName} userId={user.id} size="xl" />
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row items-start gap-6 sm:gap-8">
+        <Avatar src={user.avatarUrl} name={user.displayName} userId={user.id} size="xl" className="!h-24 !w-24 sm:!h-28 sm:!w-28 text-2xl" />
+        <div className="flex-1 min-w-0">
           <h1 className="text-heading-page text-ink">{user.displayName}</h1>
-          <div className="flex items-center justify-center sm:justify-start gap-3 mt-1 text-sm text-muted">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[15px] text-muted">
             <span className="flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5" />
               {user.neighborhood}
@@ -43,18 +43,18 @@ export default function ProfilePage() {
               Joined {new Date(user.joinedAt).toLocaleDateString([], { month: 'short', year: 'numeric' })}
             </span>
           </div>
-          <div className="flex items-center justify-center sm:justify-start gap-4 mt-2">
-            <span className="flex items-center gap-1 text-sm font-medium text-gold">
-              <Star className="h-4 w-4 fill-gold" />
+          <div className="mt-5 inline-flex items-stretch border border-ink">
+            <span className="flex items-center gap-1.5 px-4 py-2 text-numeral text-[26px] text-ink">
+              <Star className="h-4 w-4 fill-gold text-gold" />
               {user.reputationScore.toFixed(1)}
             </span>
-            <span className="text-sm text-ink-2">{user.tradeCount} trades</span>
+            <span className="flex items-center border-l border-ink px-4 py-2 text-label text-ink-2">{user.tradeCount} trades</span>
           </div>
-          {user.bio && <p className="mt-3 text-sm text-ink-2 leading-relaxed">{user.bio}</p>}
+          {user.bio && <p className="mt-6 max-w-[52ch] font-display text-[20px] leading-[1.45] text-ink">{user.bio}</p>}
           {user.lookingFor && user.lookingFor.length > 0 && (
-            <div className="mt-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-1.5">Looking for</p>
-              <div className="flex flex-wrap gap-1.5">
+            <div className="mt-6">
+              <p className="eyebrow mb-3">Looking for</p>
+              <div className="flex flex-wrap gap-2">
                 {user.lookingFor.map((tag) => (<Chip key={tag} label={tag} />))}
               </div>
             </div>
@@ -64,7 +64,7 @@ export default function ProfilePage() {
 
       <Tabs
         label="Profile sections"
-        className="mt-8 mb-6"
+        className="mt-10 mb-6 max-w-sm"
         active={tab}
         onChange={setTab}
         tabs={[
@@ -74,9 +74,9 @@ export default function ProfilePage() {
       />
 
       {tab === 'portfolio' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {userListings.length === 0 ? (
-            <p className="text-sm text-muted col-span-full text-center py-8">No listings yet.</p>
+            <p className="font-display text-[22px] text-muted col-span-full text-center py-12">No listings yet.</p>
           ) : (
             userListings.map((listing) => (
               <TradeCard key={listing.id} listing={listing} user={user} />
@@ -86,9 +86,9 @@ export default function ProfilePage() {
       )}
 
       {tab === 'reviews' && (
-        <div className="space-y-4">
+        <div className="max-w-2xl">
           {reviews.length === 0 ? (
-            <div className="text-center py-12 text-sm text-muted">
+            <div className="text-center py-12 font-display text-[22px] text-muted">
               Reviews will appear here after completed trades.
             </div>
           ) : (
