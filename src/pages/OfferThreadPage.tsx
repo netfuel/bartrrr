@@ -27,9 +27,9 @@ export default function OfferThreadPage() {
 
   if (!offer || !currentUser) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-muted">Offer not found.</p>
-        <Link to="/offers" className="text-ink underline underline-offset-4 text-base mt-2 inline-block">Back to offers</Link>
+      <div className="px-5 py-24 text-center">
+        <p className="font-display text-[28px] text-ink">Offer not found.</p>
+        <Link to="/offers" className="text-label link-underline mt-4 inline-block text-ink">Back to offers</Link>
       </div>
     )
   }
@@ -113,51 +113,54 @@ export default function OfferThreadPage() {
   const agreement = getAgreementByOfferId(offer.id)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-56">
-      <BackLink to="/offers" className="mb-2">Back to offers</BackLink>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-64 lg:pb-48">
+      <BackLink to="/offers" className="mb-3">Back to offers</BackLink>
 
       {/* The trade, in plain terms */}
-      <div className="border border-ink bg-cream p-5 mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-label text-muted">The trade so far</p>
+      <section className="border border-ink bg-paper mb-5">
+        <div className="flex items-center justify-between gap-4 border-b border-ink px-5 py-3.5">
+          <p className="eyebrow">The trade so far</p>
           <Badge variant={offer.status === 'accepted' ? 'teal' : offer.status === 'declined' ? 'clay' : 'gold'}>
             {offer.status}
           </Badge>
         </div>
-        <div className="flex items-stretch gap-3">
-          <div className="flex-1 rounded-none bg-clay-light/50 p-4">
-            <p className="text-label text-clay mb-1.5">You give</p>
-            <p className="text-base font-medium text-ink leading-snug">{youGive}</p>
+        <div className="relative grid grid-cols-1 sm:grid-cols-2">
+          <div className="px-5 py-5 sm:py-6 sm:pr-10 border-b border-ink/20 sm:border-b-0 sm:border-r">
+            <p className="text-label text-clay-dark mb-2">You give</p>
+            <p className="font-display text-[22px] leading-[1.25] tracking-[-0.01em] text-ink">{youGive}</p>
           </div>
-          <div className="flex items-center text-muted shrink-0">
-            <ArrowLeftRight className="h-5 w-5" />
+          <div className="px-5 py-5 sm:py-6 sm:pl-10">
+            <p className="text-label text-forest mb-2">You get</p>
+            <p className="font-display text-[22px] leading-[1.25] tracking-[-0.01em] text-ink">{youGet}</p>
           </div>
-          <div className="flex-1 rounded-none bg-forest-light/60 p-4">
-            <p className="text-label text-forest mb-1.5">You get</p>
-            <p className="text-base font-medium text-ink leading-snug">{youGet}</p>
-          </div>
+          <span
+            aria-hidden="true"
+            className="absolute right-5 top-[calc(50%-1.25rem)] sm:right-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-ink bg-cream text-ink"
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+          </span>
         </div>
         {listing && (
           <Link
             to={`/listing/${listing.id}`}
-            className="mt-4 flex items-center gap-3 rounded-none border border-sand-light p-2.5 hover:border-sand transition-colors"
+            className="group flex items-center gap-3 border-t border-ink px-5 py-3 transition-colors hover:bg-cream"
           >
             {listing.images[0] && (
-              <img src={listing.images[0]} alt={listing.title} className="w-12 h-12 rounded-none object-cover" />
+              <img src={listing.images[0]} alt="" className="photo-warm w-11 h-11 rounded-none object-cover" />
             )}
             <div className="flex-1 min-w-0">
               <p className="text-[15px] font-medium text-ink truncate">{listing.title}</p>
               <p className="text-small text-muted">{listing.location.neighborhood}</p>
             </div>
-            <ArrowRight className="h-4 w-4 text-muted shrink-0" />
+            <ArrowRight className="h-4 w-4 text-muted shrink-0 transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
           </Link>
         )}
-      </div>
+      </section>
 
       {/* Where things stand */}
-      <div className="border border-ink bg-cream px-5 py-4 mb-6 overflow-x-auto">
+      <div className="border-y border-ink/30 py-5 mb-8">
         <OfferTimeline offer={offer} />
-        <p className="text-small text-muted mt-3">
+        <p className="text-small text-ink-2 mt-4">
           Round {offer.round} of {offer.maxRounds}
           {isActive && !isWaiting && ' — your move: accept, suggest a change, or pass.'}
           {isActive && isWaiting && ` — waiting for ${otherUser.displayName.split(' ')[0]} to respond.`}
@@ -178,15 +181,15 @@ export default function OfferThreadPage() {
       )}
 
       {/* Action bar */}
-      <div className="fixed bottom-16 lg:bottom-0 left-0 lg:left-60 right-0 bg-cream/95 backdrop-blur-sm border-t border-ink p-4 z-30">
-        <div className="max-w-2xl mx-auto space-y-3">
+      <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-0 left-0 lg:left-60 right-0 bg-cream/95 backdrop-blur-md border-t border-ink px-4 py-3 sm:p-4 z-30">
+        <div className="max-w-3xl mx-auto space-y-2.5 sm:space-y-3 sm:px-2">
           {/* Message composer for active offers */}
           {isActive && (
             <MessageComposer onSend={handleSendMessage} placeholder={`Message ${otherUser.displayName.split(' ')[0]}...`} />
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             {isActive ? (
               isWaiting ? (
                 <Button variant="ghost" disabled className="flex-1">
@@ -194,15 +197,15 @@ export default function OfferThreadPage() {
                 </Button>
               ) : (
                 <>
-                  <Button variant="ghost" className="flex-1" onClick={() => setShowDeclineModal(true)}>
+                  <Button variant="ghost" className="shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowDeclineModal(true)}>
                     No thanks
                   </Button>
                   {canCounter && (
-                    <Button variant="outline" className="flex-1" onClick={() => setShowCounterForm(!showCounterForm)}>
+                    <Button variant="outline" className="flex-1 whitespace-nowrap px-3 text-[14px] sm:text-[15px]" aria-expanded={showCounterForm} onClick={() => setShowCounterForm(!showCounterForm)}>
                       Suggest a change
                     </Button>
                   )}
-                  <Button variant="confirm" className="flex-1" onClick={handleAccept}>
+                  <Button variant="confirm" className="flex-1 whitespace-nowrap px-3 text-[14px] sm:text-[15px]" onClick={handleAccept}>
                     Accept trade
                   </Button>
                 </>

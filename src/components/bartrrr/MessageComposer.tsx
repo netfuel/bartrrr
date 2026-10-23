@@ -29,13 +29,14 @@ export function MessageComposer({
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 min-h-[48px] rounded-full border border-ink bg-cream px-5 text-base placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ink transition-colors"
+        aria-label={placeholder}
+        className="flex-1 min-w-0 min-h-[48px] rounded-full border border-ink/40 bg-paper px-5 text-base placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay transition-colors"
       />
       <button
         type="submit"
         disabled={!text.trim()}
         aria-label="Send message"
-        className="pressable flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ink text-cream disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ink-2 transition-colors"
+        className="pressable flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ink text-cream disabled:opacity-35 disabled:cursor-not-allowed hover:bg-clay-dark transition-colors duration-300"
       >
         <Send className="h-5 w-5" />
       </button>

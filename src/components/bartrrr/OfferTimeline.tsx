@@ -72,17 +72,17 @@ function buildSteps(offer: Offer): TimelineStep[] {
 }
 
 const statusColors = {
-  complete: 'bg-teal text-white',
-  active: 'bg-forest text-white',
-  waiting: 'bg-gold-light text-gold',
-  declined: 'bg-clay-light text-clay',
+  complete: 'bg-ink text-cream border-ink',
+  active: 'bg-forest text-cream border-forest',
+  waiting: 'bg-cream text-clay-dark border-clay border-dashed',
+  declined: 'bg-clay-light text-clay-dark border-clay',
 }
 
 const lineColors = {
-  complete: 'bg-teal',
+  complete: 'bg-ink',
   active: 'bg-forest',
-  waiting: 'bg-sand',
-  declined: 'bg-clay-light',
+  waiting: 'bg-ink/25',
+  declined: 'bg-clay',
 }
 
 export interface OfferTimelineProps {
@@ -94,25 +94,24 @@ export function OfferTimeline({ offer, className }: OfferTimelineProps) {
   const steps = buildSteps(offer)
 
   return (
-    <div className={cn('flex items-center gap-0 overflow-x-auto', className)}>
+    <ol className={cn('no-scrollbar flex items-start gap-0 overflow-x-auto', className)}>
       {steps.map((step, i) => (
-        <div key={i} className="flex items-center shrink-0">
+        <li key={i} className={cn('flex items-start', i < steps.length - 1 ? 'flex-1 min-w-[88px]' : 'shrink-0')}>
           {/* Step */}
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-start gap-1.5">
             <div
               className={cn(
-                'flex items-center justify-center w-9 h-9 rounded-full',
+                'flex items-center justify-center w-8 h-8 rounded-full border',
                 statusColors[step.status],
-                step.status === 'waiting' && 'animate-pulse',
               )}
             >
               {step.icon}
             </div>
-            <p className="text-xs font-medium text-ink-2 whitespace-nowrap">
+            <p className="text-label text-ink mt-1 max-w-[8rem] leading-snug sm:max-w-none sm:whitespace-nowrap">
               {step.label}
             </p>
             {step.timestamp && (
-              <p className="text-[11px] text-muted">
+              <p className="text-small text-muted">
                 {new Date(step.timestamp).toLocaleDateString([], {
                   month: 'short',
                   day: 'numeric',
@@ -124,14 +123,15 @@ export function OfferTimeline({ offer, className }: OfferTimelineProps) {
           {/* Connector line */}
           {i < steps.length - 1 && (
             <div
+              aria-hidden="true"
               className={cn(
-                'h-0.5 w-10 mx-1.5 mt-[-22px]',
+                'h-px flex-1 mx-3 mt-4 min-w-6',
                 lineColors[steps[i + 1].status],
               )}
             />
           )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ol>
   )
 }

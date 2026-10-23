@@ -19,9 +19,9 @@ function OfferBubbleInner({
   const showAsConfirmed = isConfirmed || isAccept
 
   return (
-    <div className={cn('animate-fade-up flex flex-col gap-1 max-w-[80%]', isOwn ? 'ml-auto items-end' : 'items-start')}>
+    <div className={cn('animate-fade-up flex flex-col gap-1.5 max-w-[86%] sm:max-w-[72%]', isOwn ? 'ml-auto items-end' : 'items-start')}>
       {/* Sender label */}
-      <p className="text-label text-muted px-1">
+      <p className="text-label text-muted">
         {isOwn ? 'You' : senderName}
         {message.type === 'counter' && ' · Counter'}
         {message.type === 'offer' && ' · Offer'}
@@ -30,27 +30,27 @@ function OfferBubbleInner({
       {/* Bubble */}
       <div
         className={cn(
-          'px-4 py-3 text-[15px] leading-relaxed ',
+          'px-4 py-3.5 text-[16px] leading-[1.5]',
           showAsConfirmed
-            ? 'bg-teal-light border border-teal-dark rounded-none'
+            ? 'bg-teal-light border border-teal text-ink rounded-[2px_14px_14px_14px]'
             : isOwn
-              ? 'bg-ink text-cream rounded-none'
-              : 'bg-cream border border-ink rounded-none',
+              ? 'bg-ink text-cream rounded-[14px_2px_14px_14px]'
+              : 'bg-paper border border-ink text-ink rounded-[2px_14px_14px_14px]',
         )}
       >
         {/* Items offered */}
         {message.items && message.items.length > 0 && (
-          <div className="mb-2">
+          <div className="mb-2.5 flex flex-wrap gap-1.5">
             {message.items.map((item, i) => (
               <span
                 key={i}
                 className={cn(
-                  'inline-block rounded-full px-2.5 py-0.5 text-small font-medium mr-1.5 mb-1',
+                  'inline-flex items-center rounded-full border px-3 py-1 font-display text-[15px] leading-tight',
                   showAsConfirmed
-                    ? 'bg-teal/10 text-teal-dark'
+                    ? 'border-teal/40 text-teal-dark'
                     : isOwn
-                      ? 'bg-white/20 text-white'
-                      : 'bg-sand-light text-ink-2',
+                      ? 'border-cream/30 text-cream'
+                      : 'border-ink/25 bg-cream text-ink',
                 )}
               >
                 {item}
@@ -65,11 +65,11 @@ function OfferBubbleInner({
         {/* Timestamp */}
         <p
           className={cn(
-            'text-[11px] mt-1.5',
+            'text-label mt-2',
             showAsConfirmed
-              ? 'text-teal-dark/60'
+              ? 'text-teal-dark'
               : isOwn
-                ? 'text-white/60'
+                ? 'text-cream/70'
                 : 'text-muted',
           )}
         >

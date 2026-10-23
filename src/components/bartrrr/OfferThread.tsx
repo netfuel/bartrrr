@@ -18,7 +18,7 @@ export function OfferThread({
   className,
 }: OfferThreadProps) {
   return (
-    <div className={cn('flex flex-col gap-4 px-2', className)}>
+    <div className={cn('flex flex-col gap-6', className)}>
       {offer.messages.map((message) => {
         const isOwn = message.fromUserId === currentUserId
         const sender =
