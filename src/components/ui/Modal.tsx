@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 
 export interface ModalProps {
@@ -64,7 +65,9 @@ export function Modal({ onClose, labelledBy, align = 'center', className, childr
     }
   }, [])
 
-  return (
+  // Portaled to <body>: <main> runs an opacity animation, which makes it a
+  // stacking context and would trap z-50 below the z-40 mobile bottom bar.
+  return createPortal(
     <div
       className={cn(
         'fixed inset-0 z-50 flex justify-center',
@@ -87,6 +90,7 @@ export function Modal({ onClose, labelledBy, align = 'center', className, childr
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
