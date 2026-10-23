@@ -11,12 +11,19 @@ export const CATEGORY_COLORS: Record<Category, string> = {
 export const CATEGORY_LABELS: Record<Category, string> = {
   goods: 'Goods',
   services: 'Services',
-  skills: 'Skills & Expertise',
-  outdoor: 'Outdoor & Garden',
+  skills: 'Skills & expertise',
+  outdoor: 'Outdoor & garden',
 }
 
 // ─── Listing ─────────────────────────────────────────────────
 export type ListingCondition = 'new' | 'like_new' | 'good' | 'fair'
+
+export const CONDITION_LABELS: Record<ListingCondition, string> = {
+  new: 'New',
+  like_new: 'Like new',
+  good: 'Good',
+  fair: 'Fair',
+}
 
 export type ListingStatus = 'active' | 'pending' | 'closed'
 
@@ -81,10 +88,10 @@ export type OfferDeclineReason =
 export const DECLINE_REASON_LABELS: Record<OfferDeclineReason, string> = {
   not_interested: "Not interested in what's being offered",
   looking_for_specific:
-    "I'm looking for something specific — check my listing tags",
+    "I'm looking for something specific: check what my listing asks for",
   not_fair: "Offer doesn't feel like a fair trade",
   accepted_another: "I've already accepted another offer",
-  no_longer_available: 'Item/service is no longer available',
+  no_longer_available: "It's no longer available",
 }
 
 // ─── Trade Agreement ─────────────────────────────────────────

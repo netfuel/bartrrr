@@ -67,8 +67,8 @@ export const useOffersStore = create<OffersState>((set, get) => ({
     // Notify the listing owner
     sendPushNotification({
       userId: data.toUserId,
-      title: 'New offer on your listing!',
-      body: 'Someone made you a trade offer. Tap to view.',
+      title: 'New offer on your listing',
+      body: 'A neighbor wants to trade with you. Tap to see what they offered.',
       url: `/offers/${id}`,
     })
     // Persist to Supabase and replace local temp offer with real one.
@@ -91,7 +91,7 @@ export const useOffersStore = create<OffersState>((set, get) => ({
         const msg: OfferMessage = {
           id: generateId(),
           fromUserId: userId,
-          content: 'Offer accepted!',
+          content: 'Offer accepted.',
           type: 'accept',
           createdAt: new Date().toISOString(),
         }
@@ -105,8 +105,8 @@ export const useOffersStore = create<OffersState>((set, get) => ({
       const notifyUserId = offer.fromUserId === userId ? offer.toUserId : offer.fromUserId
       sendPushNotification({
         userId: notifyUserId,
-        title: 'Your offer was accepted!',
-        body: "Great news — it's a deal. Tap to sign the agreement.",
+        title: 'Your offer was accepted',
+        body: "It's a deal. Tap to review and sign the trade agreement.",
         url: `/offers/${offerId}`,
       })
     }
@@ -157,7 +157,7 @@ export const useOffersStore = create<OffersState>((set, get) => ({
       sendPushNotification({
         userId: notifyUserId,
         title: 'New counter-offer',
-        body: 'Someone responded with a counter-offer. Tap to review.',
+        body: 'Your neighbor suggested a change. Tap to review it.',
         url: `/offers/${offerId}`,
       })
     }

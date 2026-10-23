@@ -83,10 +83,10 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
       const bothSigned = ag.partyA.signed && ag.partyB.signed
       sendPushNotification({
         userId: notifyUserId,
-        title: bothSigned ? 'Agreement fully signed!' : 'Agreement signed',
+        title: bothSigned ? "You're both signed: time to swap" : 'Your turn to sign',
         body: bothSigned
-          ? "Both parties have signed. The trade is officially on!"
-          : 'Your trade partner signed the agreement. Your turn!',
+          ? 'You both signed the trade agreement. Meet up and make the swap.'
+          : 'Your neighbor signed the trade agreement. Review it and sign to lock in the trade.',
         url: `/agreements/${id}`,
       })
     }
@@ -100,6 +100,6 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => ({
           : a,
       ),
     }))
-    svc.completeAgreement(id).catch(persistError("Couldn't mark the trade complete"))
+    svc.completeAgreement(id).catch(persistError("Couldn't mark the trade as done"))
   },
 }))

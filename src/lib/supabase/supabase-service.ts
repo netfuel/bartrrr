@@ -418,7 +418,7 @@ export async function acceptOffer(id: string, userId: string): Promise<void> {
     offer_id: id,
     from_user_id: userId,
     type: 'accept',
-    content: 'Offer accepted!',
+    content: 'Offer accepted.',
     items: [],
   })
   if (msgErr) throw msgErr
