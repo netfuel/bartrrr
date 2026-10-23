@@ -12,6 +12,8 @@ const statusBadge: Record<string, { variant: 'teal' | 'gold' | 'clay' | 'closed'
   countered: { variant: 'gold', label: 'Countered' },
   accepted: { variant: 'teal', label: 'Accepted' },
   declined: { variant: 'clay', label: 'Declined' },
+  withdrawn: { variant: 'closed', label: 'Withdrawn' },
+  expired: { variant: 'closed', label: 'Expired' },
 }
 
 export default function OffersInboxPage() {
@@ -59,7 +61,7 @@ export default function OffersInboxPage() {
             const otherUser = getUserById(otherUserId)
             const listing = getListingById(offer.listingId)
             const lastMessage = offer.messages[offer.messages.length - 1]
-            const sb = statusBadge[offer.status]
+            const sb = statusBadge[offer.status] ?? { variant: 'closed' as const, label: offer.status }
 
             return (
               <Link

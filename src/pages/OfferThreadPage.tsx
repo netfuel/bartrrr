@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeftRight } from 'lucide-react'
 import { Button, Badge, BackLink } from '@/components/ui'
 import { OfferThread, OfferTimeline, DeclineModal, CounterOfferForm, MessageComposer } from '@/components/bartrrr'
 import { useOffersStore, useUsersStore, useListingsStore, useAgreementsStore, useNotificationsStore } from '@/stores'
+import { hasBackend } from '@/stores/persist'
 import { useAuth } from '@/providers/AuthProvider'
 import type { OfferDeclineReason } from '@/types'
 
@@ -41,8 +42,9 @@ export default function OfferThreadPage() {
 
   const otherUserId = currentUser.id === offer.fromUserId ? offer.toUserId : offer.fromUserId
   const otherUser = currentUser.id === offer.fromUserId ? toUser : fromUser
-  const lastMessage = offer.messages[offer.messages.length - 1]
-  const isWaiting = lastMessage?.fromUserId === currentUser.id && (offer.status === 'pending' || offer.status === 'countered')
+  // Whose turn it is depends on the latest offer/counter, not on chat messages
+  const lastMove = [...offer.messages].reverse().find((m) => m.type === 'offer' || m.type === 'counter')
+  const isWaiting = (lastMove?.fromUserId ?? offer.fromUserId) === currentUser.id && (offer.status === 'pending' || offer.status === 'countered')
   const canCounter = offer.round < offer.maxRounds
   const isActive = offer.status === 'pending' || offer.status === 'countered'
 
@@ -56,15 +58,18 @@ export default function OfferThreadPage() {
   const youGet = iAmOfferMaker ? listedItem : offeredItems
 
   const handleAccept = () => {
+    if (!isActive || isWaiting) return
     acceptOffer(offer.id, currentUser.id)
 
+    // Optimistic draft; the server creates the real one with the same id
     const agreementId = createAgreement({
       offerId: offer.id,
       partyA: { userId: offer.fromUserId, item: offeredItems },
       partyB: { userId: offer.toUserId, item: listedItem },
     })
 
-    if (listing) updateListing(listing.id, { status: 'pending' })
+    // With a backend, the accept itself puts the listing on hold server-side
+    if (listing && !hasBackend()) updateListing(listing.id, { status: 'pending' })
 
     addNotification({
       userId: otherUserId,
@@ -88,6 +93,7 @@ export default function OfferThreadPage() {
   }
 
   const handleCounter = (content: string, items: string[]) => {
+    if (!isActive || isWaiting || !canCounter) return
     counterOffer(offer.id, currentUser.id, content, items)
     setShowCounterForm(false)
     addNotification({
