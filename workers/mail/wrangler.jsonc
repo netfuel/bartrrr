@@ -1,0 +1,20 @@
+{
+  // Sends Bartrrr's auth emails (sign-up confirmation, password reset,
+  // email change, sign-in links) through Cloudflare Email Service.
+  // Supabase calls this Worker via its "Send Email" auth hook.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bartrrr-mail",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "send_email": [{ "name": "EMAIL" }],
+  "vars": {
+    "SENDER_EMAIL": "no-reply@bartrrr.app",
+    "SENDER_NAME": "Bartrrr",
+    "REPLY_TO": "hello@bartrrr.app",
+    "SITE_URL": "https://bartrrr.app",
+    "SUPABASE_URL": "https://uykknvmxntknclkyqvao.supabase.co"
+  }
+  // Secret (set in the dashboard, never committed):
+  //   SEND_EMAIL_HOOK_SECRET  "v1,whsec_..." from Supabase → Auth Hooks → Send Email
+}
