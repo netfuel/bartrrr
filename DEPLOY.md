@@ -92,10 +92,11 @@ Apple's web flow never returns the person's name; onboarding asks for it.
    |---|---|
    | `VITE_SUPABASE_URL` | `https://<ref>.supabase.co` |
    | `VITE_SUPABASE_ANON_KEY` | anon public key |
-   | `VITE_MAPBOX_TOKEN` | `pk.…` (restrict to bartrrr.app URLs in Mapbox) |
    | `VITE_SITE_URL` | `https://bartrrr.app` |
    | `VITE_VAPID_PUBLIC_KEY` | optional |
    | `VITE_AUTH_PROVIDERS` | optional, e.g. `google` until Apple is ready |
+
+   Maps need no key: tiles come from OpenFreeMap (OpenStreetMap data), and the signup ZIP check runs on the device.
 
    Do **not** set `VITE_DEMO_MODE` in production. Variables are baked in at build time, so redeploy after changing any.
 4. **Custom domains:** add `bartrrr.app` and `www.bartrrr.app` (the zone is already on Cloudflare, so DNS records are created for you).

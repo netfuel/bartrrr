@@ -10,12 +10,12 @@ Live at **https://bartrrr.app** · Repo: [github.com/netfuel/bartrrr](https://gi
 
 You post a listing and say what you'd like in return. Neighbors make offers, you go back and forth with counter-offers (up to 5 rounds), and once someone accepts, you both sign a simple, non-binding trade agreement, make the swap, and leave each other a review.
 
-- **Browse:** grid or Mapbox map of nearby listings, filter by category, search by keyword or neighborhood. Locations are neighborhood-level only (coordinates are rounded to ~1 km in the database).
+- **Browse:** grid or map of nearby listings, filter by category, search by keyword or neighborhood. Locations are neighborhood-level only (coordinates are rounded to ~1 km in the database).
 - **Offers:** offer, counter-offer, accept or decline with a reason. Offers expire after 72 hours without a reply; the thread shows whose move it is and how many rounds are left.
 - **Trade agreements:** drafted automatically when an offer is accepted. Each neighbor signs for themselves; both signatures make it ready to swap. Exchange method, date, place and notes live on the agreement.
 - **Reviews and reputation:** star rating and comment after a completed trade. Ratings and trade counts are maintained by the database, never by the client.
 - **Dashboard, feed, notifications:** your listings, offers in and out, agreements, neighborhood activity, in-app notifications (server-generated) and optional web push.
-- **Onboarding:** name, neighborhood, interests. Signup checks you're in a supported Memphis-area ZIP code (device location via Mapbox, or manual entry).
+- **Onboarding:** name, neighborhood, interests. Signup checks you're in a supported Memphis-area ZIP code (device location, matched to a ZIP code on the device, or manual entry).
 
 ## Sign-in
 
@@ -36,7 +36,7 @@ All three run through Supabase Auth and return to `/auth/callback`. `VITE_AUTH_P
 | State | Zustand |
 | Routing | React Router v7 |
 | Backend | Supabase (Postgres with RLS, Auth, Realtime, Edge Functions) |
-| Map | Mapbox GL JS v3 (loaded only when a map is shown) |
+| Map | MapLibre GL JS with OpenFreeMap tiles from OpenStreetMap data: no API key (loaded only when a map is shown) |
 | Hosting | Cloudflare Pages |
 
 ## Getting started
@@ -59,12 +59,13 @@ All are read at build time and ship to the browser. Never put a secret in a `VIT
 |---|---|---|
 | `VITE_SUPABASE_URL` | Yes, unless demo mode | `https://<ref>.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Yes, unless demo mode | Supabase anon (public) key; RLS protects the data |
-| `VITE_MAPBOX_TOKEN` | Recommended | Public `pk.` token for the map and location-based ZIP check |
 | `VITE_SITE_URL` | Recommended | Canonical origin, defaults to `https://bartrrr.app` |
 | `VITE_VAPID_PUBLIC_KEY` | Optional | Web push public key |
 | `VITE_AUTH_PROVIDERS` | Optional | Comma-separated OAuth buttons to show (`google,apple`) |
 | `VITE_DEMO_MODE` | Dev only | `true` enables sample data and the demo picker |
 | `VITE_DEMO_PASSWORD` | Dev only | Password for seeded `*@bartrrr.demo` users when demo mode talks to a Supabase project |
+
+Maps need no key: MapLibre loads OpenFreeMap tiles built on OpenStreetMap data.
 
 If the required Supabase variables are missing in a non-demo build, the app shows a "We'll be right back" screen and logs which variables are missing to the console.
 
