@@ -18,7 +18,7 @@ Set up October 2026. No secrets here: keys live in the dashboards named.
 | Apple sign-in | Not set up; hidden by `VITE_AUTH_PROVIDERS=google` | To do |
 | Maps | MapLibre + OpenFreeMap tiles, no key | Live |
 | Contact email | `hello@bartrrr.app` → netfuel@gmail.com via Cloudflare Email Routing | Live |
-| Transactional email | Supabase built-in sender (a few emails an hour) | Replace before public launch (step 1.7) |
+| Transactional email | Supabase Send Email hook → `bartrrr-mail` Worker → Cloudflare Email Service, from `no-reply@bartrrr.app` | Live (200/day account quota) |
 | www → apex redirect | Redirect Rule not created yet | To do (step 4.5) |
 
 ## 1. Supabase project
@@ -55,7 +55,7 @@ Set up October 2026. No secrets here: keys live in the dashboards named.
      - `https://*-bartrrr.netfuel.workers.dev/**` (Cloudflare preview versions, if you test sign-in on them)
      - `http://localhost:5173/**`
 6. **Authentication → Sign In / Providers:** "Confirm email" on. **Email** provider: minimum password length 8, password requirements "Letters and digits" (matches the signup form's helper text).
-7. **Authentication → Emails → SMTP:** configure a real SMTP sender (e.g. Resend, Postmark) from `no-reply@bartrrr.app`. Supabase's built-in sender is rate-limited to a few emails per hour, which isn't enough for launch.
+7. **Authentication → Auth Hooks → Send Email hook (HTTPS):** URL `https://bartrrr-mail.netfuel.workers.dev`, secret generated there and stored on the Worker as `SEND_EMAIL_HOOK_SECRET`. Custom SMTP stays **off**: the hook replaces it and Supabase's email templates. Copy and layout live in `workers/mail/src/templates.ts`; setup details in `workers/mail/README.md`. Cloudflare SMTP relay was tried and failed with Supabase, so don't switch back to it.
 8. **Edge function (push notifications, optional):**
    ```sh
    npx web-push generate-vapid-keys
@@ -123,6 +123,8 @@ The site is an assets-only Cloudflare Worker named `bartrrr`, built by Workers B
 6. **SSL/TLS → Edge Certificates:** turn on *Always Use HTTPS*. (The SSL mode setting doesn't apply here: the Worker is the origin.)
 7. Don't add Cache Rules that cache HTML. `public/_headers` already sets immutable caching for `/assets/*` and `no-cache` for `/sw.js`.
 8. **Email Routing** (bartrrr.app → Email → Email Routing): MX, SPF and DKIM records added; rule `hello@bartrrr.app` → netfuel@gmail.com. Add more addresses the same way.
+9. **Mail Worker** `bartrrr-mail`: Workers Builds from the same repo, root directory `/workers/mail`, no build command, deploy `npx wrangler deploy`. Binding `EMAIL` (send_email) and vars live in `workers/mail/wrangler.jsonc`; the one secret is `SEND_EMAIL_HOOK_SECRET`. `GET /health` returns `{"ok":true}`.
+10. **Social share image:** `public/og-image.jpg` (1200×630), referenced by absolute URL in `index.html`. Source is an HTML layout rendered with Playwright: homepage nav bar with the wordmark, the `homes-poster.jpg` hero with the walnut scrim, and "Trade, don’t buy." in Fraunces. After changing it, re-scrape in the Facebook Sharing Debugger and LinkedIn Post Inspector, which cache images.
 
 If a deploy fails with `Internal authentication error ... [code: 10500]`, that's a Cloudflare API hiccup (often two deploys at once): retry the build.
 
@@ -142,7 +144,7 @@ What the repo ships for the Worker's static assets:
 - [ ] Password reset email arrives and `/auth/reset-password` sets a new password
 - [ ] Deep link while signed out (e.g. `/offers/…`) returns there after login
 - [ ] Browser console shows no CSP violations on `/`, `/browse` (map, after login), `/auth/login`
-- [ ] SMTP sender verified (SPF/DKIM on bartrrr.app)
+- [ ] Sender domain onboarded in Cloudflare Email Service (cf-bounce, DKIM, DMARC on bartrrr.app); `bartrrr-mail` logs show `sent recovery <id>` after a reset
 - [ ] Apple secret expiry reminder set (6 months)
 
 ## Local development
