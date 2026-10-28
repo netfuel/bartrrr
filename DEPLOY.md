@@ -19,7 +19,7 @@ Set up October 2026. No secrets here: keys live in the dashboards named.
 | Maps | MapLibre + OpenFreeMap tiles, no key | Live |
 | Contact email | `hello@bartrrr.app` → netfuel@gmail.com via Cloudflare Email Routing | Live |
 | Transactional email | Supabase Send Email hook → `bartrrr-mail` Worker → Cloudflare Email Service, from `no-reply@bartrrr.app` | Live (200/day account quota) |
-| www → apex redirect | Redirect Rule not created yet | To do (step 4.5) |
+| www → apex redirect | Redirect Rule "www to bartrrr.app": `https://www.*` → `https://${1}`, 301, query string kept | Live |
 
 ## 1. Supabase project
 
@@ -119,7 +119,7 @@ The site is an assets-only Cloudflare Worker named `bartrrr`, built by Workers B
 
    Do **not** set `VITE_DEMO_MODE` in production. Changing a variable doesn't redeploy: open the latest build under **Deployments** and click **Retry build**, or push a commit.
 4. **Domains:** `bartrrr.app` and `www.bartrrr.app` are attached as Custom Domains on the Worker (Worker → Domains). The zone is on Cloudflare, so DNS and certificates are handled for you.
-5. **www → apex redirect:** bartrrr.app zone → **Rules → Redirect Rules → Create** → template "Redirect from WWW to root", status 301, preserve query string. (`_redirects` can't redirect between hostnames.) Until this exists, www serves the same site and the canonical tag points search engines at `bartrrr.app`.
+5. **www → apex redirect:** bartrrr.app zone → **Rules → Redirect Rules → Create** → template "Redirect from WWW to root", status 301, preserve query string. (`_redirects` can't redirect between hostnames.) Created as "www to bartrrr.app". Cloudflare warns that www may not be proxied: ignore it, the Worker custom domain is proxied and the rule works.
 6. **SSL/TLS → Edge Certificates:** turn on *Always Use HTTPS*. (The SSL mode setting doesn't apply here: the Worker is the origin.)
 7. Don't add Cache Rules that cache HTML. `public/_headers` already sets immutable caching for `/assets/*` and `no-cache` for `/sw.js`.
 8. **Email Routing** (bartrrr.app → Email → Email Routing): MX, SPF and DKIM records added; rule `hello@bartrrr.app` → netfuel@gmail.com. Add more addresses the same way.
