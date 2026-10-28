@@ -47,8 +47,8 @@ const sections: LegalSection[] = [
         <h3>Your location</h3>
         <p>
           When you sign up, we ask your device for its location once, to check that you're inside our Memphis
-          service area. The coordinates go to Mapbox, our map provider, to look up your ZIP code. We don't save those
-          coordinates. You can type a ZIP code instead.
+          service area. Your ZIP code is worked out on your device: the coordinates never leave it, and we don't
+          save them. You can type a ZIP code instead.
         </p>
         <p>
           Listings are placed on the map at the center of your neighborhood, never at your address. An exact meeting
@@ -135,7 +135,7 @@ const sections: LegalSection[] = [
         <ul>
           <li><strong>Supabase:</strong> our database and sign-in.</li>
           <li><strong>Cloudflare:</strong> hosting and delivering the website.</li>
-          <li><strong>Mapbox:</strong> maps and the ZIP code lookup at sign-up.</li>
+          <li><strong>OpenFreeMap:</strong> the map tiles your browser downloads when you view the map, built on OpenStreetMap data.</li>
           <li><strong>Google Fonts:</strong> the typefaces on the site, which your browser downloads from Google.</li>
           <li><strong>Google and Apple:</strong> only if you choose to sign in with them.</li>
           <li><strong>Our email provider:</strong> sending account emails.</li>
