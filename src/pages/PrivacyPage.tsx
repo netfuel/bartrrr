@@ -173,7 +173,10 @@ const sections: LegalSection[] = [
           We keep your account information for as long as your account is open. Offers, messages and agreements stay
           available to both neighbors in a trade, because they're a shared record.
         </p>
-        <p>When you delete your account, we:</p>
+        <p>
+          You can delete your account any time at the bottom of <Link to="/settings">Settings</Link>, or by emailing
+          {' '}{mail} from the address on your account. When you delete your account, we:
+        </p>
         <ul>
           <li>Delete your sign-in details, profile photo, bio, interests, notifications and notification settings.</li>
           <li>Delete listings nobody has made an offer on, and take down and clear the rest.</li>
@@ -206,8 +209,12 @@ const sections: LegalSection[] = [
           <strong>Take down a listing</strong> from the listing page.
         </li>
         <li>
-          <strong>Get a copy of your information, correct it, or delete your account</strong> by emailing {mail} from
-          the address on your account. We'll reply within 30 days.
+          <strong>Delete your account</strong> at the bottom of <Link to="/settings">Settings</Link>. It happens right
+          away.
+        </li>
+        <li>
+          <strong>Get a copy of your information, correct it, or ask us to delete your account</strong> by emailing
+          {' '}{mail} from the address on your account. We'll reply within 30 days.
         </li>
       </ul>
     ),

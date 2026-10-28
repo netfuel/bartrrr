@@ -383,6 +383,10 @@ export interface Database {
         }
         Returns: Database['public']['Tables']['offers']['Row']
       }
+      delete_my_account: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: Record<string, never>
   }

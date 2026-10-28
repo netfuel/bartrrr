@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Input } from '@/components/ui'
+import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore, showToast } from '@/stores'
 import { usePageTitle } from '@/lib/utils'
@@ -143,6 +144,8 @@ export default function SettingsPage() {
           </Button>
         </div>
       </section>
+
+      <DeleteAccountSection />
     </div>
   )
 }

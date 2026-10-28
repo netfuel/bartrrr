@@ -31,6 +31,7 @@ const ActivityFeedPage = lazy(() => import('@/pages/ActivityFeedPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'))
 const TermsPage = lazy(() => import('@/pages/TermsPage'))
+const GoodbyePage = lazy(() => import('@/pages/GoodbyePage'))
 
 function RouteFallback() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/goodbye" element={<GoodbyePage />} />
 
         {/* Protected app routes */}
         <Route element={<ProtectedRoute />}>

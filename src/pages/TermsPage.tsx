@@ -193,8 +193,9 @@ const sections: LegalSection[] = [
     title: 'Leaving Bartrrr',
     body: (
       <p>
-        You can stop using Bartrrr whenever you like. To delete your account, email {mail} from the address on your
-        account. Please finish or cancel any open trades first.
+        You can stop using Bartrrr whenever you like. To delete your account, choose Delete account at the bottom of
+        Settings, or email {mail} from the address on your account. Deleting withdraws your open offers and cancels
+        trade agreements that aren't finished, so please finish or cancel open trades first.
       </p>
     ),
   },
