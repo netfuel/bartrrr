@@ -138,7 +138,7 @@ What the repo ships for the Worker's static assets:
 
 - [ ] `npm run typecheck && npm run lint && npm run build` pass
 - [x] Migrations 001–007 applied; offer-expiry cron job active
-- [ ] Migration 008 applied: Storage shows a public `listing-photos` bucket (2 MB limit, WebP/JPEG); posting a listing with a photo works
+- [x] Migration 008 applied: Storage shows a public `listing-photos` bucket (2 MB limit, WebP/JPEG); posting a listing with a photo works
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
