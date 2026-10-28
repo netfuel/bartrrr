@@ -1,8 +1,9 @@
 import { useId, useState } from 'react'
-import { ArrowLeftRight, Check } from 'lucide-react'
+import { ArrowLeftRight, Check, Flag, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, Button, Badge } from '@/components/ui'
 import { AGREEMENT_STATUS_LABELS, type TradeAgreement, type UserProfile } from '@/types'
+import { isBeingAgreed, listPhrase, missingDetails } from '@/lib/agreements'
 
 export interface AgreementCardProps {
   agreement: TradeAgreement
@@ -12,6 +13,8 @@ export interface AgreementCardProps {
   onSign?: () => void
   className?: string
 }
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 const statusBadgeVariant: Record<string, 'teal' | 'gold' | 'clay' | 'moss' | 'active' | 'closed'> = {
   draft: 'gold',
@@ -37,6 +40,8 @@ export function AgreementCard({
   const isPartyA = currentUserId === agreement.partyA.userId
   const isParticipant = currentUserId === agreement.partyA.userId || currentUserId === agreement.partyB.userId
   const hasSigned = isPartyA ? agreement.partyA.signed : agreement.partyB.signed
+  const open = isBeingAgreed(agreement)
+  const missing = open ? missingDetails(agreement) : []
 
   // Speak from the reader's perspective when they're part of the trade
   const you = isPartyA
@@ -127,8 +132,27 @@ export function AgreementCard({
         ))}
       </div>
 
+      {/* Time and place still to settle (signing waits on these) */}
+      {missing.length > 0 && !(onSign && isParticipant && !hasSigned) && (
+        <p className="border-t border-ink/30 bg-gold-light/60 px-5 py-3 text-small text-ink-2 sm:px-7">
+          <span className="font-medium text-ink">Still needed:</span> {listPhrase(missing)}
+        </p>
+      )}
+
       {/* CTA */}
-      {!bothSigned && !hasSigned && onSign && isParticipant && (
+      {open && !hasSigned && onSign && isParticipant && missing.length > 0 && (
+        <div className="border-t border-ink px-5 py-5 sm:px-7">
+          <Button variant="confirm" size="lg" disabled className="w-full">
+            <Check className="h-5 w-5" /> Sign agreement
+          </Button>
+          <p className="text-small text-ink-2 text-center mt-3">
+            {capitalize(listPhrase(missing))} {missing.length === 1 ? 'is' : 'are'} still needed.
+            Add {missing.length === 1 ? 'it' : 'them'} below before you sign.
+          </p>
+        </div>
+      )}
+
+      {open && !hasSigned && onSign && isParticipant && missing.length === 0 && (
         <div className="border-t border-ink px-5 py-5 sm:px-7">
           <label htmlFor={ackId} className="flex items-start gap-3 mb-4 text-[15px] text-ink-2 cursor-pointer">
             <input
@@ -154,13 +178,27 @@ export function AgreementCard({
         </div>
       )}
 
-      {!bothSigned && hasSigned && (
+      {open && !bothSigned && hasSigned && (
         <p className="border-t border-ink/30 px-5 py-4 text-center text-[15px] text-ink-2 sm:px-7">
           You signed. Waiting for {them.user.displayName.split(' ')[0]} to sign. We'll let you know.
         </p>
       )}
 
-      {bothSigned && (
+      {agreement.status === 'cancelled' && (
+        <div className="flex items-center justify-center gap-2 border-t border-ink/30 bg-sand-light px-5 py-4 text-ink-2 font-medium text-base">
+          <X className="h-5 w-5" />
+          This trade was canceled.
+        </div>
+      )}
+
+      {agreement.status === 'disputed' && (
+        <div className="flex items-center justify-center gap-2 border-t border-clay bg-clay-light px-5 py-4 text-clay-dark font-medium text-base">
+          <Flag className="h-5 w-5" />
+          Flagged for review
+        </div>
+      )}
+
+      {bothSigned && (agreement.status === 'active' || agreement.status === 'completed') && (
         <div className="flex items-center justify-center gap-2 border-t border-teal bg-teal-light px-5 py-4 text-teal-dark font-medium text-base animate-scale-in">
           <Check className="h-5 w-5" />
           You both signed. Time to swap!

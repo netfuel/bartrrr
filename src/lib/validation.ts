@@ -80,6 +80,28 @@ export const reviewSchema = z.object({
   comment: trimmed(1000),
 })
 
+/**
+ * Trade agreement time and place (agreements_terms_len in 004, details
+ * guard in 009). Each part is optional so neighbors can fill it in over
+ * time; signing needs method, time and place (enforced by the server).
+ */
+export const exchangeDetailsSchema = z.object({
+  exchangeMethod: z.enum(['in_person', 'dropoff', 'service_at_location']).optional(),
+  exchangeDate: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), 'Pick a date and time for the swap.')
+    .refine((v) => Date.parse(v) > Date.now(), "Pick a time that hasn't happened yet.")
+    .optional(),
+  exchangeLocation: z.string().trim().max(300, 'Keep the place to 300 characters or fewer.').optional(),
+  specialInstructions: z.string().trim().max(1000, 'Keep notes to 1,000 characters or fewer.').optional(),
+})
+
+export const disputeReasonSchema = z
+  .string()
+  .trim()
+  .min(1, 'Say briefly what went wrong.')
+  .max(500, 'Keep it to 500 characters or fewer.')
+
 export { ValidationError }
 
 /** Parse or throw a ValidationError carrying the first issue's message. */

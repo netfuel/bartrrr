@@ -1,10 +1,11 @@
 import { create } from 'zustand'
-import type { TradeAgreement } from '@/types'
+import type { ExchangeDetails, TradeAgreement } from '@/types'
 import { mockAgreements } from '@/data/mock-agreements'
 import { DEMO_MODE } from '@/lib/env'
 import * as svc from '@/lib/supabase/supabase-service'
 import { hasBackend, persist } from './persist'
 import { sendPushNotification } from '@/lib/push'
+import { canCancel, canFlag, isBeingAgreed, isLateCancellation } from '@/lib/agreements'
 
 interface CreateAgreementData {
   offerId: string
@@ -23,7 +24,15 @@ interface AgreementsState {
   createAgreement: (data: CreateAgreementData) => string
   signAgreement: (id: string, userId: string) => void
   completeAgreement: (id: string) => void
+  /** Set or change the time and place. Clears both signatures, as the server does. */
+  updateExchangeDetails: (id: string, userId: string, details: ExchangeDetails) => void
+  /** Returns whether this counts as a late cancellation (the server has the final say). */
+  cancelAgreement: (id: string, userId: string) => boolean
+  flagAgreement: (id: string, userId: string, reason: string) => void
 }
+
+const otherParty = (a: TradeAgreement, userId: string) =>
+  a.partyA.userId === userId ? a.partyB.userId : a.partyA.userId
 
 /** Matches the id the server assigns when it drafts the agreement on accept. */
 export const agreementIdForOffer = (offerId: string) => `agreement-${offerId}`
@@ -118,6 +127,89 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => {
       persist(() => svc.completeAgreement(id), {
         error: "Couldn't mark the trade as done",
         onSuccess: replace,
+        rollback: () => replace(previous),
+      })
+    },
+
+    updateExchangeDetails: (id, userId, details) => {
+      const previous = get().agreements.find((a) => a.id === id)
+      if (!previous || !isBeingAgreed(previous)) return
+      const now = new Date().toISOString()
+      replace({
+        ...previous,
+        exchangeMethod: details.exchangeMethod,
+        exchangeDate: details.exchangeDate,
+        exchangeLocation: details.exchangeLocation?.trim() || undefined,
+        specialInstructions: details.specialInstructions?.trim() || undefined,
+        partyA: { ...previous.partyA, signed: false },
+        partyB: { ...previous.partyB, signed: false },
+        termsUpdatedBy: userId,
+        termsUpdatedAt: now,
+      })
+      persist(() => svc.updateExchangeDetails(id, details), {
+        error: "Couldn't save the time and place",
+        onSuccess: (saved) => {
+          replace(saved)
+          sendPushNotification({
+            userId: otherParty(previous, userId),
+            title: 'Trade details changed',
+            body: 'Your neighbor changed the time and place. Review the agreement and sign again.',
+            url: `/agreements/${id}`,
+          })
+        },
+        rollback: () => replace(previous),
+      })
+    },
+
+    cancelAgreement: (id, userId) => {
+      const previous = get().agreements.find((a) => a.id === id)
+      if (!previous || !canCancel(previous)) return false
+      const late = isLateCancellation(previous)
+      replace({
+        ...previous,
+        status: 'cancelled',
+        cancelledBy: userId,
+        cancelledAt: new Date().toISOString(),
+        cancelledLate: late,
+      })
+      persist(() => svc.cancelAgreement(id), {
+        error: "Couldn't cancel the trade",
+        onSuccess: (saved) => {
+          replace(saved)
+          sendPushNotification({
+            userId: otherParty(previous, userId),
+            title: 'Trade canceled',
+            body: 'Your neighbor canceled your trade agreement. Message them if you want to try again.',
+            url: `/agreements/${id}`,
+          })
+        },
+        rollback: () => replace(previous),
+      })
+      return late
+    },
+
+    flagAgreement: (id, userId, reason) => {
+      const previous = get().agreements.find((a) => a.id === id)
+      const trimmed = reason.trim()
+      if (!previous || !canFlag(previous) || !trimmed) return
+      replace({
+        ...previous,
+        status: 'disputed',
+        disputedBy: userId,
+        disputedAt: new Date().toISOString(),
+        disputeReason: trimmed,
+      })
+      persist(() => svc.flagAgreement(id, trimmed), {
+        error: "Couldn't flag the trade",
+        onSuccess: (saved) => {
+          replace(saved)
+          sendPushNotification({
+            userId: otherParty(previous, userId),
+            title: 'Trade flagged for review',
+            body: 'Your neighbor flagged your trade. Talk it through with them in your messages.',
+            url: `/agreements/${id}`,
+          })
+        },
         rollback: () => replace(previous),
       })
     },

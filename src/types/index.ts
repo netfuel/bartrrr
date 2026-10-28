@@ -137,7 +137,25 @@ export type TradeAgreement = {
   status: AgreementStatus
   createdAt: string
   completedAt?: string
+  /** Who last changed the exchange details, and when (server-stamped, migration 009) */
+  termsUpdatedBy?: string
+  termsUpdatedAt?: string
+  cancelledBy?: string
+  cancelledAt?: string
+  /** Canceled less than 24 hours before an agreed swap (computed server-side) */
+  cancelledLate?: boolean
+  disputedBy?: string
+  disputedAt?: string
+  disputeReason?: string
 }
+
+export type ExchangeMethod = NonNullable<TradeAgreement['exchangeMethod']>
+
+/** The parts of an agreement either neighbor can edit before both sign */
+export type ExchangeDetails = Pick<
+  TradeAgreement,
+  'exchangeMethod' | 'exchangeDate' | 'exchangeLocation' | 'specialInstructions'
+>
 
 export const AGREEMENT_STATUS_LABELS: Record<AgreementStatus, string> = {
   draft: 'Draft',
@@ -175,6 +193,8 @@ export type UserProfile = {
   interests?: string[]
   reputationScore: number
   tradeCount: number
+  /** Late cancellations (within 24 hours of an agreed swap), server-maintained */
+  lateCancellations?: number
   joinedAt: string
   notificationPrefs?: NotificationPrefs
 }

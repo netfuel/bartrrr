@@ -23,6 +23,7 @@ export interface Database {
           interests: string[]
           reputation_score: number
           trade_count: number
+          late_cancellations: number
           notification_prefs: Json
           joined_at: string
         }
@@ -36,6 +37,7 @@ export interface Database {
           interests?: string[]
           reputation_score?: number
           trade_count?: number
+          late_cancellations?: number
           notification_prefs?: Json
           joined_at?: string
         }
@@ -49,6 +51,7 @@ export interface Database {
           interests?: string[]
           reputation_score?: number
           trade_count?: number
+          late_cancellations?: number
           notification_prefs?: Json
           joined_at?: string
         }
@@ -197,6 +200,14 @@ export interface Database {
           special_instructions: string | null
           created_at: string
           completed_at: string | null
+          terms_updated_at: string | null
+          terms_updated_by: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_late: boolean
+          disputed_at: string | null
+          disputed_by: string | null
+          dispute_reason: string | null
         }
         Insert: {
           id?: string
@@ -214,6 +225,14 @@ export interface Database {
           special_instructions?: string | null
           created_at?: string
           completed_at?: string | null
+          terms_updated_at?: string | null
+          terms_updated_by?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_late?: boolean
+          disputed_at?: string | null
+          disputed_by?: string | null
+          dispute_reason?: string | null
         }
         Update: {
           id?: string
@@ -231,6 +250,14 @@ export interface Database {
           special_instructions?: string | null
           created_at?: string
           completed_at?: string | null
+          terms_updated_at?: string | null
+          terms_updated_by?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_late?: boolean
+          disputed_at?: string | null
+          disputed_by?: string | null
+          dispute_reason?: string | null
         }
         Relationships: []
       }
