@@ -1,22 +1,64 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type mapboxgl from 'mapbox-gl'
+import type * as maplibregl from 'maplibre-gl'
 import { Map as MapIcon } from 'lucide-react'
 import type { Listing, UserProfile } from '@/types'
 import { formatDistance } from '@/lib/utils'
-import { MAPBOX_TOKEN } from '@/lib/env'
 
-type MapboxModule = typeof mapboxgl
+type MaplibreModule = typeof maplibregl
 
-// mapbox-gl (~1.7 MB) is fetched only when a map actually mounts, so the
-// Browse list view (and phones that never open the map) never download it.
-let mapboxPromise: Promise<MapboxModule> | null = null
-function loadMapbox(): Promise<MapboxModule> {
-  mapboxPromise ??= Promise.all([
-    import('mapbox-gl'),
-    import('mapbox-gl/dist/mapbox-gl.css'),
-  ]).then(([mod]) => mod.default)
-  return mapboxPromise
+// maplibre-gl (~1 MB plus its worker) is fetched only when a map actually
+// mounts, so the Browse list view (and phones that never open the map)
+// never download it. The worker is emitted as a same-origin asset and
+// pointed at explicitly: the default lookup assumes the unbundled dist/.
+let maplibrePromise: Promise<MaplibreModule> | null = null
+function loadMaplibre(): Promise<MaplibreModule> {
+  maplibrePromise ??= Promise.all([
+    import('maplibre-gl'),
+    import('maplibre-gl/dist/maplibre-gl-worker.mjs?url'),
+    import('maplibre-gl/dist/maplibre-gl.css'),
+  ])
+    .then(([mod, worker]) => {
+      mod.setWorkerUrl(worker.default)
+      return mod
+    })
+    .catch((err) => {
+      maplibrePromise = null // allow a retry on the next mount
+      throw err
+    })
+  return maplibrePromise
+}
+
+// OpenFreeMap: free OpenStreetMap vector tiles, no API key. Positron is the
+// calm, low-contrast base; a few paint overrides below warm it up to match
+// globals.css. Style, tiles, glyphs and sprites all come from this host
+// (allowed in public/_headers CSP connect-src).
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron'
+
+// Same text OpenFreeMap's TileJSON carries, so MapLibre de-duplicates it once
+// tiles load, and the credit still shows if they don't. OSM attribution is required.
+const MAP_ATTRIBUTION =
+  '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> ' +
+  '<a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">&copy; OpenMapTiles</a> ' +
+  'Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+
+/** Warm the neutral positron palette toward the linen/teal/forest tokens. Best-effort. */
+function warmStyle(map: maplibregl.Map) {
+  const layers = map.getStyle()?.layers ?? []
+  for (const layer of layers) {
+    try {
+      const sourceLayer = 'source-layer' in layer ? layer['source-layer'] : undefined
+      if (layer.type === 'background') {
+        map.setPaintProperty(layer.id, 'background-color', '#f6f1eb') // linen
+      } else if (layer.type === 'fill' && sourceLayer === 'water') {
+        map.setPaintProperty(layer.id, 'fill-color', '#dbe3df') // soft teal
+      } else if (layer.type === 'fill' && (sourceLayer === 'park' || /park|wood|grass/.test(layer.id))) {
+        map.setPaintProperty(layer.id, 'fill-color', '#e4e6da') // forest-light
+      }
+    } catch {
+      // A layer we don't recognize: leave the stock style alone.
+    }
+  }
 }
 
 // Memphis, TN service area center
@@ -39,39 +81,70 @@ export interface ListingsMapProps {
 
 export function ListingsMap({ listings, users, className = '' }: ListingsMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
-  const map = useRef<mapboxgl.Map | null>(null)
-  const markersRef = useRef<mapboxgl.Marker[]>([])
-  const mapboxRef = useRef<MapboxModule | null>(null)
+  const map = useRef<maplibregl.Map | null>(null)
+  const markersRef = useRef<maplibregl.Marker[]>([])
+  const maplibreRef = useRef<MaplibreModule | null>(null)
   const [mapReady, setMapReady] = useState(false)
+  const [mapFailed, setMapFailed] = useState(false)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!MAPBOX_TOKEN || !mapContainer.current || map.current) return
+    if (!mapContainer.current || map.current) return
     let cancelled = false
+    let failed = false
     const container = mapContainer.current
+    const fail = (err: unknown) => {
+      if (cancelled || failed) return
+      failed = true
+      console.warn('[Bartrrr] Map failed to load', err)
+      markersRef.current.forEach((m) => m.remove())
+      markersRef.current = []
+      map.current?.remove()
+      map.current = null
+      setMapReady(false)
+      setMapFailed(true)
+    }
 
-    loadMapbox()
-      .then((mapboxgl) => {
+    loadMaplibre()
+      .then((maplibre) => {
         if (cancelled || map.current) return
-        mapboxRef.current = mapboxgl
-        mapboxgl.accessToken = MAPBOX_TOKEN
+        maplibreRef.current = maplibre
 
-        map.current = new mapboxgl.Map({
+        const instance = new maplibre.Map({
           container,
-          style: 'mapbox://styles/mapbox/light-v11',
+          style: MAP_STYLE_URL,
           center: [DEFAULT_LNG, DEFAULT_LAT],
           zoom: 13,
+          attributionControl: false,
+        })
+        map.current = instance
+
+        instance.addControl(
+          new maplibre.AttributionControl({ compact: true, customAttribution: MAP_ATTRIBUTION }),
+          'bottom-right',
+        )
+        instance.addControl(new maplibre.NavigationControl({ showCompass: false }), 'top-right')
+
+        // A missing tile now and then is normal; the style itself failing
+        // (offline, blocked, host down) before first load means no map.
+        let loaded = false
+        instance.on('style.load', () => warmStyle(instance))
+        instance.once('load', () => {
+          loaded = true
+        })
+        instance.on('error', (e) => {
+          if (!loaded) fail(e.error)
         })
 
-        map.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
         setMapReady(true)
       })
-      .catch((err) => console.warn('[Bartrrr] Map failed to load', err))
+      .catch(fail)
 
     return () => {
       cancelled = true
       markersRef.current.forEach((m) => m.remove())
+      markersRef.current = []
       map.current?.remove()
       map.current = null
       setMapReady(false)
@@ -80,8 +153,8 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
 
   // Add/update markers when listings change
   useEffect(() => {
-    const mapboxgl = mapboxRef.current
-    if (!mapReady || !map.current || !mapboxgl || !MAPBOX_TOKEN) return
+    const maplibre = maplibreRef.current
+    if (!mapReady || !map.current || !maplibre) return
 
     // Remove old markers
     markersRef.current.forEach((m) => m.remove())
@@ -93,7 +166,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
 
       const color = CATEGORY_COLORS[listing.category] || '#9c5b3c'
 
-      // Outer wrapper — Mapbox owns the transform on this element for positioning.
+      // Outer wrapper — MapLibre owns the transform on this element for positioning.
       // Never touch its transform or the pin will jump to (0,0).
       const wrapper = document.createElement('div')
       wrapper.style.cssText = `width: 44px; height: 44px; cursor: pointer; display: grid; place-items: center;`
@@ -128,7 +201,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
         map.current?.flyTo({ center: [lng, lat], zoom: 15 })
       })
 
-      const marker = new mapboxgl.Marker({ element: wrapper })
+      const marker = new maplibre.Marker({ element: wrapper })
         .setLngLat([lng, lat])
         .addTo(map.current!)
 
@@ -136,10 +209,11 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
     })
   }, [listings, mapReady])
 
-  // No token — show instructions
-  if (!MAPBOX_TOKEN) {
+  // Couldn't load the map library, its style or WebGL: point to the list view
+  if (mapFailed) {
     return (
       <div
+        role="status"
         className={`relative flex flex-col items-center justify-center overflow-hidden bg-forest-light h-full text-center p-8 ${className}`}
         style={{
           backgroundImage:
@@ -151,17 +225,9 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
           <MapIcon className="h-6 w-6" />
         </span>
         <p className="font-display text-[24px] text-forest-dark mb-2">Map isn't available right now</p>
-        <p className="text-[15px] text-forest max-w-xs mb-4">
+        <p className="text-[15px] text-forest max-w-xs">
           You can still see every nearby listing in the list view.
         </p>
-        {import.meta.env.DEV && (
-          <>
-            <code className="text-small bg-cream/70 border border-forest/30 text-forest-dark px-3 py-2 rounded-none">
-              VITE_MAPBOX_TOKEN=pk.your_token
-            </code>
-            <p className="text-label text-forest mt-3">Developers: add this to .env.local</p>
-          </>
-        )}
       </div>
     )
   }

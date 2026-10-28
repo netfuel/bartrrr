@@ -40,8 +40,8 @@ export default defineConfig(({ mode }) => {
       // Set SOURCEMAP=true when a CI step uploads maps to an error tracker
       // and deletes them before deploy.
       sourcemap: process.env.SOURCEMAP === 'true' ? 'hidden' : false,
-      // mapbox-gl is ~1.7 MB on its own and is only loaded when a map mounts
-      chunkSizeWarningLimit: 1800,
+      // maplibre-gl is ~1 MB on its own and is only loaded when a map mounts
+      chunkSizeWarningLimit: 1200,
       rolldownOptions: {
         output: {
           // Long-lived vendor chunks: app deploys don't bust these caches

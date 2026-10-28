@@ -10,6 +10,6 @@ export { CounterOfferForm, type CounterOfferFormProps } from './CounterOfferForm
 export { MessageComposer, type MessageComposerProps } from './MessageComposer'
 export { ReviewForm, type ReviewFormProps } from './ReviewForm'
 export { ReviewCard, type ReviewCardProps } from './ReviewCard'
-// ListingsMap is intentionally NOT exported here: it pulls in mapbox-gl
-// (~1.7MB) and must stay lazy-loaded (see BrowsePage).
+// ListingsMap is intentionally NOT exported here: it pulls in maplibre-gl
+// (~1 MB) and must stay lazy-loaded (see BrowsePage).
 export { FirstTradeCelebration } from './FirstTradeCelebration'

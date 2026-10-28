@@ -7,7 +7,7 @@ import { ErrorBoundary } from '@/components/system/ErrorBoundary'
 import { RouteEffects } from '@/components/system/RouteEffects'
 
 // Route-level code splitting: each page loads on demand, keeping heavy
-// deps (mapbox-gl on Browse, gsap on Landing, confetti on Agreements)
+// deps (maplibre-gl on Browse, gsap on Landing, confetti on Agreements)
 // out of the initial bundle.
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
 const BrowsePage = lazy(() => import('@/pages/BrowsePage'))

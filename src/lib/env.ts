@@ -6,7 +6,6 @@
 
 export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL ?? '').trim()
 export const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
-export const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN ?? '').trim()
 export const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '').trim()
 
 /**

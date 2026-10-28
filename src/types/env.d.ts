@@ -3,7 +3,6 @@
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string
   readonly VITE_SUPABASE_ANON_KEY?: string
-  readonly VITE_MAPBOX_TOKEN?: string
   readonly VITE_VAPID_PUBLIC_KEY?: string
   /** "true" enables sample data and the "log in as" demo picker. Never set in production. */
   readonly VITE_DEMO_MODE?: string

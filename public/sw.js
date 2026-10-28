@@ -60,7 +60,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return
 
   const url = new URL(request.url)
-  // Only same-origin. Supabase, Mapbox and fonts go straight to the network.
+  // Only same-origin. Supabase, map tiles and fonts go straight to the network.
   if (url.origin !== self.location.origin) return
   // Videos use range requests and are huge — let the network handle them
   if (url.pathname.endsWith('.mp4') || request.headers.has('range')) return

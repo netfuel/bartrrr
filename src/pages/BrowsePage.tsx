@@ -43,7 +43,7 @@ export default function BrowsePage() {
   const [showFilters, setShowFilters] = useState(false)
   usePageTitle('Browse listings')
 
-  // Only mount the map (and download mapbox-gl) when it's actually visible:
+  // Only mount the map (and download maplibre-gl) when it's actually visible:
   // always on desktop (lg split view), on mobile only in map view.
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const showMap = isDesktop || view === 'map'
