@@ -46,6 +46,15 @@ function buildSteps(offer: Offer): TimelineStep[] {
     })
   }
 
+  if (offer.status === 'withdrawn') {
+    // The server stores no message for a withdrawal, so there's no timestamp
+    steps.push({
+      label: 'Withdrawn',
+      status: 'declined',
+      icon: <X className="h-3.5 w-3.5" />,
+    })
+  }
+
   if (offer.status === 'accepted') {
     steps.push({
       label: 'Accepted',

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowRight, ArrowLeftRight } from 'lucide-react'
 import { Button, Badge, BackLink, ConfirmDialog } from '@/components/ui'
-import { OfferThread, OfferTimeline, DeclineModal, CounterOfferForm, MessageComposer } from '@/components/bartrrr'
+import { OfferThread, OfferTimeline, DeclineModal, CounterOfferForm, MessageComposer, WithdrawOfferDialog } from '@/components/bartrrr'
 import { useOffersStore, useUsersStore, useListingsStore, useAgreementsStore, useNotificationsStore } from '@/stores'
 import { hasBackend } from '@/stores/persist'
 import { useAuth } from '@/providers/AuthProvider'
@@ -28,6 +28,7 @@ export default function OfferThreadPage() {
   const [showDeclineModal, setShowDeclineModal] = useState(false)
   const [showCounterForm, setShowCounterForm] = useState(false)
   const [showAcceptConfirm, setShowAcceptConfirm] = useState(false)
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
   usePageTitle('Offer')
 
   if (!offer || !currentUser) {
@@ -65,6 +66,9 @@ export default function OfferThreadPage() {
   const iAmOfferMaker = currentUser.id === offer.fromUserId
   const youGive = iAmOfferMaker ? offeredItems : listedItem
   const youGet = iAmOfferMaker ? listedItem : offeredItems
+  // Server rule (offers_guard): only the neighbor who made the offer can
+  // withdraw it, while it's open, whoever sent the latest counter-offer
+  const canWithdraw = isActive && iAmOfferMaker
 
   const handleAccept = () => {
     setShowAcceptConfirm(false)
@@ -137,7 +141,14 @@ export default function OfferThreadPage() {
       <section className="border border-ink bg-paper mb-5">
         <div className="flex items-center justify-between gap-4 border-b border-ink px-5 py-3.5">
           <p className="eyebrow">The trade so far</p>
-          <Badge variant={offer.status === 'accepted' ? 'teal' : offer.status === 'declined' ? 'clay' : 'gold'}>
+          <Badge
+            variant={
+              offer.status === 'accepted' ? 'teal'
+                : offer.status === 'declined' ? 'clay'
+                  : offer.status === 'withdrawn' || offer.status === 'expired' ? 'closed'
+                    : 'gold'
+            }
+          >
             {OFFER_STATUS_LABELS[offer.status]}
           </Badge>
         </div>
@@ -241,14 +252,30 @@ export default function OfferThreadPage() {
           <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
             {isActive ? (
               isWaiting ? (
-                <Button variant="ghost" disabled className="flex-1">
-                  Waiting for {otherFirstName} to reply
-                </Button>
+                <>
+                  {canWithdraw && (
+                    <Button variant="ghost" className="shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowWithdrawConfirm(true)}>
+                      Withdraw offer
+                    </Button>
+                  )}
+                  <Button variant="ghost" disabled className="flex-1 min-w-0 px-3 text-[14px] sm:text-[15px]">
+                    Waiting for {otherFirstName} to reply
+                  </Button>
+                </>
               ) : (
                 <>
-                  <Button variant="ghost" className="shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowDeclineModal(true)}>
-                    Decline
-                  </Button>
+                  {/* The offer's maker walks away by withdrawing; the listing owner declines */}
+                  {canWithdraw ? (
+                    <Button variant="ghost" className="shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowWithdrawConfirm(true)}>
+                      {/* Short label keeps all three actions on one row on phones */}
+                      <span className="sm:hidden">Withdraw</span>
+                      <span className="hidden sm:inline">Withdraw offer</span>
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" className="shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowDeclineModal(true)}>
+                      Decline
+                    </Button>
+                  )}
                   {canCounter && (
                     <Button variant="outline" className="flex-1 min-w-max whitespace-nowrap px-3 text-[14px] sm:text-[15px]" aria-expanded={showCounterForm} onClick={() => setShowCounterForm(!showCounterForm)}>
                       Counter-offer
@@ -300,6 +327,17 @@ export default function OfferThreadPage() {
           confirmVariant="confirm"
           onConfirm={handleAccept}
           onClose={() => setShowAcceptConfirm(false)}
+        />
+      )}
+
+      {/* Withdraw confirmation */}
+      {showWithdrawConfirm && canWithdraw && (
+        <WithdrawOfferDialog
+          offer={offer}
+          currentUser={currentUser}
+          otherName={otherFirstName}
+          listingTitle={listing?.title}
+          onClose={() => setShowWithdrawConfirm(false)}
         />
       )}
 
