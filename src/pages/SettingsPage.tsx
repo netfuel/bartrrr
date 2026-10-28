@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Input } from '@/components/ui'
+import { AvatarUploader } from '@/components/profile/AvatarUploader'
+import { NeighborhoodPicker } from '@/components/profile/NeighborhoodPicker'
+import { knownNeighborhood } from '@/data/neighborhoods'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore, showToast } from '@/stores'
 import { usePageTitle } from '@/lib/utils'
@@ -28,7 +31,10 @@ export default function SettingsPage() {
   const updateUser = useUsersStore((s) => s.updateUser)
 
   const [displayName, setDisplayName] = useState(currentUser?.displayName || '')
-  const [neighborhood, setNeighborhood] = useState(currentUser?.neighborhood || '')
+  // A saved neighborhood from before the list (free text) stays selectable as-is
+  const savedNeighborhood = currentUser?.neighborhood?.trim() || ''
+  const legacyNeighborhood = savedNeighborhood && !knownNeighborhood(savedNeighborhood) ? savedNeighborhood : undefined
+  const [neighborhood, setNeighborhood] = useState(knownNeighborhood(savedNeighborhood) ?? savedNeighborhood)
   const [bio, setBio] = useState(currentUser?.bio || '')
   const [prefs, setPrefs] = useState<NotificationPrefs>(
     currentUser?.notificationPrefs ?? DEFAULT_PREFS
@@ -50,7 +56,7 @@ export default function SettingsPage() {
     }
     updateUser(currentUser.id, {
       displayName: displayName.trim(),
-      neighborhood: neighborhood.trim(),
+      neighborhood,
       bio: bio.trim(),
       notificationPrefs: prefs,
     })
@@ -67,6 +73,7 @@ export default function SettingsPage() {
       <section className="grid gap-6 border-t border-ink py-8 md:grid-cols-[180px_1fr] md:gap-10">
         <h2 className="text-heading-section text-ink">Profile</h2>
         <div className="space-y-5">
+          <AvatarUploader user={currentUser} />
           <Input
             label="Display name"
             value={displayName}
@@ -75,12 +82,29 @@ export default function SettingsPage() {
             helperText="This is how neighbors see you."
             maxLength={50}
           />
-          <Input
-            label="Neighborhood"
-            value={neighborhood}
-            onChange={(e) => setNeighborhood(e.target.value)}
-            helperText="Shown on your listings instead of your address."
-          />
+          <div className="flex flex-col gap-1.5">
+            <span id="settings-neighborhood-label" className="text-label text-ink-2">Neighborhood</span>
+            {!neighborhood && (
+              <p className="text-small text-ink-2">Pick your neighborhood so neighbors nearby can find your listings.</p>
+            )}
+            {legacyNeighborhood && neighborhood === legacyNeighborhood && (
+              <p className="text-small text-ink-2">
+                “{legacyNeighborhood}” isn’t on our map yet, so new listings go near the center of Memphis. Pick the closest neighborhood to place them better.
+              </p>
+            )}
+            <NeighborhoodPicker
+              value={neighborhood}
+              onChange={setNeighborhood}
+              legacy={legacyNeighborhood}
+              labelledBy="settings-neighborhood-label"
+              describedBy="settings-neighborhood-helper"
+            />
+            <p id="settings-neighborhood-helper" className="text-small text-muted">
+              {neighborhood && neighborhood !== savedNeighborhood
+                ? `New listings will show in ${neighborhood} once you save. Listings you’ve already posted stay where they are.`
+                : 'Shown on your listings instead of your address. Changing it moves new listings, not the ones you’ve already posted.'}
+            </p>
+          </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="settings-bio" className="text-label text-ink-2">Bio</label>
             <textarea

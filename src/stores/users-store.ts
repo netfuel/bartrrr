@@ -3,7 +3,7 @@ import type { UserProfile } from '@/types'
 import { mockUsers } from '@/data/mock-users'
 import { DEMO_MODE } from '@/lib/env'
 import * as svc from '@/lib/supabase/supabase-service'
-import { persist } from './persist'
+import { hasBackend, persist } from './persist'
 
 /** Fields a user may edit on their own profile (the rest are server-owned). */
 export type EditableProfile = Pick<
@@ -17,7 +17,15 @@ interface UsersState {
   upsertUser: (user: UserProfile) => void
   getUserById: (id: string) => UserProfile | undefined
   getUserByUsername: (username: string) => UserProfile | undefined
-  updateUser: (id: string, data: Partial<EditableProfile>) => void
+  /**
+   * Optimistic profile write. onSaved runs once the server has the change
+   * (right away in offline demo mode); onFailed runs after a rollback.
+   */
+  updateUser: (
+    id: string,
+    data: Partial<EditableProfile>,
+    callbacks?: { onSaved?: () => void; onFailed?: () => void },
+  ) => void
   /** Local-only: the server maintains trade counts (migration 004) */
   incrementTradeCount: (userId: string) => void
   /** Local-only: the server maintains reputation (migration 004) */
@@ -43,15 +51,21 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   getUserByUsername: (username) =>
     get().users.find((u) => u.username === username),
 
-  updateUser: (id, data) => {
+  updateUser: (id, data, callbacks) => {
     const previous = get().users.find((u) => u.id === id)
     set((state) => ({
       users: state.users.map((u) => (u.id === id ? { ...u, ...data } : u)),
     }))
+    if (!hasBackend()) {
+      callbacks?.onSaved?.()
+      return
+    }
     persist(() => svc.updateUser(id, data), {
       error: "Couldn't save your profile changes",
+      onSuccess: () => callbacks?.onSaved?.(),
       rollback: () => {
         if (previous) get().upsertUser(previous)
+        callbacks?.onFailed?.()
       },
     })
   },

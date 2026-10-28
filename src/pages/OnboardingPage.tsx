@@ -4,29 +4,12 @@ import { MapPin, ArrowRight, CheckCircle, Sparkles } from 'lucide-react'
 import { Button, Chip, Input, Wordmark } from '@/components/ui'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore } from '@/stores'
+import { NeighborhoodPicker } from '@/components/profile/NeighborhoodPicker'
+import { knownNeighborhood } from '@/data/neighborhoods'
 
 type Step = 'welcome' | 'neighborhood' | 'interests' | 'done'
 
 const STEPS: Step[] = ['welcome', 'neighborhood', 'interests', 'done']
-
-const NEIGHBORHOODS = [
-  'Downtown Memphis',
-  'Midtown',
-  'Cooper-Young',
-  'South Main Arts District',
-  'Overton Square',
-  'East Memphis',
-  'Germantown',
-  'Cordova',
-  'Bartlett',
-  'Binghampton',
-  'Whitehaven',
-  'Collierville',
-  'Harbor Town',
-  'Frayser',
-  'Millington',
-  'Raleigh',
-]
 
 const INTEREST_CATEGORIES = [
   { id: 'household', label: 'Household', emoji: '🏠' },
@@ -53,7 +36,7 @@ export default function OnboardingPage() {
   const updateUser = useUsersStore((s) => s.updateUser)
 
   const [step, setStep] = useState<Step>('welcome')
-  const [neighborhood, setNeighborhood] = useState(currentUser?.neighborhood || '')
+  const [neighborhood, setNeighborhood] = useState(knownNeighborhood(currentUser?.neighborhood) ?? '')
   const [interests, setInterests] = useState<string[]>(currentUser?.interests ?? [])
   // Sign in with Apple (web) never shares the person's name, so their
   // profile starts as the placeholder "Neighbor": ask for it here.
@@ -162,23 +145,7 @@ export default function OnboardingPage() {
                 Pick your Memphis neighborhood so we can show you trades nearby. Neighbors see your neighborhood, never your address.
               </p>
 
-              <div role="group" aria-label="Neighborhood" className="grid grid-cols-2 sm:grid-cols-3 border-t border-l border-ink mb-8">
-                {NEIGHBORHOODS.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setNeighborhood(n)}
-                    aria-pressed={neighborhood === n}
-                    className={`pressable min-h-[60px] px-4 py-3 rounded-none border-b border-r border-ink text-[15px] font-medium text-left transition-colors duration-300 ${
-                      neighborhood === n
-                        ? 'bg-ink text-cream'
-                        : 'text-ink hover:bg-paper'
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
+              <NeighborhoodPicker value={neighborhood} onChange={setNeighborhood} className="mb-8" />
 
               <div className="flex gap-3">
                 <Button variant="ghost" size="lg" onClick={() => setStep('welcome')} className="flex-1">

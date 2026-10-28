@@ -22,13 +22,20 @@ export const NEIGHBORHOOD_CENTERS: Record<string, { lat: number; lng: number }> 
   Raleigh: { lat: 35.203, lng: -89.937 },
 }
 
+/** Neighborhood names people can pick, in display order */
+export const NEIGHBORHOODS = Object.keys(NEIGHBORHOOD_CENTERS)
+
+/** The list's spelling of a saved neighborhood, or null if it isn't on the list. */
+export function knownNeighborhood(name: string | undefined | null): string | null {
+  if (!name?.trim()) return null
+  const wanted = name.trim().toLowerCase()
+  return NEIGHBORHOODS.find((n) => n.toLowerCase() === wanted) ?? null
+}
+
 /** Memphis service-area center, for neighborhoods we don't know */
 export const MEMPHIS_CENTER = { lat: 35.1495, lng: -90.049 }
 
 export function neighborhoodCenter(name: string | undefined | null) {
-  if (!name) return MEMPHIS_CENTER
-  const key = Object.keys(NEIGHBORHOOD_CENTERS).find(
-    (n) => n.toLowerCase() === name.trim().toLowerCase(),
-  )
+  const key = knownNeighborhood(name)
   return key ? NEIGHBORHOOD_CENTERS[key] : MEMPHIS_CENTER
 }

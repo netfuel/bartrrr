@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { hashToColor } from '@/lib/utils'
 
@@ -36,13 +37,16 @@ export function Avatar({
 }: AvatarProps) {
   const { px, text } = sizeMap[size]
   const bgColor = hashToColor(userId || name)
+  // A photo that won't load (deleted, offline, blocked) falls back to initials
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
 
-  if (src) {
+  if (src && src !== failedSrc) {
     return (
       <img
         src={src}
         alt={name}
         loading="lazy"
+        onError={() => setFailedSrc(src)}
         style={{ width: px, height: px }}
         className={cn(
           'photo-warm rounded-full object-cover shrink-0 bg-sand-light ring-1 ring-ink/10',

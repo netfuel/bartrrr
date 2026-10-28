@@ -41,7 +41,7 @@ const sections: LegalSection[] = [
         <h3>Your profile</h3>
         <p>
           Your display name, username, neighborhood, the categories you're interested in, and anything you add
-          yourself, like a bio or a photo link.
+          yourself, like a bio or a profile photo.
         </p>
 
         <h3>Your location</h3>
@@ -142,9 +142,10 @@ const sections: LegalSection[] = [
           <li><strong>Your browser's push service:</strong> delivering notifications, if you turn them on.</li>
         </ul>
         <p>
-          Photos you upload to a listing are stored with Supabase. Before a photo leaves your device, we shrink it and
-          remove hidden details saved with it, like the location where it was taken. Photos on a listing are public,
-          like the listing itself, and anyone with a photo's link can view it.
+          Photos you upload to a listing or your profile are stored with Supabase. Before a photo leaves your device,
+          we shrink it and remove hidden details saved with it, like the location where it was taken. Listing photos
+          and profile photos are public, like the listing or profile they're on, and anyone with a photo's link can
+          view it. When you change or remove your profile photo, we delete the old copy we stored.
         </p>
         <p>
           We'll also share information if the law requires it, or if we believe it's needed to protect someone's
