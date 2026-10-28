@@ -1,11 +1,29 @@
 # Deploying Bartrrr
 
-Production: **https://bartrrr.app** on Cloudflare Pages, backed by a hosted Supabase project.
+Production: **https://bartrrr.app**, served by a Cloudflare Worker (static assets) and backed by a hosted Supabase project.
 Replace `<ref>` below with your Supabase project ref (the subdomain of your project URL).
+
+## Production at a glance
+
+Set up October 2026. No secrets here: keys live in the dashboards named.
+
+| Piece | Where | Status |
+|---|---|---|
+| Site | Cloudflare Worker `bartrrr`, Git-connected to `netfuel/bartrrr` `main`; every push builds and deploys | Live |
+| Domains | `bartrrr.app`, `www.bartrrr.app`, route `*.bartrrr.app/*`; workers.dev URL `bartrrr.netfuel.workers.dev` | Live |
+| Build variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SITE_URL`, `VITE_AUTH_PROVIDERS=google` | Set |
+| Database + auth | Supabase project `bartrrr`, ref `uykknvmxntknclkyqvao`, East US (Ohio) `us-east-2` | Migrations 001–007 applied |
+| Offer expiry | `pg_cron` job `bartrrr-expire-offers`, every 15 minutes | Active |
+| Google sign-in | Google Cloud project `bartrrr`, OAuth client "Bartrrr web", app published (External) | Live |
+| Apple sign-in | Not set up; hidden by `VITE_AUTH_PROVIDERS=google` | To do |
+| Maps | MapLibre + OpenFreeMap tiles, no key | Live |
+| Contact email | `hello@bartrrr.app` → netfuel@gmail.com via Cloudflare Email Routing | Live |
+| Transactional email | Supabase built-in sender (a few emails an hour) | Replace before public launch (step 1.7) |
+| www → apex redirect | Redirect Rule not created yet | To do (step 4.5) |
 
 ## 1. Supabase project
 
-1. Create a project at supabase.com (region near Memphis: `us-east-1`).
+1. Create a project at supabase.com (region near Memphis: East US, `us-east-2` or `us-east-1`).
 2. Link and push the schema from this repo:
    ```sh
    npx supabase login
@@ -34,9 +52,9 @@ Replace `<ref>` below with your Supabase project ref (the subdomain of your proj
    - Redirect URLs (add each):
      - `https://bartrrr.app/**`
      - `https://www.bartrrr.app/**`
-     - `https://*.bartrrr.pages.dev/**` (Cloudflare preview deploys; adjust to your Pages project name)
+     - `https://*-bartrrr.netfuel.workers.dev/**` (Cloudflare preview versions, if you test sign-in on them)
      - `http://localhost:5173/**`
-6. **Authentication → Providers → Email:** enabled, "Confirm email" on. Set minimum password length to 8.
+6. **Authentication → Sign In / Providers:** "Confirm email" on. **Email** provider: minimum password length 8, password requirements "Letters and digits" (matches the signup form's helper text).
 7. **Authentication → Emails → SMTP:** configure a real SMTP sender (e.g. Resend, Postmark) from `no-reply@bartrrr.app`. Supabase's built-in sender is rate-limited to a few emails per hour, which isn't enough for launch.
 8. **Edge function (push notifications, optional):**
    ```sh
@@ -51,7 +69,7 @@ Replace `<ref>` below with your Supabase project ref (the subdomain of your proj
 ## 2. Google sign-in (covers Gmail accounts)
 
 1. Google Cloud Console → create or select a project.
-2. **Google Auth Platform → Branding:** app name "Bartrrr", support email, logo; **Authorized domains:** `bartrrr.app` and `supabase.co`; privacy policy `https://bartrrr.app/privacy` and terms `https://bartrrr.app/terms`.
+2. **Google Auth Platform → Branding:** app name "Bartrrr", support email, home page `https://bartrrr.app`, privacy policy `https://bartrrr.app/privacy`, terms `https://bartrrr.app/terms`. **Authorized domains:** `bartrrr.app` and `<ref>.supabase.co` (added automatically from the client below). Leave the logo empty unless you're ready for Google's brand verification: uploading one requires it, and it can take days.
 3. **Audience:** User type *External*, then **Publish app** (in *Testing* only listed test users can sign in).
 4. **Data access (scopes):** `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`. These are non-sensitive, so no Google verification review is needed.
 5. **Clients → Create client → Web application**
@@ -77,49 +95,53 @@ Requires a paid Apple Developer Program membership.
 
 Apple's web flow never returns the person's name; onboarding asks for it.
 
-## 4. Cloudflare Pages
+## 4. Cloudflare (Worker with static assets)
 
-1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → `netfuel/bartrrr`.
-2. Build settings:
-   - Framework preset: *None* (or Vite)
-   - Build command: `npm ci && npm run build` (or just `npm run build`; Pages installs from the lockfile)
-   - Build output directory: `dist`
-   - Root directory: `/`
-   - Environment variable `NODE_VERSION` = `22`
-3. **Settings → Variables and Secrets** (Production; repeat for Preview with preview values):
+The site is an assets-only Cloudflare Worker named `bartrrr`, built by Workers Builds from GitHub. There's no `wrangler.jsonc` in the repo: on each deploy, `npx wrangler deploy` auto-configures the Vite project (assets from `dist`, `not_found_handling: "single-page-application"` so deep links like `/privacy` load the app).
+
+1. Cloudflare dashboard → **Workers & Pages → Create → Import a repository** → `netfuel/bartrrr` (already done for production).
+2. **Settings → Builds → Build configuration:**
+   - Build command: `npm run build`
+   - Deploy command: `npx wrangler deploy`
+   - Version command: `npx wrangler versions upload`
+   - Root directory: `/`, production branch `main`
+3. **Settings → Builds → Variables and secrets** (build-time; Vite bakes them into the bundle):
 
    | Variable | Value |
    |---|---|
    | `VITE_SUPABASE_URL` | `https://<ref>.supabase.co` |
-   | `VITE_SUPABASE_ANON_KEY` | anon public key |
+   | `VITE_SUPABASE_ANON_KEY` | Supabase → Settings → API Keys (Legacy) → **anon public**. Never `service_role`. |
    | `VITE_SITE_URL` | `https://bartrrr.app` |
-   | `VITE_VAPID_PUBLIC_KEY` | optional |
-   | `VITE_AUTH_PROVIDERS` | optional, e.g. `google` until Apple is ready |
+   | `VITE_AUTH_PROVIDERS` | `google` until Apple is ready; then remove it or set `google,apple` |
+   | `VITE_VAPID_PUBLIC_KEY` | optional, for push notifications |
 
    Maps need no key: tiles come from OpenFreeMap (OpenStreetMap data), and the signup ZIP check runs on the device.
 
-   Do **not** set `VITE_DEMO_MODE` in production. Variables are baked in at build time, so redeploy after changing any.
-4. **Custom domains:** add `bartrrr.app` and `www.bartrrr.app` (the zone is already on Cloudflare, so DNS records are created for you).
-5. **www → apex redirect:** Cloudflare → bartrrr.app zone → **Rules → Redirect Rules → Create** → template "Redirect from WWW to root", status 301, preserve query string. (`_redirects` can't do domain-level redirects.)
-6. **SSL/TLS:** mode *Full (strict)*; enable *Always Use HTTPS*.
+   Do **not** set `VITE_DEMO_MODE` in production. Changing a variable doesn't redeploy: open the latest build under **Deployments** and click **Retry build**, or push a commit.
+4. **Domains:** `bartrrr.app` and `www.bartrrr.app` are attached as Custom Domains on the Worker (Worker → Domains). The zone is on Cloudflare, so DNS and certificates are handled for you.
+5. **www → apex redirect:** bartrrr.app zone → **Rules → Redirect Rules → Create** → template "Redirect from WWW to root", status 301, preserve query string. (`_redirects` can't redirect between hostnames.) Until this exists, www serves the same site and the canonical tag points search engines at `bartrrr.app`.
+6. **SSL/TLS → Edge Certificates:** turn on *Always Use HTTPS*. (The SSL mode setting doesn't apply here: the Worker is the origin.)
 7. Don't add Cache Rules that cache HTML. `public/_headers` already sets immutable caching for `/assets/*` and `no-cache` for `/sw.js`.
+8. **Email Routing** (bartrrr.app → Email → Email Routing): MX, SPF and DKIM records added; rule `hello@bartrrr.app` → netfuel@gmail.com. Add more addresses the same way.
 
-What the repo ships for Pages:
+If a deploy fails with `Internal authentication error ... [code: 10500]`, that's a Cloudflare API hiccup (often two deploys at once): retry the build.
+
+What the repo ships for the Worker's static assets:
 - `public/_headers`: CSP and security headers, asset caching. If you add a new third-party origin (analytics, Sentry), add it to the CSP's `connect-src` / `script-src` or it will be blocked.
-- `public/_redirects`: convenience redirects only. SPA routing works because there is no top-level `404.html`, so Pages serves `index.html` for unknown paths.
+- `public/_redirects`: same-host convenience redirects only.
 - `public/robots.txt` and `public/sitemap.xml`.
 
 ## 5. Launch checklist
 
 - [ ] `npm run typecheck && npm run lint && npm run build` pass
-- [ ] Migrations 001–007 applied; `select public.expire_stale_offers()` runs without error
+- [x] Migrations 001–007 applied; offer-expiry cron job active
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
 - [ ] Apple: new account is asked for a name in onboarding; "Hide my email" accounts work
 - [ ] Password reset email arrives and `/auth/reset-password` sets a new password
 - [ ] Deep link while signed out (e.g. `/offers/…`) returns there after login
-- [ ] Browser console shows no CSP violations on `/`, `/browse` (map), `/auth/login`
+- [ ] Browser console shows no CSP violations on `/`, `/browse` (map, after login), `/auth/login`
 - [ ] SMTP sender verified (SPF/DKIM on bartrrr.app)
 - [ ] Apple secret expiry reminder set (6 months)
 
@@ -137,7 +159,7 @@ Full local stack with OAuth: copy `supabase/.env.example` to `supabase/.env`, fi
 
 `/privacy` and `/terms` are public and indexed. The facts they depend on (operator name, contact email, minimum age, governing law, last-updated date) live in `src/lib/legal.ts`.
 
-- Set up the `hello@bartrrr.app` mailbox (Cloudflare Email Routing to your inbox works) before launch: both pages and the account-deletion process point to it.
+- `hello@bartrrr.app` forwards to netfuel@gmail.com (Cloudflare Email Routing). Both pages and the account-deletion process point to it.
 - If you form an LLC or other entity, change `LEGAL_OPERATOR` to its legal name.
 - Bump `LEGAL_UPDATED` whenever either document changes.
 - Account deletion is by email for now. Don't delete the user from Supabase → Authentication: that leaves their profile behind. Instead, in the SQL editor run `select public.delete_account('<user id>');` (migration 007). It strips the profile, deletes or clears their listings, withdraws open offers, cancels unfinished agreements, removes their name from other neighbors' notifications, and deletes the sign-in identity, all in one transaction. Find the id under Authentication → Users by email.

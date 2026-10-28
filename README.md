@@ -37,7 +37,7 @@ All three run through Supabase Auth and return to `/auth/callback`. `VITE_AUTH_P
 | Routing | React Router v7 |
 | Backend | Supabase (Postgres with RLS, Auth, Realtime, Edge Functions) |
 | Map | MapLibre GL JS with OpenFreeMap tiles from OpenStreetMap data: no API key (loaded only when a map is shown) |
-| Hosting | Cloudflare Pages |
+| Hosting | Cloudflare Workers (static assets), built from GitHub |
 
 ## Getting started
 
@@ -83,7 +83,7 @@ npm run build
 
 ## Deploying
 
-See **[DEPLOY.md](DEPLOY.md)** for the full checklist: Supabase project and auth URLs, Google and Apple sign-in setup, SMTP, push notifications, Cloudflare Pages build settings and domains, and the launch checklist.
+See **[DEPLOY.md](DEPLOY.md)** for the full checklist: Supabase project and auth URLs, Google and Apple sign-in setup, SMTP, push notifications, Cloudflare Worker build settings, domains and email routing, and the launch checklist.
 
 ## Project structure
 
