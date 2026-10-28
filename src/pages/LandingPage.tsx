@@ -687,6 +687,8 @@ export default function LandingPage() {
           <Link to="/browse" className="text-label link-underline">Browse</Link>
           <Link to="/auth/signup" className="text-label link-underline">Sign up</Link>
           <Link to="/auth/login" className="text-label link-underline">Log in</Link>
+          <Link to="/privacy" className="text-label link-underline">Privacy</Link>
+          <Link to="/terms" className="text-label link-underline">Terms</Link>
         </div>
         <p className="text-label text-muted">
           Trade, don't buy · © {new Date().getFullYear()}

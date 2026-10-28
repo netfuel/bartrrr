@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Input, AuthDivider } from '@/components/ui'
 import { AuthShell } from '@/components/layout'
-import { OAuthButtons } from '@/components/auth'
+import { LegalConsent, OAuthButtons } from '@/components/auth'
 import { useAuth } from '@/providers/AuthProvider'
 import { DEMO_MODE, HAS_SUPABASE } from '@/lib/env'
 import {
@@ -121,6 +121,7 @@ export default function LoginPage() {
               <p className="text-small text-muted text-center">Enter your email and password to log in.</p>
             )}
           </form>
+          <LegalConsent action="continuing" />
         </div>
       )}
 

@@ -29,6 +29,8 @@ const EditListingPage = lazy(() => import('@/pages/EditListingPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const ActivityFeedPage = lazy(() => import('@/pages/ActivityFeedPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'))
+const TermsPage = lazy(() => import('@/pages/TermsPage'))
 
 function RouteFallback() {
   return (
@@ -53,6 +55,8 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
 
         {/* Protected app routes */}
         <Route element={<ProtectedRoute />}>

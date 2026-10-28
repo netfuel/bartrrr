@@ -4,7 +4,7 @@ import { SITE_URL } from '@/lib/env'
 import { clearChunkReloadFlag } from './chunk-reload'
 
 /** Only these are worth indexing; app screens are behind login. */
-const INDEXABLE = new Set(['/', '/auth/signup', '/auth/login'])
+const INDEXABLE = new Set(['/', '/auth/signup', '/auth/login', '/privacy', '/terms'])
 
 function setMeta(selector: string, create: () => HTMLElement, attr: string, value: string) {
   let el = document.head.querySelector<HTMLElement>(selector)

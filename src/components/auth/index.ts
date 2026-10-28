@@ -3,3 +3,4 @@ export { OAuthButtons, type OAuthButtonsProps } from './OAuthButtons'
 // SocialAuthButton and AuthDivider (components/ui).
 // DemoUserPicker is intentionally not exported: import it lazily behind
 // DEMO_MODE so it is dropped from production builds.
+export { LegalConsent } from './LegalConsent'

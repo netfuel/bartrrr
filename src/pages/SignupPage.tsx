@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { MapPin, Loader2, AlertCircle, CheckCircle2, MailCheck } from 'lucide-react'
 import { Button, Input, AuthDivider, buttonStyles } from '@/components/ui'
 import { AuthShell } from '@/components/layout'
-import { OAuthButtons } from '@/components/auth'
+import { LegalConsent, OAuthButtons } from '@/components/auth'
 import { useAuth } from '@/providers/AuthProvider'
 import { requestLocation, getZipFromCoords } from '@/lib/utils/geolocation'
 import { isMemphisZip } from '@/lib/utils/zip'
@@ -290,6 +290,7 @@ export default function SignupPage() {
                       </p>
                     )}
                   </form>
+                  <LegalConsent action="creating an account or continuing with Google or Apple" />
                 </>
               )}
 

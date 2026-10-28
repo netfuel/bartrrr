@@ -10,7 +10,7 @@ Replace `<ref>` below with your Supabase project ref (the subdomain of your proj
    ```sh
    npx supabase login
    npx supabase link --project-ref <ref>
-   npx supabase db push          # applies supabase/migrations/001–006
+   npx supabase db push          # applies supabase/migrations/001–007
    ```
    Migrations contain schema only. `002_seed_data.sql` is an intentional no-op (kept so numbering stays stable); the demo users and listings live in `supabase/seed.sql`, which only `supabase db reset` loads on a **local** database. `db push` never runs it, so a fresh production database starts empty.
 
@@ -51,7 +51,7 @@ Replace `<ref>` below with your Supabase project ref (the subdomain of your proj
 ## 2. Google sign-in (covers Gmail accounts)
 
 1. Google Cloud Console → create or select a project.
-2. **Google Auth Platform → Branding:** app name "Bartrrr", support email, logo; **Authorized domains:** `bartrrr.app` and `supabase.co`; privacy policy and terms URLs on bartrrr.app.
+2. **Google Auth Platform → Branding:** app name "Bartrrr", support email, logo; **Authorized domains:** `bartrrr.app` and `supabase.co`; privacy policy `https://bartrrr.app/privacy` and terms `https://bartrrr.app/terms`.
 3. **Audience:** User type *External*, then **Publish app** (in *Testing* only listed test users can sign in).
 4. **Data access (scopes):** `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`. These are non-sensitive, so no Google verification review is needed.
 5. **Clients → Create client → Web application**
@@ -111,7 +111,7 @@ What the repo ships for Pages:
 ## 5. Launch checklist
 
 - [ ] `npm run typecheck && npm run lint && npm run build` pass
-- [ ] Migrations 001–006 applied; `select public.expire_stale_offers()` runs without error
+- [ ] Migrations 001–007 applied; `select public.expire_stale_offers()` runs without error
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
@@ -131,3 +131,12 @@ npm run dev                    # http://localhost:5173
 ```
 
 Full local stack with OAuth: copy `supabase/.env.example` to `supabase/.env`, fill in the provider secrets, then `npx supabase start`. Point `VITE_SUPABASE_URL` at `http://127.0.0.1:54321`.
+
+## Legal pages
+
+`/privacy` and `/terms` are public and indexed. The facts they depend on (operator name, contact email, minimum age, governing law, last-updated date) live in `src/lib/legal.ts`.
+
+- Set up the `hello@bartrrr.app` mailbox (Cloudflare Email Routing to your inbox works) before launch: both pages and the account-deletion process point to it.
+- If you form an LLC or other entity, change `LEGAL_OPERATOR` to its legal name.
+- Bump `LEGAL_UPDATED` whenever either document changes.
+- Account deletion is by email for now. Don't delete the user from Supabase → Authentication: that leaves their profile behind. Instead, in the SQL editor run `select public.delete_account('<user id>');` (migration 007). It strips the profile, deletes or clears their listings, withdraws open offers, cancels unfinished agreements, removes their name from other neighbors' notifications, and deletes the sign-in identity, all in one transaction. Find the id under Authentication → Users by email.

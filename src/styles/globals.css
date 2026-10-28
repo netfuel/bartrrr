@@ -327,3 +327,39 @@ svg.lucide {
     scroll-behavior: auto !important;
   }
 }
+
+/* Long-form reading text for the privacy policy and terms */
+.legal-prose {
+  color: var(--color-ink-2);
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 65ch;
+}
+.legal-prose > * + * {
+  margin-top: 1rem;
+}
+.legal-prose h3 {
+  margin-top: 1.75rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.legal-prose ul {
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.legal-prose li + li {
+  margin-top: 0.5rem;
+}
+.legal-prose li::marker {
+  color: var(--color-clay);
+}
+.legal-prose strong {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.legal-prose a {
+  color: var(--color-clay-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
