@@ -12,7 +12,7 @@ Set up October 2026. No secrets here: keys live in the dashboards named.
 | Site | Cloudflare Worker `bartrrr`, Git-connected to `netfuel/bartrrr` `main`; every push builds and deploys | Live |
 | Domains | `bartrrr.app`, `www.bartrrr.app`, route `*.bartrrr.app/*`; workers.dev URL `bartrrr.netfuel.workers.dev` | Live |
 | Build variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SITE_URL`, `VITE_AUTH_PROVIDERS=google` | Set |
-| Database + auth | Supabase project `bartrrr`, ref `uykknvmxntknclkyqvao`, East US (Ohio) `us-east-2` | Migrations 001–008 applied (008: listing photo storage) |
+| Database + auth | Supabase project `bartrrr`, ref `uykknvmxntknclkyqvao`, East US (Ohio) `us-east-2` | Migrations 001–011 applied (008 photos, 009 agreement actions, 010 self-service deletion, 011 withdrawn notice) |
 | Offer expiry | `pg_cron` job `bartrrr-expire-offers`, every 15 minutes | Active |
 | Google sign-in | Google Cloud project `bartrrr`, OAuth client "Bartrrr web", app published (External) | Live |
 | Apple sign-in | Not set up; hidden by `VITE_AUTH_PROVIDERS=google` | To do |
