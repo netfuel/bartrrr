@@ -140,6 +140,8 @@ What the repo ships for the Worker's static assets:
 - [x] Migrations 001–007 applied; offer-expiry cron job active
 - [x] Migration 008 applied: Storage shows a public `listing-photos` bucket (2 MB limit, WebP/JPEG); posting a listing with a photo works
 - [ ] Migration 009 applied (`npx supabase db push`): on a test trade, set a time and place, cancel one agreement and flag another; the other neighbor gets a notification each time, and the flagged trade shows up in the query under "Flagged trades"
+- [ ] Migration 011 applied: withdrawing an offer gives the listing owner an "Offer withdrawn" notification
+- [ ] Migration 010 applied: `delete_my_account()` exists and only `authenticated` can execute it; delete a throwaway account from Settings and check its profile reads "Former neighbor" and its photo folder is gone
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
@@ -205,4 +207,12 @@ Late cancellations: `users.late_cancellations` counts cancellations made less th
 - `hello@bartrrr.app` forwards to netfuel@gmail.com (Cloudflare Email Routing). Both pages and the account-deletion process point to it.
 - If you form an LLC or other entity, change `LEGAL_OPERATOR` to its legal name.
 - Bump `LEGAL_UPDATED` whenever either document changes.
-- Account deletion is by email for now. Don't delete the user from Supabase → Authentication: that leaves their profile behind. Instead, in the SQL editor run `select public.delete_account('<user id>');` (migration 007). It strips the profile, deletes or clears their listings, withdraws open offers, cancels unfinished agreements, removes their name from other neighbors' notifications, and deletes the sign-in identity, all in one transaction. Find the id under Authentication → Users by email. Then delete their photos: **Storage → listing-photos →** the folder named with their user id → select all → Delete. (Supabase blocks deleting storage files from SQL, so the function can't do this step.)
+- Account deletion: neighbors delete their own account at the bottom of Settings (migration 010, `public.delete_my_account()`). The app first removes their files from `listing-photos/<user id>/`, then the function runs the 007 steps for the signed-in neighbor only: strips the profile, deletes or clears their listings, withdraws open offers, cancels unfinished agreements, removes their name from other neighbors' notifications, and deletes the sign-in identity, all in one transaction. Code: `src/lib/account-deletion.ts`, `src/components/settings/DeleteAccountSection.tsx`.
+- Deletion requests by email (someone who can't sign in, or asks us to do it): don't delete the user from Supabase → Authentication, which leaves their profile behind. Instead, in the SQL editor run `select public.delete_account('<user id>');` (migration 007; it isn't callable from the app). Find the id under Authentication → Users by email. Then delete their photos: **Storage → listing-photos →** the folder named with their user id → select all → Delete. (Supabase blocks deleting storage files from SQL, so the function can't do this step.)
+- Leftover photos: if the browser couldn't remove someone's photos during self-service deletion (dropped connection), their folder stays behind. Now and then, list folders that no longer belong to an account, then delete them in **Storage → listing-photos**:
+  ```sql
+  select distinct (storage.foldername(name))[1] as folder
+    from storage.objects o
+   where bucket_id = 'listing-photos'
+     and not exists (select 1 from auth.users u where u.id::text = (storage.foldername(o.name))[1]);
+  ```

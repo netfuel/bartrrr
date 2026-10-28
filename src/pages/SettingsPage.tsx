@@ -4,6 +4,7 @@ import { Button, Input } from '@/components/ui'
 import { AvatarUploader } from '@/components/profile/AvatarUploader'
 import { NeighborhoodPicker } from '@/components/profile/NeighborhoodPicker'
 import { knownNeighborhood } from '@/data/neighborhoods'
+import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore, showToast } from '@/stores'
 import { usePageTitle } from '@/lib/utils'
@@ -167,6 +168,8 @@ export default function SettingsPage() {
           </Button>
         </div>
       </section>
+
+      <DeleteAccountSection />
     </div>
   )
 }
