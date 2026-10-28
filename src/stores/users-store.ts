@@ -20,6 +20,8 @@ interface UsersState {
   updateUser: (id: string, data: Partial<EditableProfile>) => void
   /** Local-only: the server maintains trade counts (migration 004) */
   incrementTradeCount: (userId: string) => void
+  /** Local-only: the server counts late cancellations (migration 009) */
+  noteLateCancellation: (userId: string) => void
   /** Local-only: the server maintains reputation (migration 004) */
   updateRating: (userId: string, newAvg: number) => void
 }
@@ -60,6 +62,13 @@ export const useUsersStore = create<UsersState>((set, get) => ({
     set((state) => ({
       users: state.users.map((u) =>
         u.id === userId ? { ...u, tradeCount: u.tradeCount + 1 } : u,
+      ),
+    })),
+
+  noteLateCancellation: (userId) =>
+    set((state) => ({
+      users: state.users.map((u) =>
+        u.id === userId ? { ...u, lateCancellations: (u.lateCancellations ?? 0) + 1 } : u,
       ),
     })),
 

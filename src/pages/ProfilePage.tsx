@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useState } from 'react'
-import { Star, MapPin, Calendar } from 'lucide-react'
+import { Star, MapPin, Calendar, Clock } from 'lucide-react'
 import { Avatar, Chip, Tabs } from '@/components/ui'
 import { TradeCard, ReviewCard } from '@/components/bartrrr'
 import { useUsersStore, useListingsStore, useReviewsStore } from '@/stores'
@@ -59,6 +59,13 @@ export default function ProfilePage() {
             </span>
             <span className="flex items-center border-l border-ink px-4 py-2 text-label text-ink-2">{user.tradeCount} {user.tradeCount === 1 ? 'trade' : 'trades'}</span>
           </div>
+          {(user.lateCancellations ?? 0) > 0 && (
+            <p className="mt-3 flex items-center gap-1.5 text-small text-muted">
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+              {user.lateCancellations} late {user.lateCancellations === 1 ? 'cancellation' : 'cancellations'}
+              {' '}(canceled less than 24 hours before a swap)
+            </p>
+          )}
           {user.bio && <p className="mt-6 max-w-[52ch] font-display text-[20px] leading-[1.45] text-ink">{user.bio}</p>}
           {user.lookingFor && user.lookingFor.length > 0 && (
             <div className="mt-6">

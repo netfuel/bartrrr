@@ -139,6 +139,7 @@ What the repo ships for the Worker's static assets:
 - [ ] `npm run typecheck && npm run lint && npm run build` pass
 - [x] Migrations 001–007 applied; offer-expiry cron job active
 - [x] Migration 008 applied: Storage shows a public `listing-photos` bucket (2 MB limit, WebP/JPEG); posting a listing with a photo works
+- [ ] Migration 009 applied (`npx supabase db push`): on a test trade, set a time and place, cancel one agreement and flag another; the other neighbor gets a notification each time, and the flagged trade shows up in the query under "Flagged trades"
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
@@ -158,6 +159,44 @@ npm run dev                    # http://localhost:5173
 ```
 
 Full local stack with OAuth: copy `supabase/.env.example` to `supabase/.env`, fill in the provider secrets, then `npx supabase start`. Point `VITE_SUPABASE_URL` at `http://127.0.0.1:54321`.
+
+## Flagged trades
+
+Either neighbor can flag an active or completed trade for review, with a short reason (migration 009). The agreement's status becomes `disputed`, the other neighbor is notified, and neither can mark it done, cancel it or reopen it from the app. Flagging doesn't change trade counts or ratings. Bartrrr doesn't decide disputes: the job is to help the two neighbors talk, per the agreement's dispute clause.
+
+There's no admin screen yet. Check flagged trades in the SQL editor:
+
+```sql
+select a.id,
+       a.disputed_at,
+       flagger.display_name as flagged_by,
+       a.dispute_reason,
+       pa.display_name as party_a, a.party_a_item,
+       pb.display_name as party_b, a.party_b_item,
+       a.exchange_date, a.exchange_location,
+       a.completed_at
+  from public.agreements a
+  join public.users pa on pa.id = a.party_a_user_id
+  join public.users pb on pb.id = a.party_b_user_id
+  left join public.users flagger on flagger.id = a.disputed_by
+ where a.status = 'disputed'
+ order by a.disputed_at desc nulls last;
+```
+
+To reach the neighbors, find their emails under Authentication → Users by id (`party_a_user_id`, `party_b_user_id`). Once it's settled, the SQL editor (a trusted context, so the app's rules don't apply) can move the agreement on:
+
+```sql
+-- Swap still to happen: back to "Ready to swap"
+update public.agreements set status = 'active' where id = '<agreement id>';
+-- It happened: mark it done (counts toward trade totals only the first time)
+update public.agreements set status = 'completed' where id = '<agreement id>';
+-- Called off
+update public.agreements set status = 'cancelled' where id = '<agreement id>';
+```
+
+`dispute_reason`, `disputed_by` and `disputed_at` stay on the row as a record.
+
+Late cancellations: `users.late_cancellations` counts cancellations made less than 24 hours before an agreed swap (both had signed), or after the swap time. The server works it out when the agreement is canceled; it shows on the neighbor's profile. To review: `select id, cancelled_by, cancelled_at, exchange_date from public.agreements where cancelled_late order by cancelled_at desc;`
 
 ## Legal pages
 

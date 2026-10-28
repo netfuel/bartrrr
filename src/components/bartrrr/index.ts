@@ -13,3 +13,5 @@ export { ReviewCard, type ReviewCardProps } from './ReviewCard'
 // ListingsMap is intentionally NOT exported here: it pulls in maplibre-gl
 // (~1 MB) and must stay lazy-loaded (see BrowsePage).
 export { FirstTradeCelebration } from './FirstTradeCelebration'
+export { ExchangeDetailsForm, type ExchangeDetailsFormProps } from './ExchangeDetailsForm'
+export { FlagTradeDialog, type FlagTradeDialogProps } from './FlagTradeDialog'

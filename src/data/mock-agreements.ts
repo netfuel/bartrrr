@@ -1,5 +1,14 @@
 import type { TradeAgreement } from '@/types'
 
+// Upcoming swaps are relative to page load so the demo always has one
+// coming up in a few days and one inside the 24-hour late-cancel window.
+const HOUR = 3_600_000
+const hoursFromNow = (h: number) => {
+  const d = new Date(Date.now() + h * HOUR)
+  d.setMinutes(0, 0, 0)
+  return d.toISOString()
+}
+
 export const mockAgreements: TradeAgreement[] = [
   {
     id: 'agreement-001',
@@ -15,10 +24,10 @@ export const mockAgreements: TradeAgreement[] = [
       signed: false,
     },
     exchangeMethod: 'in_person',
-    exchangeDate: '2026-04-12T10:00:00Z',
+    exchangeDate: hoursFromNow(4 * 24),
     exchangeLocation: 'East Memphis Community Center parking lot',
     specialInstructions:
-      'The mixer is heavy — bring a box or bag. I\'ll have the tools in a canvas tote.',
+      "The mixer is heavy: bring a box or bag. I'll have the tools in a canvas tote.",
     status: 'pending_signatures',
     createdAt: '2026-04-06T17:00:00Z',
   },
@@ -36,10 +45,10 @@ export const mockAgreements: TradeAgreement[] = [
       signed: true,
     },
     exchangeMethod: 'service_at_location',
-    exchangeDate: '2026-04-13T15:00:00Z',
-    exchangeLocation: "Maria's home (address shared privately)",
+    exchangeDate: hoursFromNow(20),
+    exchangeLocation: 'Cossitt Library, second-floor study room',
     specialInstructions:
-      "Dave will drop off food at 3pm, tutoring session starts at 3:30. Daughter's name is Lily.",
+      'Dave brings the food at the start, tutoring runs about 2 hours after that.',
     status: 'active',
     createdAt: '2026-04-08T19:00:00Z',
   },

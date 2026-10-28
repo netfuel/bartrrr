@@ -28,6 +28,7 @@ import type {
 import type {
   AppNotification,
   Category,
+  ExchangeDetails,
   Listing,
   ListingCondition,
   ListingStatus,
@@ -40,6 +41,8 @@ import type {
   UserProfile,
 } from '@/types'
 import {
+  disputeReasonSchema,
+  exchangeDetailsSchema,
   listingInputSchema,
   offerItemsSchema,
   offerMessageSchema,
@@ -158,6 +161,14 @@ export function mapAgreementRow(row: AgreementRow): TradeAgreement {
     status: row.status as TradeAgreement['status'],
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
+    termsUpdatedBy: row.terms_updated_by ?? undefined,
+    termsUpdatedAt: row.terms_updated_at ?? undefined,
+    cancelledBy: row.cancelled_by ?? undefined,
+    cancelledAt: row.cancelled_at ?? undefined,
+    cancelledLate: row.cancelled_late ?? false,
+    disputedBy: row.disputed_by ?? undefined,
+    disputedAt: row.disputed_at ?? undefined,
+    disputeReason: row.dispute_reason ?? undefined,
   }
 }
 
@@ -198,6 +209,7 @@ export function mapUserRow(row: UserRow): UserProfile {
     interests: row.interests ?? [],
     reputationScore: Number(row.reputation_score),
     tradeCount: row.trade_count,
+    lateCancellations: row.late_cancellations ?? 0,
     joinedAt: row.joined_at,
     notificationPrefs: prefs
       ? {
@@ -553,6 +565,53 @@ export async function completeAgreement(id: string): Promise<TradeAgreement> {
   const { data, error } = await client()
     .from('agreements')
     .update({ status: 'completed' })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return mapAgreementRow(data)
+}
+
+/**
+ * Set or change how, when and where the swap happens. The server clears
+ * both signatures when anything changes (agreements_guard, 004), stores the
+ * time as UTC ISO and refuses edits once both have signed (009).
+ */
+export async function updateExchangeDetails(id: string, details: ExchangeDetails): Promise<TradeAgreement> {
+  const checked = parseOrThrow(exchangeDetailsSchema, details)
+  const { data, error } = await client()
+    .from('agreements')
+    .update({
+      exchange_method: checked.exchangeMethod ?? null,
+      exchange_date: checked.exchangeDate ?? null,
+      exchange_location: checked.exchangeLocation || null,
+      special_instructions: checked.specialInstructions || null,
+    })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return mapAgreementRow(data)
+}
+
+/** Who canceled, when, and whether it was late are stamped server-side (009). */
+export async function cancelAgreement(id: string): Promise<TradeAgreement> {
+  const { data, error } = await client()
+    .from('agreements')
+    .update({ status: 'cancelled' })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return mapAgreementRow(data)
+}
+
+/** Flag for review: status 'disputed' with the neighbor's reason (009). */
+export async function flagAgreement(id: string, reason: string): Promise<TradeAgreement> {
+  const checked = parseOrThrow(disputeReasonSchema, reason)
+  const { data, error } = await client()
+    .from('agreements')
+    .update({ status: 'disputed', dispute_reason: checked })
     .eq('id', id)
     .select()
     .single()
