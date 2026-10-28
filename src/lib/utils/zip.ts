@@ -4,6 +4,8 @@ export const MEMPHIS_ZIP_CODES = new Set([
   '38103', '38104', '38105', '38106', '38107', '38108', '38109',
   // East Memphis / Orange Mound / Whitehaven
   '38111', '38112', '38113', '38114', '38115', '38116', '38117', '38118', '38119', '38120',
+  // Berclair / University of Memphis
+  '38122', '38152',
   // Southeast Memphis / Cordova south / Raleigh / Berclair
   '38125', '38126', '38127', '38128',
   // Bartlett / Raleigh area
