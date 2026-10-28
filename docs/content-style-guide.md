@@ -63,6 +63,7 @@ One term per concept. Use these exact words everywhere.
 | **round** | One offer or counter-offer. Max 5 rounds (1 offer + 4 counter-offers) | turn, step |
 | **accept trade** | Agree to the current terms of an offer | confirm, approve |
 | **decline** | Say no to an offer | reject, no thanks, pass |
+| **withdraw** (an offer) | The neighbor who made an offer calls it off while it's still open. Only for offers: listings are "taken down" | cancel, retract, pull |
 | **trade** | The whole exchange, from accepted offer to done | deal, transaction, purchase, order |
 | **swap** | The physical handoff, or a friendly synonym for trade in marketing | exchange (in UI), checkout, pickup |
 | **trade agreement** | The non-binding record both neighbors sign after an offer is accepted. "Agreement" on second mention | contract, terms, barter contract |
@@ -75,7 +76,7 @@ One term per concept. Use these exact words everywhere.
 
 ### Status labels
 
-Offers (`OFFER_STATUS_LABELS`): **Waiting for reply** · **Counter-offer** · **Accepted** · **Declined**. In lists, an open offer where it's the reader's move shows **Your turn**.
+Offers (`OFFER_STATUS_LABELS`): **Waiting for reply** · **Counter-offer** · **Accepted** · **Declined** · **Withdrawn** · **Expired**. In lists, an open offer where it's the reader's move shows **Your turn**.
 
 Trade agreements (`AGREEMENT_STATUS_LABELS`): **Draft** · **In review** · **Waiting to sign** · **Ready to swap** · **Completed** · **Canceled** · **Flagged**.
 
@@ -107,6 +108,7 @@ buy, sell, selling, price, cost, purchase, checkout, cart, pay, payment, fee (ex
 | Accept trade | OK, Confirm |
 | Send counter-offer | Send, Suggest a change |
 | Decline offer | No thanks |
+| Withdraw offer | Cancel offer, Retract |
 | Sign agreement | I agree, Finalize |
 | We made the swap | Complete |
 | Post listing | Create |
@@ -133,6 +135,7 @@ Pattern: **question title** + **what happens, including whether it can be undone
 |---|---|---|---|---|
 | Accept an offer | Accept this trade? | You give {X} and get {Y}. This ends the negotiation. Next, you'll both review and sign a simple trade agreement, then pick a time and place to swap. | Accept trade | Not yet |
 | Decline an offer | Decline this offer? | This ends the negotiation. Pick a reason so {name} knows what to try next time. | Decline offer | Keep talking |
+| Withdraw an offer | Withdraw this offer? | This ends the negotiation for {listing}. We'll let {name} know you withdrew it. You can't undo this. If you change your mind, make a new offer while the listing is still up. | Withdraw offer | Keep my offer |
 | Take down a listing | Take down this listing? | Neighbors won't see it anymore and can't make new offers. You can relist it later from this page. | Take down listing | Keep it up |
 | Mark trade done | Did the swap happen? | Only mark it done after you and {name} have both handed over your side of the trade. This closes the agreement and can't be undone. | Yes, we swapped | Not yet |
 

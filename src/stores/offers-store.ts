@@ -36,6 +36,8 @@ interface OffersState {
   acceptOffer: (offerId: string, userId: string) => void
   declineOffer: (offerId: string, userId: string, reason: OfferDeclineReason, note?: string) => void
   counterOffer: (offerId: string, userId: string, content: string, items: string[]) => void
+  /** Withdraw your own open offer. Returns false if it was refused locally. */
+  withdrawOffer: (offerId: string, userId: string) => boolean
   addMessage: (offerId: string, fromUserId: string, content: string) => void
 }
 
@@ -247,6 +249,33 @@ export const useOffersStore = create<OffersState>((set, get) => {
         },
         rollback: () => replace(previous),
       })
+    },
+
+    withdrawOffer: (offerId, userId) => {
+      const previous = snapshot(offerId)
+      if (!assertOpen(previous)) return false
+      // Mirrors offers_guard (migration 004): only from_user_id can withdraw,
+      // no matter who sent the latest counter-offer
+      if (previous.fromUserId !== userId) {
+        showToast('Only the neighbor who made this offer can withdraw it.', 'error')
+        return false
+      }
+      // The server stores no thread message for a withdrawal, just the status
+      replace({ ...previous, status: 'withdrawn' })
+      persist(() => svc.withdrawOffer(offerId, generateId('msg')), {
+        error: "Couldn't withdraw your offer",
+        onSuccess: (saved) => {
+          replace(saved)
+          sendPushNotification({
+            userId: saved.toUserId,
+            title: 'Offer withdrawn',
+            body: 'A neighbor withdrew their offer on your listing.',
+            url: `/offers/${offerId}`,
+          })
+        },
+        rollback: () => replace(previous),
+      })
+      return true
     },
 
     addMessage: (offerId, fromUserId, content) => {

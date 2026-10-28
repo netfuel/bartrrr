@@ -98,7 +98,14 @@ export default function OffersInboxPage() {
                     <Badge variant={sb.variant}>{sb.label}</Badge>
                   </div>
                   <p className="font-display text-[18px] leading-snug text-ink mt-1 truncate transition-colors group-hover:text-clay-dark">{listing?.title}</p>
-                  {lastMessage && (
+                  {offer.status === 'withdrawn' ? (
+                    // A withdrawal leaves no thread message, so say it here
+                    <p className="text-small text-muted mt-1 line-clamp-1">
+                      {tab === 'outgoing'
+                        ? 'You withdrew this offer.'
+                        : `${otherUser?.displayName.split(' ')[0] || 'Your neighbor'} withdrew this offer.`}
+                    </p>
+                  ) : lastMessage && (
                     <p className="text-small text-muted mt-1 line-clamp-1">{lastMessage.content}</p>
                   )}
                 </div>

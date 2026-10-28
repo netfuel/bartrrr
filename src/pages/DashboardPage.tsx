@@ -3,10 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Package, MessageSquare, FileCheck, Plus, ArrowRight, History, Send } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { useListingsStore, useUsersStore, useOffersForUser, useAgreementsForUser, useMyActiveListings } from '@/stores'
-import { Badge, Avatar, EmptyState, Tabs, buttonStyles } from '@/components/ui'
-import { TradeCard } from '@/components/bartrrr'
+import { Badge, Avatar, Button, EmptyState, Tabs, buttonStyles } from '@/components/ui'
+import { TradeCard, WithdrawOfferDialog } from '@/components/bartrrr'
 import { usePageTitle } from '@/lib/utils'
-import { OFFER_STATUS_LABELS, AGREEMENT_STATUS_LABELS } from '@/types'
+import { OFFER_STATUS_LABELS, AGREEMENT_STATUS_LABELS, type Offer } from '@/types'
 
 type Tab = 'listings' | 'incoming' | 'outgoing' | 'trades' | 'history'
 
@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const { currentUser } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('listings')
+  const [withdrawing, setWithdrawing] = useState<Offer | null>(null)
   const getUserById = useUsersStore((s) => s.getUserById)
   const getListingById = useListingsStore((s) => s.getListingById)
   usePageTitle('Dashboard')
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   if (!currentUser) return null
   const pendingIncoming = incoming.filter((o) => o.status === 'pending' || o.status === 'countered')
   const pendingOutgoing = outgoing.filter((o) => o.status === 'pending' || o.status === 'countered')
+  const closedOutgoing = outgoing.filter((o) => o.status === 'declined' || o.status === 'withdrawn' || o.status === 'expired')
   const activeAgreements = agreements.filter((a) => a.status === 'pending_signatures' || a.status === 'active')
   const completedAgreements = agreements.filter((a) => a.status === 'completed')
 
@@ -166,34 +168,45 @@ export default function DashboardPage() {
               const toUser = getUserById(offer.toUserId)
               const listing = getListingById(offer.listingId)
               if (!toUser) return null
+              const toFirstName = toUser.displayName.split(' ')[0]
               return (
-                <Link key={offer.id} to={`/offers/${offer.id}`}>
-                  <div className="group flex items-center gap-4 border-b border-ink/20 px-1 py-4 transition-colors hover:bg-paper">
+                // Stretched link: the whole row opens the offer; the withdraw button sits above it
+                <div key={offer.id} className="group relative border-b border-ink/20 px-1 pt-4 pb-2 transition-colors hover:bg-paper">
+                  <div className="flex items-center gap-4">
                     <Avatar name={toUser.displayName} userId={toUser.id} size="md" src={toUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[16px] font-medium text-ink">
+                      <Link to={`/offers/${offer.id}`} className="text-[16px] font-medium text-ink after:absolute after:inset-0 after:content-['']">
                         Your offer to {toUser.displayName}
-                      </p>
+                      </Link>
                       <p className="text-small text-muted truncate mt-0.5">for {listing?.title || 'their listing'}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={
-                        offer.status === 'countered' ? 'gold' :
-                        offer.status === 'pending' ? 'teal' : 'clay'
-                      }>
+                      <Badge variant={offer.status === 'countered' ? 'gold' : 'teal'}>
                         {OFFER_STATUS_LABELS[offer.status]}
                       </Badge>
                       <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
                   </div>
-                </Link>
+                  {/* Lines the label up with the text column (32px avatar + 16px gap, minus button padding) */}
+                  <div className="pl-9">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setWithdrawing(offer)}
+                      className="relative z-10 whitespace-nowrap px-3 text-ink-2"
+                      aria-label={`Withdraw offer to ${toFirstName}`}
+                    >
+                      Withdraw offer
+                    </Button>
+                  </div>
+                </div>
               )
             })
           )}
-          {outgoing.filter((o) => o.status === 'declined').length > 0 && (
+          {closedOutgoing.length > 0 && (
             <div>
-              <p className="text-label text-muted mt-8 mb-2">Declined</p>
-              {outgoing.filter((o) => o.status === 'declined').map((offer) => {
+              <p className="text-label text-muted mt-8 mb-2">Closed</p>
+              {closedOutgoing.map((offer) => {
                 const toUser = getUserById(offer.toUserId)
                 const listing = getListingById(offer.listingId)
                 if (!toUser) return null
@@ -204,7 +217,9 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-ink truncate">{toUser.displayName}: {listing?.title}</p>
                       </div>
-                      <Badge variant="clay">Declined</Badge>
+                      <Badge variant={offer.status === 'declined' ? 'clay' : 'closed'}>
+                        {OFFER_STATUS_LABELS[offer.status]}
+                      </Badge>
                     </div>
                   </Link>
                 )
@@ -292,6 +307,16 @@ export default function DashboardPage() {
             })
           )}
         </div>
+      )}
+
+      {withdrawing && (
+        <WithdrawOfferDialog
+          offer={withdrawing}
+          currentUser={currentUser}
+          otherName={getUserById(withdrawing.toUserId)?.displayName.split(' ')[0] || 'your neighbor'}
+          listingTitle={getListingById(withdrawing.listingId)?.title}
+          onClose={() => setWithdrawing(null)}
+        />
       )}
     </div>
   )

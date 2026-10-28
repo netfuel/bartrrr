@@ -493,6 +493,15 @@ export function counterOffer(id: string, messageId: string, content: string, ite
   return respond(id, 'counter', messageId, content, items)
 }
 
+/**
+ * Only the neighbor who made the offer can withdraw it, while it's pending or
+ * countered (offers_guard, migration 004). The RPC stores no thread message,
+ * so the content here only satisfies validation.
+ */
+export function withdrawOffer(id: string, messageId: string): Promise<Offer> {
+  return respond(id, 'withdraw', messageId, 'Offer withdrawn.')
+}
+
 export async function addOfferMessage(
   offerId: string,
   messageId: string,
