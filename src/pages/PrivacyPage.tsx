@@ -57,7 +57,7 @@ const sections: LegalSection[] = [
 
         <h3>What you post and send</h3>
         <ul>
-          <li>Listings, including descriptions, condition, what you're looking for, and photo links.</li>
+          <li>Listings, including photos, descriptions, condition and what you're looking for.</li>
           <li>Offers, counter-offers and messages you exchange with neighbors.</li>
           <li>Trade agreements, including what each side gives and any exchange details you add.</li>
           <li>Reviews you leave, and reviews other neighbors leave about you.</li>
@@ -133,17 +133,18 @@ const sections: LegalSection[] = [
           that purpose:
         </p>
         <ul>
-          <li><strong>Supabase:</strong> our database and sign-in.</li>
+          <li><strong>Supabase:</strong> our database, sign-in and photo storage.</li>
           <li><strong>Cloudflare:</strong> hosting and delivering the website.</li>
           <li><strong>OpenFreeMap:</strong> the map tiles your browser downloads when you view the map, built on OpenStreetMap data.</li>
           <li><strong>Google Fonts:</strong> the typefaces on the site, which your browser downloads from Google.</li>
           <li><strong>Google and Apple:</strong> only if you choose to sign in with them.</li>
-          <li><strong>Our email provider:</strong> sending account emails.</li>
+          <li><strong>Cloudflare Email Service:</strong> sending account emails.</li>
           <li><strong>Your browser's push service:</strong> delivering notifications, if you turn them on.</li>
         </ul>
         <p>
-          Listing photos are links to images hosted elsewhere. When you view a listing, your browser loads its photos
-          from wherever they're hosted.
+          Photos you upload to a listing are stored with Supabase. Before a photo leaves your device, we shrink it and
+          remove hidden details saved with it, like the location where it was taken. Photos on a listing are public,
+          like the listing itself, and anyone with a photo's link can view it.
         </p>
         <p>
           We'll also share information if the law requires it, or if we believe it's needed to protect someone's
@@ -176,6 +177,7 @@ const sections: LegalSection[] = [
         <ul>
           <li>Delete your sign-in details, profile photo, bio, interests, notifications and notification settings.</li>
           <li>Delete listings nobody has made an offer on, and take down and clear the rest.</li>
+          <li>Delete the listing photos you uploaded.</li>
           <li>Withdraw your open offers and cancel trade agreements that aren't finished.</li>
           <li>
             Show "Former neighbor" in place of your name on past trades and reviews, so the other neighbor keeps their

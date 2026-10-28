@@ -12,7 +12,7 @@ Set up October 2026. No secrets here: keys live in the dashboards named.
 | Site | Cloudflare Worker `bartrrr`, Git-connected to `netfuel/bartrrr` `main`; every push builds and deploys | Live |
 | Domains | `bartrrr.app`, `www.bartrrr.app`, route `*.bartrrr.app/*`; workers.dev URL `bartrrr.netfuel.workers.dev` | Live |
 | Build variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SITE_URL`, `VITE_AUTH_PROVIDERS=google` | Set |
-| Database + auth | Supabase project `bartrrr`, ref `uykknvmxntknclkyqvao`, East US (Ohio) `us-east-2` | Migrations 001–007 applied |
+| Database + auth | Supabase project `bartrrr`, ref `uykknvmxntknclkyqvao`, East US (Ohio) `us-east-2` | Migrations 001–008 applied (008: listing photo storage) |
 | Offer expiry | `pg_cron` job `bartrrr-expire-offers`, every 15 minutes | Active |
 | Google sign-in | Google Cloud project `bartrrr`, OAuth client "Bartrrr web", app published (External) | Live |
 | Apple sign-in | Not set up; hidden by `VITE_AUTH_PROVIDERS=google` | To do |
@@ -28,7 +28,7 @@ Set up October 2026. No secrets here: keys live in the dashboards named.
    ```sh
    npx supabase login
    npx supabase link --project-ref <ref>
-   npx supabase db push          # applies supabase/migrations/001–007
+   npx supabase db push          # applies supabase/migrations/001–008
    ```
    Migrations contain schema only. `002_seed_data.sql` is an intentional no-op (kept so numbering stays stable); the demo users and listings live in `supabase/seed.sql`, which only `supabase db reset` loads on a **local** database. `db push` never runs it, so a fresh production database starts empty.
 
@@ -124,7 +124,8 @@ The site is an assets-only Cloudflare Worker named `bartrrr`, built by Workers B
 7. Don't add Cache Rules that cache HTML. `public/_headers` already sets immutable caching for `/assets/*` and `no-cache` for `/sw.js`.
 8. **Email Routing** (bartrrr.app → Email → Email Routing): MX, SPF and DKIM records added; rule `hello@bartrrr.app` → netfuel@gmail.com. Add more addresses the same way.
 9. **Mail Worker** `bartrrr-mail`: Workers Builds from the same repo, root directory `/workers/mail`, no build command, deploy `npx wrangler deploy`. Binding `EMAIL` (send_email) and vars live in `workers/mail/wrangler.jsonc`; the one secret is `SEND_EMAIL_HOOK_SECRET`. `GET /health` returns `{"ok":true}`.
-10. **Social share image:** `public/og-image.jpg` (1200×630), referenced by absolute URL in `index.html`. Source is an HTML layout rendered with Playwright: homepage nav bar with the wordmark, the `homes-poster.jpg` hero with the walnut scrim, and "Trade, don’t buy." in Fraunces. After changing it, re-scrape in the Facebook Sharing Debugger and LinkedIn Post Inspector, which cache images.
+10. **Listing photos:** uploaded from the post and edit pages to the Supabase Storage bucket `listing-photos` (migration 008), at `<user id>/<random>.webp`. The browser resizes each photo to 1600px on the long side and re-encodes it, which strips EXIF data like GPS location; the bucket rejects anything over 2 MB or not WebP/JPEG. Only the owner can write to their folder; reads are public. Removed photos are deleted after the listing saves; photos from abandoned drafts are deleted when the page closes. Code: `src/lib/photos.ts`, `src/components/listings/PhotoPicker.tsx`.
+11. **Social share image:** `public/og-image.jpg` (1200×630), referenced by absolute URL in `index.html`. Source is an HTML layout rendered with Playwright: homepage nav bar with the wordmark, the `homes-poster.jpg` hero with the walnut scrim, and "Trade, don’t buy." in Fraunces. After changing it, re-scrape in the Facebook Sharing Debugger and LinkedIn Post Inspector, which cache images.
 
 If a deploy fails with `Internal authentication error ... [code: 10500]`, that's a Cloudflare API hiccup (often two deploys at once): retry the build.
 
@@ -137,6 +138,7 @@ What the repo ships for the Worker's static assets:
 
 - [ ] `npm run typecheck && npm run lint && npm run build` pass
 - [x] Migrations 001–007 applied; offer-expiry cron job active
+- [ ] Migration 008 applied: Storage shows a public `listing-photos` bucket (2 MB limit, WebP/JPEG); posting a listing with a photo works
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
@@ -164,4 +166,4 @@ Full local stack with OAuth: copy `supabase/.env.example` to `supabase/.env`, fi
 - `hello@bartrrr.app` forwards to netfuel@gmail.com (Cloudflare Email Routing). Both pages and the account-deletion process point to it.
 - If you form an LLC or other entity, change `LEGAL_OPERATOR` to its legal name.
 - Bump `LEGAL_UPDATED` whenever either document changes.
-- Account deletion is by email for now. Don't delete the user from Supabase → Authentication: that leaves their profile behind. Instead, in the SQL editor run `select public.delete_account('<user id>');` (migration 007). It strips the profile, deletes or clears their listings, withdraws open offers, cancels unfinished agreements, removes their name from other neighbors' notifications, and deletes the sign-in identity, all in one transaction. Find the id under Authentication → Users by email.
+- Account deletion is by email for now. Don't delete the user from Supabase → Authentication: that leaves their profile behind. Instead, in the SQL editor run `select public.delete_account('<user id>');` (migration 007). It strips the profile, deletes or clears their listings, withdraws open offers, cancels unfinished agreements, removes their name from other neighbors' notifications, and deletes the sign-in identity, all in one transaction. Find the id under Authentication → Users by email. Then delete their photos: **Storage → listing-photos →** the folder named with their user id → select all → Delete. (Supabase blocks deleting storage files from SQL, so the function can't do this step.)

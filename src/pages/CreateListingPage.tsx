@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Camera, Check, Plus, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import { cn, usePageTitle } from '@/lib/utils'
 import { Button, Input, Textarea, Chip } from '@/components/ui'
 import { CATEGORY_LABELS, CONDITION_LABELS, type Category, type ListingCondition } from '@/types'
 import { useListingsStore, useUsersStore, useNotificationsStore, showToast } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { neighborhoodCenter } from '@/data/neighborhoods'
+import { PhotoPicker } from '@/components/listings/PhotoPicker'
+import { deleteListingPhotos } from '@/lib/photos'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
 const conditions = (Object.keys(CONDITION_LABELS) as ListingCondition[]).map((value) => ({
@@ -29,15 +31,21 @@ export default function CreateListingPage() {
   const [category, setCategory] = useState<Category | null>(null)
   const [condition, setCondition] = useState<ListingCondition | null>(null)
   const [seeking, setSeeking] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
   const [images, setImages] = useState<string[]>([])
-  const [imageError, setImageError] = useState('')
+  const [uploading, setUploading] = useState(false)
   usePageTitle('Post a listing')
+
+  // Leaving without posting: clean up photos uploaded for this draft
+  const imagesRef = useRef(images)
+  const posted = useRef(false)
+  useEffect(() => { imagesRef.current = images }, [images])
+  useEffect(() => () => { if (!posted.current) deleteListingPhotos(imagesRef.current) }, [])
 
   if (!currentUser) return null
 
   // Why "Next" is disabled, in plain words. Empty string = ready.
   const blocker = (): string => {
+    if (step === 0 && uploading) return 'Wait for your photos to finish uploading.'
     if (step === 1) {
       if (title.trim().length < 3) return 'Add a title (at least 3 characters) to continue.'
       if (category === null) return 'Pick a category to continue.'
@@ -49,27 +57,8 @@ export default function CreateListingPage() {
   }
   const canAdvance = () => blocker() === ''
 
-  const addImage = () => {
-    const url = imageUrl.trim()
-    if (!url) return
-    if (!/^https?:\/\//i.test(url)) {
-      setImageError('That doesn’t look like a web link. It should start with https://')
-      return
-    }
-    if (images.includes(url)) {
-      setImageError('You’ve already added that photo.')
-      return
-    }
-    if (images.length >= 6) {
-      setImageError('You can add up to 6 photos.')
-      return
-    }
-    setImages((prev) => [...prev, url])
-    setImageUrl('')
-    setImageError('')
-  }
-
   const handleSubmit = () => {
+    posted.current = true
     const newId = addListing({
       title,
       description,
@@ -134,47 +123,9 @@ export default function CreateListingPage() {
         {step === 0 && (
           <>
             <h2 className="text-heading-section text-ink">Add some photos</h2>
-            <p className="text-[15px] text-ink-2 -mt-3">Clear photos help neighbors decide faster. Add up to 6 by pasting image links. Photos are optional, so you can skip this step.</p>
-
-            {/* Image URL input */}
-            <div className="flex items-start gap-2">
-              <div className="flex-1">
-              <Input
-                aria-label="Photo link"
-                placeholder="https://…"
-                value={imageUrl}
-                onChange={(e) => { setImageUrl(e.target.value); setImageError('') }}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addImage() } }}
-                error={imageError || undefined}
-              />
-              </div>
-              <Button variant="outline" aria-label="Add photo" className="h-[50px] w-[50px] shrink-0 px-0" onClick={addImage} disabled={!imageUrl.trim()}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Image previews */}
-            <div className="grid grid-cols-3 gap-3">
-              {images.map((url, i) => (
-                <div key={url} className="animate-scale-in relative aspect-square rounded-none overflow-hidden border border-ink bg-sand-light">
-                  <img src={url} alt={`Photo ${i + 1}`} className="photo-warm w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    aria-label={`Remove photo ${i + 1}`}
-                    onClick={() => setImages((prev) => prev.filter((u) => u !== url))}
-                    className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-ink/70 text-cream backdrop-blur-sm hover:bg-ink"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              {images.length === 0 && (
-                <div className="col-span-3 aspect-[3/1] rounded-none border border-dashed border-ink/40 bg-paper flex flex-col items-center justify-center gap-2 text-muted">
-                  <Camera className="h-6 w-6 text-clay" />
-                  <span className="text-label">No photos yet</span>
-                </div>
-              )}
-            </div>
+            <p className="text-[15px] text-ink-2 -mt-3">Clear photos help neighbors decide faster. Add up to 6 from your phone or computer. Photos are optional, so you can skip this step.</p>
+            <PhotoPicker value={images} onChange={setImages} userId={currentUser.id} onBusyChange={setUploading} />
+            <p className="text-[13px] text-muted">We shrink photos and remove hidden details like location before they upload.</p>
           </>
         )}
 

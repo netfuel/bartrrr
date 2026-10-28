@@ -5,6 +5,7 @@ import { DEMO_MODE } from '@/lib/env'
 import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
 import { persist } from './persist'
+import { deleteListingPhotos } from '@/lib/photos'
 
 interface NewListingData {
   title: string
@@ -55,7 +56,13 @@ export const useListingsStore = create<ListingsState>((set, get) => {
     }))
     persist(() => svc.updateListing(id, data), {
       error,
-      onSuccess: (saved) => replace(id, saved),
+      onSuccess: (saved) => {
+        replace(id, saved)
+        // Photos dropped from the listing are no longer used anywhere
+        if (data.images && previous) {
+          deleteListingPhotos(previous.images.filter((u) => !saved.images.includes(u)))
+        }
+      },
       rollback: () => replace(id, previous),
     })
   }
