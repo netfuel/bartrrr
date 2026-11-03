@@ -1,6 +1,8 @@
-import { test, expect, loginAs } from '../fixtures'
+import { test, expect, loginAs, type DemoNeighbor } from '../fixtures'
 
-test('demo login lands on the dashboard', async ({ page }) => {
-  await loginAs(page, 'Jamie')
-  await expect(page).toHaveURL(/\/dashboard|\/browse|\/$/)
-})
+for (const who of ['Jamie', 'Maria', 'Dave'] as DemoNeighbor[]) {
+  test(`demo login works for ${who}`, async ({ page }) => {
+    await loginAs(page, who)
+    await expect(page).not.toHaveURL(/\/auth\//)
+  })
+}

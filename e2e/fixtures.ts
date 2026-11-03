@@ -5,7 +5,12 @@ export type DemoNeighbor = 'Jamie' | 'Maria' | 'Alex' | 'Priya' | 'Jordan' | 'Sa
 /** Sign in through the demo picker on /auth/login (demo mode only). */
 export async function loginAs(page: Page, name: DemoNeighbor = 'Jamie') {
   await page.goto('/auth/login')
-  await page.getByRole('button', { name: new RegExp(`^${name}\\b`) }).first().click().catch(() => {})
+  // Picker labels read "JO Jamie Oakley …" once avatars fall back to initials,
+  // so match the first name anywhere in the label, not at the start
+  await page
+    .getByRole('group', { name: /pick a sample neighbor/ })
+    .getByRole('button', { name: new RegExp(`\\b${name} `) })
+    .click()
   await page.getByRole('button', { name: `Log in as ${name}` }).click()
   await page.waitForURL((url) => !url.pathname.startsWith('/auth/'))
 }
