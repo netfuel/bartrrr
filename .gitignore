@@ -30,3 +30,8 @@ design/
 
 # Claude Code agent worktrees (full repo copies)
 .claude/worktrees/
+
+# Test output
+/test-results/
+/playwright-report/
+/coverage/
