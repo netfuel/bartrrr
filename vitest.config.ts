@@ -6,6 +6,8 @@ export default defineConfig((env) =>
   mergeConfig(viteConfig(env), {
     test: {
       environment: 'jsdom',
+      // One jsdom per worker instead of per file: ~6x faster, files stay isolated
+      pool: 'vmThreads',
       // workers/mail tests opt into the node environment with a docblock
       include: ['src/**/*.test.{ts,tsx}', 'workers/mail/src/**/*.test.ts'],
       setupFiles: ['./src/test/setup.ts'],
