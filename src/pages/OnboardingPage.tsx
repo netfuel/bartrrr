@@ -113,7 +113,7 @@ export default function OnboardingPage() {
                     id="onboarding-name"
                     label="What should neighbors call you?"
                     autoComplete="name"
-                    maxLength={60}
+                    limit={60}
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     helperText="Add a name to continue. Your first name is fine: neighbors see it on your listings and offers."

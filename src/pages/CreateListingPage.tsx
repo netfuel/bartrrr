@@ -10,6 +10,7 @@ import { neighborhoodCenter } from '@/data/neighborhoods'
 import { PhotoPicker } from '@/components/listings/PhotoPicker'
 import { deleteListingPhotos } from '@/lib/photos'
 import { categoryTakesCondition } from '@/lib/listings'
+import { LISTING_TITLE_MAX } from '@/lib/validation'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
 const conditions = (Object.keys(CONDITION_LABELS) as ListingCondition[]).map((value) => ({
@@ -133,8 +134,8 @@ export default function CreateListingPage() {
         {step === 1 && (
           <>
             <h2 className="text-heading-section text-ink">Describe your listing</h2>
-            <Input label="Title" placeholder="Like: Vintage lamp, or 2 hours of gardening help" maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} />
-            <Textarea label="Description (optional)" placeholder="Size, condition, how long it takes: whatever a neighbor would want to know" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+            <Input label="Title" placeholder="Like: Vintage lamp, or 2 hours of gardening help" limit={LISTING_TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Textarea label="Description (optional)" placeholder="Size, condition, how long it takes: whatever a neighbor would want to know" value={description} onChange={(e) => setDescription(e.target.value)} limit={4000} rows={4} />
             <div>
               <p id="category-label" className="text-label text-ink-2 mb-2.5">Category</p>
               <div role="group" aria-labelledby="category-label" className="flex flex-wrap gap-2">
@@ -164,7 +165,7 @@ export default function CreateListingPage() {
           <>
             <h2 className="text-heading-section text-ink">What would you like in return?</h2>
             <p className="text-[15px] text-ink-2 -mt-3">Be specific, but leave room for ideas. Neighbors use this to shape their offers.</p>
-            <Textarea label="I'd trade this for…" placeholder="Like: gardening help, kitchen appliances, or good books" value={seeking} onChange={(e) => setSeeking(e.target.value)} rows={4} />
+            <Textarea label="I'd trade this for…" placeholder="Like: gardening help, kitchen appliances, or good books" value={seeking} onChange={(e) => setSeeking(e.target.value)} limit={1000} rows={4} />
           </>
         )}
 

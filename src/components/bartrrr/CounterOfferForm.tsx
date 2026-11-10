@@ -60,6 +60,7 @@ export function CounterOfferForm({
         placeholder="Say what you changed and why"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
+        limit={2000}
         rows={2}
       />
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, Textarea } from '@/components/ui'
 import { AvatarUploader } from '@/components/profile/AvatarUploader'
 import { NeighborhoodPicker } from '@/components/profile/NeighborhoodPicker'
 import { knownNeighborhood } from '@/data/neighborhoods'
@@ -81,7 +81,7 @@ export default function SettingsPage() {
             onChange={(e) => { setDisplayName(e.target.value); setNameError('') }}
             error={nameError || undefined}
             helperText="This is how neighbors see you."
-            maxLength={60}
+            limit={60}
           />
           <div className="flex flex-col gap-1.5">
             <span id="settings-neighborhood-label" className="text-label text-ink-2">Neighborhood</span>
@@ -106,17 +106,15 @@ export default function SettingsPage() {
                 : 'Shown on your listings instead of your address. Changing it moves new listings, not the ones you’ve already posted.'}
             </p>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="settings-bio" className="text-label text-ink-2">Bio</label>
-            <textarea
-              id="settings-bio"
-              maxLength={500}
-              placeholder="A line or two about you and what you like to trade"
-              className="rounded-none border border-ink/40 bg-paper px-4 py-3 text-base text-ink placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay resize-y min-h-[110px] transition-colors"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-            />
-          </div>
+          <Textarea
+            id="settings-bio"
+            label="Bio"
+            limit={500}
+            placeholder="A line or two about you and what you like to trade"
+            className="min-h-[110px]"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
         </div>
       </section>
 

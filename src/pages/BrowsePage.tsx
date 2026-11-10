@@ -4,7 +4,7 @@ import { Map, List, Rss, SlidersHorizontal } from 'lucide-react'
 import { cn, usePageTitle } from '@/lib/utils'
 import { Chip, EmptyState, Skeleton } from '@/components/ui'
 import { lazy, Suspense } from 'react'
-import { TradeCard } from '@/components/bartrrr'
+import { TradeCard, OfferBuilder } from '@/components/bartrrr'
 
 const ListingsMap = lazy(() =>
   import('@/components/bartrrr/ListingsMap').then((m) => ({ default: m.ListingsMap })),
@@ -12,7 +12,7 @@ const ListingsMap = lazy(() =>
 import { useListingsStore, useUsersStore } from '@/stores'
 import { useMediaQuery } from '@/lib/utils/use-media-query'
 import { isListingLive } from '@/lib/listings'
-import type { Category } from '@/types'
+import type { Category, Listing } from '@/types'
 import { CATEGORY_LABELS } from '@/types'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
@@ -42,6 +42,8 @@ export default function BrowsePage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  // The card's Offer button opens the same make-offer flow as the listing page (T-68)
+  const [offerFor, setOfferFor] = useState<Listing | null>(null)
   usePageTitle('Browse listings')
 
   // Only mount the map (and download maplibre-gl) when it's actually visible:
@@ -206,7 +208,7 @@ export default function BrowsePage() {
                     key={listing.id}
                     listing={listing}
                     user={user}
-                    onOffer={() => navigate(`/listing/${listing.id}`)}
+                    onOffer={() => setOfferFor(listing)}
                   />
                 )
               })}
@@ -214,6 +216,10 @@ export default function BrowsePage() {
           )}
         </div>
       </div>
+
+      {offerFor && (
+        <OfferBuilder listingId={offerFor.id} toUserId={offerFor.userId} onClose={() => setOfferFor(null)} />
+      )}
     </div>
   )
 }
