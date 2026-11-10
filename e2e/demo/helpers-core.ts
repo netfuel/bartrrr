@@ -107,6 +107,7 @@ type StoreName =
   | 'auth-store'
   | 'offers-store'
   | 'agreements-store'
+  | 'reviews-store'
 
 const STORE_EXPORT: Record<StoreName, string> = {
   'users-store': 'useUsersStore',
@@ -114,6 +115,7 @@ const STORE_EXPORT: Record<StoreName, string> = {
   'auth-store': 'useAuthStore',
   'offers-store': 'useOffersStore',
   'agreements-store': 'useAgreementsStore',
+  'reviews-store': 'useReviewsStore',
 }
 
 /**

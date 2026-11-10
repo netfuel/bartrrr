@@ -243,6 +243,8 @@ export default function AgreementDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-16">
+      {/* The card's "Trade agreement" is the visible title; this names the page */}
+      <h1 className="sr-only">Trade agreement with {otherParty?.displayName ?? 'your neighbor'}</h1>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <BackLink to="/agreements">All agreements</BackLink>
         {saveable && (
@@ -312,6 +314,7 @@ export default function AgreementDetailPage() {
         partyB={partyB}
         currentUserId={currentUser.id}
         onSign={handleSign}
+        headingLevel={2}
       />
 
       {/* Canceled */}

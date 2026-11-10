@@ -201,6 +201,7 @@ export default function OfferThreadPage() {
       // Clears the fixed action bar (PageShell's own padding clears the bottom nav on phones)
       style={barHeight !== null ? { paddingBottom: barHeight + 24 } : undefined}
     >
+      <h1 className="sr-only">Offer with {otherUser.displayName}</h1>
       <BackLink to="/offers" className="mb-3">All offers</BackLink>
 
       {/* The trade, in plain terms */}
@@ -221,11 +222,11 @@ export default function OfferThreadPage() {
         <div className="relative grid grid-cols-1 sm:grid-cols-2">
           <div className="px-5 py-5 sm:py-6 sm:pr-10 border-b border-ink/20 sm:border-b-0 sm:border-r">
             <p className="text-label text-clay-dark mb-2">You give</p>
-            <p className="font-display text-[22px] leading-[1.25] tracking-[-0.01em] text-ink">{youGive}</p>
+            <p className="font-display text-[22px] leading-[1.25] tracking-[-0.01em] text-ink wrap-anywhere">{youGive}</p>
           </div>
           <div className="px-5 py-5 sm:py-6 sm:pl-10">
             <p className="text-label text-forest mb-2">You get</p>
-            <p className="font-display text-[22px] leading-[1.25] tracking-[-0.01em] text-ink">{youGet}</p>
+            <p className="font-display text-[22px] leading-[1.25] tracking-[-0.01em] text-ink wrap-anywhere">{youGet}</p>
           </div>
           <span
             aria-hidden="true"
@@ -381,7 +382,7 @@ export default function OfferThreadPage() {
           title="Accept this trade?"
           description={
             <>
-              <p>
+              <p className="wrap-anywhere">
                 You give <span className="font-medium text-ink">{youGive}</span> and
                 get <span className="font-medium text-ink">{youGet}</span>.
               </p>

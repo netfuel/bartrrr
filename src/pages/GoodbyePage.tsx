@@ -30,10 +30,12 @@ export default function GoodbyePage() {
 
   return (
     <div className="min-h-[100svh] bg-cream flex flex-col px-5 py-6">
-      <Link to="/" aria-label="Bartrrr home" className="self-start rounded-sm">
-        <Wordmark />
-      </Link>
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-12 animate-fade-up">
+      <header className="self-start">
+        <Link to="/" aria-label="Bartrrr home" className="block rounded-sm">
+          <Wordmark />
+        </Link>
+      </header>
+      <main id="main" className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-12 animate-fade-up">
         <p className="text-label text-muted">{state.demo ? 'Logged out' : 'Account deleted'}</p>
         <h1 className="text-display !text-[clamp(2.75rem,8vw,4.5rem)] text-ink mt-4">
           Thanks for trading, <em>neighbor.</em>

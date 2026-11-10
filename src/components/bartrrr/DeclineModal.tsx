@@ -23,9 +23,9 @@ export function DeclineModal({ onDecline, onClose, otherName = 'your neighbor' }
   return (
     <Modal onClose={onClose} align="sheet" labelledBy="decline-modal-title">
         <div className="flex items-center justify-between mb-4">
-          <h3 id="decline-modal-title" className="font-display text-[26px] font-normal tracking-[-0.015em]">
+          <h2 id="decline-modal-title" className="font-display text-[26px] font-normal tracking-[-0.015em]">
             Decline this offer?
-          </h3>
+          </h2>
           <button
             type="button"
             onClick={onClose}

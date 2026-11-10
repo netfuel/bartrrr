@@ -11,6 +11,8 @@ export interface AgreementCardProps {
   partyB: UserProfile
   currentUserId?: string
   onSign?: () => void
+  /** The title's heading level: 2 on the agreement page, under its h1 */
+  headingLevel?: 2 | 3
   className?: string
 }
 
@@ -32,8 +34,10 @@ export function AgreementCard({
   partyB,
   currentUserId,
   onSign,
+  headingLevel = 3,
   className,
 }: AgreementCardProps) {
+  const Heading = headingLevel === 2 ? 'h2' : 'h3'
   const [acknowledged, setAcknowledged] = useState(false)
   const ackId = useId()
   const bothSigned = agreement.partyA.signed && agreement.partyB.signed
@@ -70,9 +74,9 @@ export function AgreementCard({
     >
       {/* Document head */}
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink px-5 py-4 sm:px-7">
-        <h3 className="font-display text-[22px] font-normal tracking-[-0.012em] text-ink">
+        <Heading className="font-display text-[22px] font-normal tracking-[-0.012em] text-ink">
           Trade agreement
-        </h3>
+        </Heading>
         <Badge variant={statusBadgeVariant[agreement.status]}>
           {AGREEMENT_STATUS_LABELS[agreement.status]}
         </Badge>
@@ -93,7 +97,7 @@ export function AgreementCard({
             />
             <div className="flex-1 min-w-0">
               <p className={cn('text-label', i === 0 ? 'text-clay-dark' : 'text-forest')}>{label}</p>
-              <p className="mt-1 font-display text-[19px] leading-[1.3] tracking-[-0.008em] text-ink line-clamp-2">{item}</p>
+              <p className="mt-1 font-display text-[19px] leading-[1.3] tracking-[-0.008em] text-ink line-clamp-2 wrap-anywhere">{item}</p>
             </div>
           </div>
         ))}

@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { Star, MapPin, Calendar, Clock, Pencil, LogOut } from 'lucide-react'
 import { Avatar, Button, Chip, Tabs, buttonStyles } from '@/components/ui'
 import { TradeCard, ReviewCard } from '@/components/bartrrr'
-import { useUsersStore, useListingsStore, useReviewsStore, useRelistableListings } from '@/stores'
+import { useUsersStore, useListingsStore, useReviewsStore, useRelistableListings, useReputation } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { usePageTitle } from '@/lib/utils'
 import { CLOSED_LISTINGS_ID, isListingLive } from '@/lib/listings'
+import type { UserProfile } from '@/types'
 
 type Tab = 'portfolio' | 'reviews'
 
@@ -46,7 +47,7 @@ export default function ProfilePage() {
       <div className="flex flex-col sm:flex-row items-start gap-6 sm:gap-8">
         <Avatar src={user.avatarUrl} name={user.displayName} userId={user.id} size="xl" className="!h-24 !w-24 sm:!h-28 sm:!w-28 text-2xl" />
         <div className="flex-1 min-w-0">
-          <h1 className="text-heading-page text-ink">{user.displayName}</h1>
+          <h1 className="text-heading-page text-ink wrap-anywhere">{user.displayName}</h1>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[15px] text-muted">
             <span className="flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5" />
@@ -58,10 +59,7 @@ export default function ProfilePage() {
             </span>
           </div>
           <div className="mt-5 inline-flex items-stretch border border-ink">
-            <span className="flex items-center gap-1.5 px-4 py-2 text-numeral text-[26px] text-ink">
-              <Star className="h-4 w-4 fill-gold text-gold" />
-              {user.reputationScore.toFixed(1)}
-            </span>
+            <ProfileRating user={user} />
             <span className="flex items-center border-l border-ink px-4 py-2 text-label text-ink-2">{user.tradeCount} {user.tradeCount === 1 ? 'trade' : 'trades'}</span>
           </div>
           {isMe && (
@@ -89,12 +87,12 @@ export default function ProfilePage() {
               {' '}(canceled less than 24 hours before a swap)
             </p>
           )}
-          {user.bio && <p className="mt-6 max-w-[52ch] font-display text-[20px] leading-[1.45] text-ink">{user.bio}</p>}
+          {user.bio && <p className="mt-6 max-w-[52ch] font-display text-[20px] leading-[1.45] text-ink wrap-anywhere">{user.bio}</p>}
           {user.lookingFor && user.lookingFor.length > 0 && (
             <div className="mt-6">
               <p className="eyebrow mb-3">Looking for</p>
               <div className="flex flex-wrap gap-2">
-                {user.lookingFor.map((tag) => (<Chip key={tag} label={tag} />))}
+                {user.lookingFor.map((tag) => (<Chip key={tag} label={tag} className="max-w-full whitespace-normal wrap-anywhere" />))}
               </div>
             </div>
           )}
@@ -111,6 +109,9 @@ export default function ProfilePage() {
           { id: 'reviews', label: 'Reviews', count: reviews.length },
         ]}
       />
+
+      {/* Keeps the outline in order: h1, this section, then each card's h3 */}
+      <h2 className="sr-only">{tab === 'portfolio' ? 'Listings' : 'Reviews'}</h2>
 
       {tab === 'portfolio' && isMe && relistable.length > 0 && (
         <p className="mb-5 text-small text-ink-2">
@@ -162,5 +163,20 @@ export default function ProfilePage() {
         </div>
       )}
     </div>
+  )
+}
+
+/** Stars only once someone has reviewed them (T-69): everyone starts at 5.0 */
+function ProfileRating({ user }: { user: UserProfile }) {
+  const reputation = useReputation(user)
+  if (!reputation.rated) {
+    return <span className="flex items-center px-4 py-2 text-label text-ink-2">{reputation.label}</span>
+  }
+  return (
+    <span className="flex items-center gap-1.5 px-4 py-2 text-numeral text-[26px] text-ink">
+      <Star className="h-4 w-4 fill-gold text-gold" aria-hidden="true" />
+      <span className="sr-only">{reputation.label}</span>
+      <span aria-hidden="true">{reputation.score}</span>
+    </span>
   )
 }

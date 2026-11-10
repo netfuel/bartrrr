@@ -8,6 +8,7 @@ import type { Listing, UserProfile } from '@/types'
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/types'
 import { useAuth } from '@/providers/AuthProvider'
 import { listingStatus } from '@/lib/listings'
+import { useReputation } from '@/stores/selectors'
 
 export interface TradeCardProps {
   listing: Listing
@@ -37,6 +38,7 @@ function TradeCardInner({
   const isPerfectMatch =
     !isOwn && !isClosed && (currentUser?.interests?.includes(listing.category) ?? false)
   const canOffer = Boolean(onOffer) && !isOwn && status === 'active'
+  const reputation = useReputation(user)
 
   return (
     <article
@@ -88,7 +90,7 @@ function TradeCardInner({
       <div className="flex flex-1 flex-col p-5">
         {/* Title — Fraunces, the card's one serif moment */}
         <Link to={`/listing/${listing.id}`} className="rounded-sm">
-          <h3 className="font-display text-[21px] font-normal leading-[1.2] tracking-[-0.012em] text-ink line-clamp-2 transition-colors group-hover/card:text-clay-dark">
+          <h3 className="font-display text-[21px] font-normal leading-[1.2] tracking-[-0.012em] text-ink line-clamp-2 wrap-anywhere transition-colors group-hover/card:text-clay-dark">
             {listing.title}
           </h3>
         </Link>
@@ -110,7 +112,7 @@ function TradeCardInner({
           <p className="text-label text-clay-dark mb-1">
             Looking for
           </p>
-          <p className="text-[14px] text-ink-2 leading-snug line-clamp-2">
+          <p className="text-[14px] text-ink-2 leading-snug line-clamp-2 wrap-anywhere">
             {listing.seeking || 'Open to offers'}
           </p>
         </div>
@@ -132,10 +134,15 @@ function TradeCardInner({
             <span className="text-small text-ink-2 truncate">
               {user.displayName}
             </span>
-            <span className="flex items-center gap-1 text-small tabular-nums text-ink-2 shrink-0">
-              <Star className="h-3 w-3 fill-gold text-gold" />
-              {user.reputationScore.toFixed(1)}
-            </span>
+            {reputation.rated ? (
+              <span className="flex items-center gap-1 text-small tabular-nums text-ink-2 shrink-0">
+                <Star className="h-3 w-3 fill-gold text-gold" aria-hidden="true" />
+                <span className="sr-only">{reputation.label}</span>
+                <span aria-hidden="true">{reputation.score}</span>
+              </span>
+            ) : (
+              <span className="text-small text-muted shrink-0">{reputation.label}</span>
+            )}
           </Link>
           {action ?? (canOffer && (
             <Button variant="primary" size="sm" onClick={onOffer} className="shrink-0" aria-label={`Make an offer on ${listing.title}`}>

@@ -124,6 +124,18 @@ describe('local counters', () => {
   })
 })
 
+describe('review count (T-69)', () => {
+  it('a profile row from the server keeps the review count we already know', () => {
+    useUsersStore.setState({ users: [user({ reviewCount: 3 })] })
+    // Realtime and profile rows have no review count
+    useUsersStore.getState().upsertUser(user({ displayName: 'Matt B' }))
+    expect(get()).toMatchObject({ displayName: 'Matt B', reviewCount: 3 })
+    // A row that does carry one wins
+    useUsersStore.getState().upsertUser(user({ reviewCount: 4 }))
+    expect(get().reviewCount).toBe(4)
+  })
+})
+
 describe('notifications store', () => {
   const n = (over: Partial<AppNotification> = {}): AppNotification => ({
     id: 'n1',

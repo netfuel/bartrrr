@@ -153,6 +153,25 @@ test.describe('N-02 own profile and desktop sidebar', () => {
     await expect(main.getByRole('button', { name: 'Log out' })).toHaveCount(0)
   })
 
+  test('T-70: /profile opens your own profile', async ({ page }) => {
+    await login(page, 'Jamie')
+    await page.goto('/profile')
+    await expect(page).toHaveURL('/profile/me')
+    await expect(page.getByRole('heading', { level: 1, name: 'Jamie Oakley' })).toBeVisible()
+    await expect(page.getByText('Page not found')).toHaveCount(0)
+    // In the app too, and with a trailing slash
+    await goInApp(page, '/profile/', { redirects: true })
+    await expect(page).toHaveURL('/profile/me')
+  })
+
+  test('T-70: /profile signed out asks you to log in, then opens your profile', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page).toHaveURL('/auth/login?returnTo=%2Fprofile')
+    await page.getByRole('button', { name: 'Log in as Jamie' }).click()
+    await expect(page).toHaveURL('/profile/me')
+    await expect(page.getByRole('heading', { level: 1, name: 'Jamie Oakley' })).toBeVisible()
+  })
+
   test('desktop: the sidebar has Settings, and Log out works from your profile', async ({ page }, testInfo) => {
     test.skip(isMobile(testInfo), 'Desktop sidebar only')
     await login(page, 'Jamie')

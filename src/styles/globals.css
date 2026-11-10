@@ -156,6 +156,11 @@ h1.font-semibold, h2.font-semibold, h3.font-display.font-semibold, .font-display
   outline-offset: 3px;
   border-radius: 2px;
 }
+/* The skip link's target takes focus so Tab continues from there; the
+   whole page in a ring would only be noise */
+main[tabindex="-1"]:focus-visible {
+  outline: none;
+}
 
 /* Interface icons share one hairline stroke weight */
 svg.lucide {
@@ -434,6 +439,7 @@ svg.lucide {
   font-size: 15pt;
   color: var(--color-ink);
   margin-top: 2pt;
+  overflow-wrap: anywhere;
 }
 .record-item {
   font-family: var(--font-display);
@@ -441,6 +447,7 @@ svg.lucide {
   line-height: 1.3;
   color: var(--color-ink);
   margin-top: 3pt;
+  overflow-wrap: anywhere;
 }
 .record-small {
   font-size: 9pt;

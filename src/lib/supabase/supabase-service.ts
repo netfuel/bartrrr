@@ -350,6 +350,25 @@ export async function fetchAllUsers(): Promise<UserProfile[]> {
   return (data ?? []).map((row) => mapUserRow(row as UserRow))
 }
 
+/**
+ * How many reviews each neighbor has received, by user id. reputation_score
+ * starts at 5.0 before anyone reviews you, so the app needs the count to
+ * tell "no reviews" from a perfect record (T-69). Reviews are public, and
+ * PostgREST counts them per user without loading them.
+ */
+export async function fetchReviewCounts(): Promise<Record<string, number>> {
+  const { data, error } = await client()
+    .from('users')
+    .select('id, reviews:reviews!reviews_reviewee_id_fkey(count)')
+    .limit(1000)
+  if (error) throw error
+  const counts: Record<string, number> = {}
+  for (const row of (data ?? []) as unknown as { id: string; reviews?: { count: number }[] | null }[]) {
+    counts[row.id] = Number(row.reviews?.[0]?.count ?? 0)
+  }
+  return counts
+}
+
 export async function fetchUser(id: string): Promise<UserProfile | null> {
   const { data, error } = await client().from('users').select(USER_COLUMNS).eq('id', id).maybeSingle()
   if (error) throw error

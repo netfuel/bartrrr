@@ -64,8 +64,8 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                 )}
                 <Icon aria-hidden="true" className="mt-[3px] h-4 w-4 shrink-0 text-muted" strokeWidth={1.75} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-medium text-ink">{notification.title}</p>
-                  <p className="text-small text-ink-2 mt-0.5 line-clamp-2">{notification.body}</p>
+                  <p className="text-[15px] font-medium text-ink wrap-anywhere">{notification.title}</p>
+                  <p className="text-small text-ink-2 mt-0.5 line-clamp-2 wrap-anywhere">{notification.body}</p>
                   <p className="text-label text-muted mt-1.5">
                     {new Date(notification.createdAt).toLocaleDateString([], {
                       month: 'short',

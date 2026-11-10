@@ -17,8 +17,8 @@ export function ReviewCard({ review, reviewer }: ReviewCardProps) {
           src={reviewer.avatarUrl}
           size="sm"
         />
-        <div className="flex-1">
-          <p className="text-[15px] font-medium text-ink">{reviewer.displayName}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-medium text-ink wrap-anywhere">{reviewer.displayName}</p>
           <p className="text-label text-muted mt-0.5">
             {new Date(review.createdAt).toLocaleDateString([], {
               month: 'short',
@@ -39,7 +39,7 @@ export function ReviewCard({ review, reviewer }: ReviewCardProps) {
         </div>
       </div>
       {review.comment && (
-        <p className="font-display text-[18px] leading-[1.45] text-ink">{review.comment}</p>
+        <p className="font-display text-[18px] leading-[1.45] text-ink wrap-anywhere">{review.comment}</p>
       )}
     </div>
   )

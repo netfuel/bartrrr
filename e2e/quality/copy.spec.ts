@@ -184,9 +184,7 @@ test.describe('C-01 dialogs', () => {
 })
 
 /** Page titles follow "{Page} | Bartrrr" (style guide section 11). */
-const TITLE_BUGS: Record<string, string> = {
-  onboarding: 'BUG: onboarding has no page title of its own (it keeps the landing page title)',
-}
+const TITLE_BUGS: Record<string, string> = {}
 
 test.describe('C-01 page titles', () => {
   for (const r of ROUTES) {

@@ -182,12 +182,12 @@ export default function CreateListingPage() {
               )}
               <div>
                 <p className="text-label text-muted">Title</p>
-                <p className="font-display text-[22px] leading-tight text-ink mt-1">{title}</p>
+                <p className="font-display text-[22px] leading-tight text-ink mt-1 wrap-anywhere">{title}</p>
               </div>
               {description && (
                 <div>
                   <p className="text-label text-muted">Description</p>
-                  <p className="text-[15px] text-ink-2 mt-1">{description}</p>
+                  <p className="text-[15px] text-ink-2 mt-1 wrap-anywhere">{description}</p>
                 </div>
               )}
               <div>
@@ -202,7 +202,7 @@ export default function CreateListingPage() {
               )}
               <div className="border-l-2 border-clay bg-clay-light/60 py-2.5 pl-3.5 pr-3">
                 <p className="text-label text-clay-dark mb-1">Looking for</p>
-                <p className="text-[15px] text-ink-2">{seeking}</p>
+                <p className="text-[15px] text-ink-2 wrap-anywhere">{seeking}</p>
               </div>
             </div>
             <p className="text-small text-muted">

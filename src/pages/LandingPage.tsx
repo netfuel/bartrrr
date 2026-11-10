@@ -314,6 +314,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
+      <main id="main">
       {/* ── Hero: the photograph is the page ── */}
       <section id="top" className="hero relative h-[86svh] min-h-[540px] overflow-hidden bg-ink">
         <video
@@ -679,6 +680,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      </main>
 
       {/* ── Footer ── */}
       <footer className="mx-auto flex max-w-[1400px] flex-col items-start justify-between gap-8 px-5 py-12 sm:flex-row sm:items-center lg:px-8">

@@ -94,7 +94,9 @@ export default function DashboardPage() {
         }))}
       />
 
-      {/* Tab content */}
+      {/* Tab content. The heading keeps the outline in order (h1, then the
+          section, then each card's h3) without repeating the tab visually. */}
+      <h2 className="sr-only">{tabs.find((t) => t.id === activeTab)?.label}</h2>
 
       {activeTab === 'listings' && (
         <div>
@@ -143,7 +145,7 @@ export default function DashboardPage() {
                   <div className="group flex items-center gap-4 border-b border-ink/20 px-1 py-4 transition-colors hover:bg-paper">
                     <Avatar name={fromUser.displayName} userId={fromUser.id} size="md" src={fromUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[16px] font-medium text-ink">
+                      <p className="text-[16px] font-medium text-ink wrap-anywhere">
                         {fromUser.displayName} wants to trade
                       </p>
                       <p className="text-small text-muted truncate mt-0.5">for {listing?.title || 'your listing'}</p>
@@ -202,7 +204,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-4">
                     <Avatar name={toUser.displayName} userId={toUser.id} size="md" src={toUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <Link to={`/offers/${offer.id}`} className="text-[16px] font-medium text-ink after:absolute after:inset-0 after:content-['']">
+                      <Link to={`/offers/${offer.id}`} className="text-[16px] font-medium text-ink wrap-anywhere after:absolute after:inset-0 after:content-['']">
                         Your offer to {toUser.displayName}
                       </Link>
                       <p className="text-small text-muted truncate mt-0.5">for {listing?.title || 'their listing'}</p>
@@ -273,7 +275,7 @@ export default function DashboardPage() {
                   <div className="group flex items-center gap-4 border-b border-ink/20 px-1 py-4 transition-colors hover:bg-paper">
                     <Avatar name={otherUser.displayName} userId={otherUser.id} size="md" src={otherUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[16px] font-medium text-ink">Trade with {otherUser.displayName}</p>
+                      <p className="text-[16px] font-medium text-ink wrap-anywhere">Trade with {otherUser.displayName}</p>
                       <p className="text-small text-muted truncate mt-0.5">
                         {agreement.partyA.item} ⇄ {agreement.partyB.item}
                       </p>
@@ -313,7 +315,7 @@ export default function DashboardPage() {
                   <div className="group flex items-center gap-4 border-b border-ink/20 px-1 py-4 transition-colors hover:bg-paper">
                     <Avatar name={otherUser.displayName} userId={otherUser.id} size="md" src={otherUser.avatarUrl} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[16px] font-medium text-ink">Trade with {otherUser.displayName}</p>
+                      <p className="text-[16px] font-medium text-ink wrap-anywhere">Trade with {otherUser.displayName}</p>
                       <p className="text-small text-muted truncate mt-0.5">
                         {agreement.partyA.item} ⇄ {agreement.partyB.item}
                       </p>

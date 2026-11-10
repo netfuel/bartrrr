@@ -3,7 +3,7 @@ import { MapPin, Star, ChevronLeft, ChevronRight, Pencil, XCircle, RefreshCw, Pa
 import { useState, useRef, useMemo } from 'react'
 import { Button, Badge, Avatar, ShareButton, BackLink, ConfirmDialog } from '@/components/ui'
 import { TradeCard, OfferBuilder } from '@/components/bartrrr'
-import { useListingsStore, useUsersStore, showToast, relistListing } from '@/stores'
+import { useListingsStore, useUsersStore, showToast, relistListing, useReputation } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { formatDistance, usePageTitle } from '@/lib/utils'
 import { useFixedBarHeight } from '@/lib/utils/use-fixed-bar-height'
@@ -22,6 +22,7 @@ export default function ListingDetailPage() {
   const withdrawListing = useListingsStore((s) => s.withdrawListing)
   const getUserById = useUsersStore((s) => s.getUserById)
   const user = listing ? getUserById(listing.userId) : undefined
+  const reputation = useReputation(user)
   const [imageIndex, setImageIndex] = useState(0)
   // This listing, or a similar listing's card Offer button (T-68)
   const [offerFor, setOfferFor] = useState<{ id: string; userId: string } | null>(null)
@@ -152,14 +153,14 @@ export default function ListingDetailPage() {
       {/* Content */}
       <div className="px-4 sm:px-6 lg:px-0 mt-6 lg:mt-0 lg:col-span-5">
         <div className="flex items-start gap-3">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <Badge variant={badgeVariant[listing.category]}>{CATEGORY_LABELS[listing.category]}</Badge>
               {listing.condition && categoryTakesCondition(listing.category) && <Badge variant="closed">{CONDITION_LABELS[listing.condition]}</Badge>}
               {status === 'pending' && <Badge variant="gold">Trade in progress</Badge>}
               {status === 'closed' && <Badge variant="closed">No longer available</Badge>}
             </div>
-            <h1 className="text-heading-page text-ink">{listing.title}</h1>
+            <h1 className="text-heading-page text-ink wrap-anywhere">{listing.title}</h1>
           </div>
           <ShareButton
             title={listing.title}
@@ -182,25 +183,30 @@ export default function ListingDetailPage() {
           <span>{listing.location.neighborhood}</span>
         </div>
 
-        <p className="mt-6 max-w-[60ch] text-[17px] text-ink-2 leading-[1.6]">{listing.description}</p>
+        <p className="mt-6 max-w-[60ch] text-[17px] text-ink-2 leading-[1.6] wrap-anywhere">{listing.description}</p>
 
         <div className="mt-8 border-t border-ink pt-6">
           <p className="eyebrow mb-3">Looking for</p>
-          <p className="font-display text-[22px] leading-[1.35] tracking-[-0.01em] text-ink">{listing.seeking || 'Open to offers'}</p>
+          <p className="font-display text-[22px] leading-[1.35] tracking-[-0.01em] text-ink wrap-anywhere">{listing.seeking || 'Open to offers'}</p>
         </div>
 
         {/* Owner profile */}
         <Link to={`/profile/${user.username}`} className="group mt-8 flex items-center gap-4 border-y border-ink py-5 transition-colors hover:bg-paper">
           <Avatar src={user.avatarUrl} name={user.displayName} userId={user.id} size="xl" />
           <div className="flex-1 min-w-0">
-            <p className="font-display text-[20px] leading-tight text-ink group-hover:text-clay-dark transition-colors">{user.displayName}</p>
+            <p className="font-display text-[20px] leading-tight text-ink wrap-anywhere group-hover:text-clay-dark transition-colors">{user.displayName}</p>
             <p className="text-small text-muted mt-1">{user.neighborhood}</p>
           </div>
           <div className="text-right shrink-0">
-            <div className="flex items-center justify-end gap-1.5 text-[17px] font-medium tabular-nums text-ink">
-              <Star className="h-4 w-4 fill-gold text-gold" />
-              {user.reputationScore.toFixed(1)}
-            </div>
+            {reputation.rated ? (
+              <div className="flex items-center justify-end gap-1.5 text-[17px] font-medium tabular-nums text-ink">
+                <Star className="h-4 w-4 fill-gold text-gold" aria-hidden="true" />
+                <span className="sr-only">{reputation.label}</span>
+                <span aria-hidden="true">{reputation.score}</span>
+              </div>
+            ) : (
+              <p className="text-[15px] text-ink-2">{reputation.label}</p>
+            )}
             <p className="text-label text-muted mt-1">{user.tradeCount} {user.tradeCount === 1 ? 'trade' : 'trades'}</p>
           </div>
         </Link>

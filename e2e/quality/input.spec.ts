@@ -73,16 +73,8 @@ async function refusedCleanly(page: Page) {
 
 const kinds = Object.keys(PAYLOADS) as Kind[]
 
-const WRAP_BUG =
-  'BUG: long unbroken words (titles, offer items, names, bios) do not wrap and make the page wider than a 390px phone'
 /** Field group + payload combinations that hit a reported bug. */
-const KNOWN: Record<string, string> = {
-  'listing:script': WRAP_BUG,
-  'listing:long': WRAP_BUG,
-  'offer:long': WRAP_BUG,
-  'profile:script': WRAP_BUG,
-  'profile:long': WRAP_BUG,
-}
+const KNOWN: Record<string, string> = {}
 const known = (group: string, kind: Kind) => {
   const bug = KNOWN[`${group}:${kind}`]
   test.fail(!!bug, bug)

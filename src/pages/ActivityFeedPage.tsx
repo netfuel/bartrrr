@@ -152,7 +152,7 @@ export default function ActivityFeedPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 pt-1.5 min-w-0">
+                <div className="flex-1 pt-1.5 min-w-0 wrap-anywhere">
                   {item.type === 'listing' ? (
                     <>
                       <p className="text-[16px] text-ink-2 leading-snug">

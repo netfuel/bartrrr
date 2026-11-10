@@ -389,6 +389,60 @@ test.describe('P-04 public profile header', () => {
     await expect(page.getByText('1 trade', { exact: true })).toBeVisible()
   })
 
+  test('T-69: a neighbor with no reviews shows "No ratings yet", never 5.0 stars', async ({ page }) => {
+    await login(page, 'Jamie')
+    // A brand-new neighbor: the server's default 5.0 score, no trades, no reviews
+    await writeStore(
+      page,
+      'users-store',
+      `(store) => store.setState(s => ({ users: s.users.map(u =>
+        u.id === 'user-005' ? { ...u, reputationScore: 5, reviewCount: 0, tradeCount: 0 } : u) }))`,
+    )
+    await goInApp(page, '/profile/jordan_w')
+    await expect(page.getByRole('heading', { level: 1, name: 'Jordan Williams' })).toBeVisible()
+    const stats = page.getByText('0 trades', { exact: true }).locator('..')
+    await expect(stats).toContainText('No ratings yet')
+    await expect(stats).not.toContainText('5.0')
+
+    // The owner block on their listing
+    await goInApp(page, '/listing/listing-006')
+    await expect(page.getByRole('heading', { level: 1, name: 'IKEA Kallax Shelf Unit' })).toBeVisible()
+    const owner = page.getByRole('link', { name: /Jordan Williams/ }).filter({ hasText: '0 trades' })
+    await expect(owner).toContainText('No ratings yet')
+    await expect(owner).not.toContainText('5.0')
+
+    // Their card when browsing
+    await goInApp(page, '/browse')
+    const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'IKEA Kallax Shelf Unit' }) })
+    await expect(card).toContainText('No ratings yet')
+    await expect(card).not.toContainText('5.0')
+
+    // Their first review: now the stars show
+    await writeStore(
+      page,
+      'reviews-store',
+      `(store) => store.getState().addReview({ agreementId: 'agreement-t69', reviewerId: 'user-001', revieweeId: 'user-005', rating: 4, comment: 'Easy swap.' })`,
+    )
+    await writeStore(
+      page,
+      'users-store',
+      `(store) => store.setState(s => ({ users: s.users.map(u => u.id === 'user-005' ? { ...u, reputationScore: 4 } : u) }))`,
+    )
+    await goInApp(page, '/profile/jordan_w')
+    await expect(page.getByText('0 trades', { exact: true }).locator('..')).toContainText('4.0')
+    await expect(page.getByText('No ratings yet')).toHaveCount(0)
+    await goInApp(page, '/browse')
+    await expect(card).toContainText('4.0')
+    await expect(card).not.toContainText('No ratings yet')
+  })
+
+  test('rated neighbors keep their stars with a spoken label', async ({ page }) => {
+    await login(page, 'Jamie')
+    await goInApp(page, '/profile/maria_s')
+    await expect(page.getByText('4.9 out of 5 stars').first()).toBeAttached()
+    await expect(page.getByText('No ratings yet')).toHaveCount(0)
+  })
+
   test('an unknown neighbor shows a friendly message', async ({ page }) => {
     await login(page, 'Jamie')
     await goInApp(page, '/profile/nobody_here')

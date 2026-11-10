@@ -104,11 +104,14 @@ test.describe('O-02 onboarding', () => {
     await joinAs(page, 'Priya', '38138')
     await expect(page.getByText('Step 1 of 3')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1, name: /Welcome, Priya!/ })).toBeVisible()
+    // T-73: each step has its own page title
+    await expect(page).toHaveTitle('Welcome | Bartrrr')
     await page.getByRole('button', { name: 'Get started' }).click()
 
     // Step 2: the shared picker, with the saved neighborhood selected
     await expect(page.getByText('Step 2 of 3')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Where do you live?' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Where do you live?' })).toBeVisible()
+    await expect(page).toHaveTitle('Your neighborhood | Bartrrr')
     await expect(picker(page).getByRole('button')).toHaveCount(NEIGHBORHOODS.length)
     await expect(picker(page).getByRole('button', { name: 'Germantown' })).toHaveAttribute('aria-pressed', 'true')
     await expect(picker(page).locator('[aria-pressed="true"]')).toHaveCount(1)
@@ -119,7 +122,8 @@ test.describe('O-02 onboarding', () => {
 
     // Step 3: at least 3 interests
     await expect(page.getByText('Step 3 of 3')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'What are you looking for?' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'What are you looking for?' })).toBeVisible()
+    await expect(page).toHaveTitle('Your interests | Bartrrr')
     await expect(interests(page).getByRole('button')).toHaveCount(16)
     const next = page.getByRole('button', { name: 'Continue' })
     await expect(page.getByText('Tap a category to select it.')).toBeVisible()
@@ -139,7 +143,8 @@ test.describe('O-02 onboarding', () => {
     await next.click()
 
     // Done
-    await expect(page.getByRole('heading', { name: "You're all set!" })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: "You're all set!" })).toBeVisible()
+    await expect(page).toHaveTitle("You're all set | Bartrrr")
     await expect(page.getByText(/Step \d of 3/)).toHaveCount(0)
     await expect(page.getByText(/You're in\s+Cooper-Young\./)).toBeVisible()
     await expect(page.getByText('You can change your neighborhood anytime in Settings.')).toBeVisible()

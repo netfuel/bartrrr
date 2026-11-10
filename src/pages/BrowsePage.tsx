@@ -71,6 +71,8 @@ export default function BrowsePage() {
 
   return (
     <div className="flex flex-col h-[calc(100svh-4rem-4.75rem)] -mb-28 lg:mb-0 lg:h-[calc(100svh-4rem)]">
+      {/* The filters, map and cards say what this is; screen readers get a title */}
+      <h1 className="sr-only">Browse listings</h1>
       {/* Filters bar */}
       <div className="no-scrollbar flex items-center gap-3 px-4 lg:px-6 py-3 bg-cream border-b border-ink overflow-x-auto">
         {/* View toggle (mobile) */}
@@ -178,6 +180,7 @@ export default function BrowsePage() {
 
         {/* Card grid */}
         <div className={cn('flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6', 'lg:block', view === 'list' ? 'block' : 'hidden')}>
+          <h2 className="sr-only">Listings</h2>
           {filteredListings.length === 0 ? (
             isFiltered && hasActiveListings ? (
               <EmptyState

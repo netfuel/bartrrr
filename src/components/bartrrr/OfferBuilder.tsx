@@ -74,7 +74,7 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
         <h2 id="offer-builder-title" className="font-display text-[28px] font-normal tracking-[-0.015em] text-ink mb-1">
           Make an offer
         </h2>
-        <p className="text-[15px] text-muted mb-6 pb-5 border-b border-ink">
+        <p className="text-[15px] text-muted mb-6 pb-5 border-b border-ink wrap-anywhere">
           for <span className="font-display italic text-[17px] text-ink">{listing.title}</span>
         </p>
 
@@ -83,7 +83,7 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
             <p className="text-label text-forest mb-1">
               They're looking for
             </p>
-            <p className="text-[15px] text-forest-dark">{listing.seeking}</p>
+            <p className="text-[15px] text-forest-dark wrap-anywhere">{listing.seeking}</p>
           </div>
         )}
 

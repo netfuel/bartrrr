@@ -44,7 +44,14 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   upsertUser: (user) =>
     set((state) => ({
       users: state.users.some((u) => u.id === user.id)
-        ? state.users.map((u) => (u.id === user.id ? user : u))
+        ? state.users.map((u) =>
+            u.id === user.id
+              ? // Profile rows don't carry the review count: keep the one we know
+                user.reviewCount === undefined && u.reviewCount !== undefined
+                ? { ...user, reviewCount: u.reviewCount }
+                : user
+              : u,
+          )
         : [user, ...state.users],
     })),
 

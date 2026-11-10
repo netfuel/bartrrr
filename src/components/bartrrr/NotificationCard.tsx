@@ -34,8 +34,8 @@ export function NotificationCard({
         />
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-medium text-ink">{notification.title}</p>
-        <p className="text-small text-ink-2 mt-0.5 line-clamp-2">
+        <p className="text-[15px] font-medium text-ink wrap-anywhere">{notification.title}</p>
+        <p className="text-small text-ink-2 mt-0.5 line-clamp-2 wrap-anywhere">
           {notification.body}
         </p>
         <p className="text-label text-muted mt-1.5">

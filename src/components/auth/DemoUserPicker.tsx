@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Star } from 'lucide-react'
 import { Avatar, Button } from '@/components/ui'
 import { useAuth } from '@/providers/AuthProvider'
-import { useUsersStore } from '@/stores'
+import { useReputation, useUsersStore } from '@/stores'
+import type { UserProfile } from '@/types'
 
 /**
  * "Explore as a sample neighbor" picker. Only reachable when the build sets
@@ -71,10 +72,7 @@ export default function DemoUserPicker({
                 <p className="text-[15px] font-medium text-ink truncate">{user.displayName}</p>
                 <p className="text-small text-muted">{user.neighborhood}</p>
               </div>
-              <div className="flex items-center gap-1 text-small tabular-nums text-ink-2 shrink-0">
-                <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden="true" />
-                {user.reputationScore.toFixed(1)}
-              </div>
+              <PickerRating user={user} />
               <span
                 aria-hidden="true"
                 className={`ml-1 h-2 w-2 shrink-0 rounded-full transition-colors ${selectedUserId === user.id ? 'bg-clay' : 'bg-transparent'}`}
@@ -102,6 +100,18 @@ export default function DemoUserPicker({
       <p className="text-small text-muted mt-4">
         This is a demo: pick any neighbor to explore Bartrrr.
       </p>
+    </div>
+  )
+}
+
+function PickerRating({ user }: { user: UserProfile }) {
+  const reputation = useReputation(user)
+  if (!reputation.rated) return <span className="text-small text-muted shrink-0">{reputation.label}</span>
+  return (
+    <div className="flex items-center gap-1 text-small tabular-nums text-ink-2 shrink-0">
+      <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden="true" />
+      <span className="sr-only">{reputation.label}</span>
+      <span aria-hidden="true">{reputation.score}</span>
     </div>
   )
 }

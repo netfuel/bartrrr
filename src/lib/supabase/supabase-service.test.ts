@@ -304,6 +304,25 @@ describe('mapUserRow', () => {
   })
 })
 
+describe('fetchReviewCounts (T-69)', () => {
+  it('counts reviews per neighbor without loading them, zero when there are none', async () => {
+    h.results.push({
+      data: [
+        { id: 'u1', reviews: [{ count: 3 }] },
+        { id: 'u2', reviews: [{ count: 0 }] },
+        { id: 'u3', reviews: [] },
+      ],
+      error: null,
+    })
+    expect(await svc.fetchReviewCounts()).toEqual({ u1: 3, u2: 0, u3: 0 })
+    expect(opsFor('users', 'select')[0].args[0]).toBe('id, reviews:reviews!reviews_reviewee_id_fkey(count)')
+  })
+  it('passes errors on (the caller falls back to loaded reviews)', async () => {
+    h.results.push({ data: null, error: new Error('nope') })
+    await expect(svc.fetchReviewCounts()).rejects.toThrow('nope')
+  })
+})
+
 describe('mapNotificationRow', () => {
   it('maps and leaves read_at undefined when unread', () => {
     const row: NotificationRow = {

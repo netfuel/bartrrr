@@ -6,10 +6,19 @@ import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore } from '@/stores'
 import { NeighborhoodPicker } from '@/components/profile/NeighborhoodPicker'
 import { knownNeighborhood } from '@/data/neighborhoods'
+import { usePageTitle } from '@/lib/utils'
 
 type Step = 'welcome' | 'neighborhood' | 'interests' | 'done'
 
 const STEPS: Step[] = ['welcome', 'neighborhood', 'interests', 'done']
+
+/** Each step reads as its own page in the tab title. */
+const STEP_TITLES: Record<Step, string> = {
+  welcome: 'Welcome',
+  neighborhood: 'Your neighborhood',
+  interests: 'Your interests',
+  done: "You're all set",
+}
 
 const INTEREST_CATEGORIES = [
   { id: 'household', label: 'Household', emoji: '🏠' },
@@ -42,6 +51,7 @@ export default function OnboardingPage() {
   // profile starts as the placeholder "Neighbor": ask for it here.
   const needsName = !currentUser?.displayName || currentUser.displayName === 'Neighbor'
   const [displayName, setDisplayName] = useState('')
+  usePageTitle(STEP_TITLES[step])
 
   if (!currentUser) return null
 
@@ -70,13 +80,13 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-[100svh] bg-cream flex flex-col px-5 py-6">
-      <div className="mx-auto flex w-full max-w-xl items-center justify-between">
+      <header className="mx-auto flex w-full max-w-xl items-center justify-between">
         <Wordmark />
         {step !== 'done' && (
           <p className="text-label text-muted tabular-nums">Step {stepIndex + 1} of 3</p>
         )}
-      </div>
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-10">
+      </header>
+      <main id="main" className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-10">
 
         {/* Step progress — a hairline that fills */}
         <div className="mb-12 grid grid-cols-4 gap-1.5" aria-hidden="true">
@@ -138,9 +148,9 @@ export default function OnboardingPage() {
               <div className="w-12 h-12 rounded-full border border-ink flex items-center justify-center mb-6">
                 <MapPin className="h-5 w-5 text-clay" />
               </div>
-              <h2 className="text-heading-page text-ink mb-3">
+              <h1 className="text-heading-page text-ink mb-3">
                 Where do you live?
-              </h2>
+              </h1>
               <p className="text-base text-ink-2 mb-8">
                 Pick your Memphis neighborhood so we can show you trades nearby. Neighbors see your neighborhood, never your address.
               </p>
@@ -173,9 +183,9 @@ export default function OnboardingPage() {
           {/* ── Step 3: Interests ── */}
           {step === 'interests' && (
             <div>
-              <h2 className="text-heading-page text-ink mb-3">
+              <h1 className="text-heading-page text-ink mb-3">
                 What are you looking for?
-              </h2>
+              </h1>
               <p className="text-base text-ink-2 mb-8">
                 Pick at least 3 so we can show you listings you'll care about.
               </p>
@@ -226,9 +236,9 @@ export default function OnboardingPage() {
               <div className="w-16 h-16 rounded-full border border-teal bg-teal-light flex items-center justify-center mx-auto mb-8 animate-scale-in">
                 <CheckCircle className="h-7 w-7 text-teal-dark" />
               </div>
-              <h2 className="text-display !text-[clamp(3rem,10vw,5rem)] text-ink mb-5">
+              <h1 className="text-display !text-[clamp(3rem,10vw,5rem)] text-ink mb-5">
                 <em>You're all set!</em>
-              </h2>
+              </h1>
               <p className="text-base text-muted mb-1">
                 You're in <span className="font-display italic text-[18px] text-ink">{neighborhood}</span>.
               </p>
@@ -257,7 +267,7 @@ export default function OnboardingPage() {
           )}
 
         </div>
-      </div>
+      </main>
     </div>
   )
 }

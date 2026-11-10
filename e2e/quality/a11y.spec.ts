@@ -2,8 +2,10 @@
 /**
  * Y-01 Accessibility: axe on every route (signed out and signed in as
  * Jamie) and on every dialog. Serious and critical violations fail the
- * test unless they're a known bug listed in KNOWN below; everything else
- * is attached to the report as a summary.
+ * test unless they're a known bug listed in KNOWN below, and so do the
+ * page-structure rules in STRUCTURE (landmarks, one h1, heading order),
+ * which axe rates moderate; everything else is attached to the report as
+ * a summary.
  */
 import AxeBuilder from '@axe-core/playwright'
 import type { Page, TestInfo } from '@playwright/test'
@@ -19,6 +21,9 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-prac
  */
 const KNOWN: Record<string, { bug: string; where: string[] }> = {}
 
+/** Moderate rules that fail too: every page has a structure screen readers can navigate. */
+const STRUCTURE = new Set(['region', 'landmark-one-main', 'page-has-heading-one', 'heading-order'])
+
 type Result = Awaited<ReturnType<AxeBuilder['analyze']>>
 
 async function scan(page: Page, testInfo: TestInfo, where: string, include?: string) {
@@ -26,7 +31,9 @@ async function scan(page: Page, testInfo: TestInfo, where: string, include?: str
   let builder = new AxeBuilder({ page: page as unknown as ConstructorParameters<typeof AxeBuilder>[0]['page'] }).withTags(TAGS)
   if (include) builder = builder.include(include)
   const result: Result = await builder.analyze()
-  const blocking = result.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
+  const blocking = result.violations.filter(
+    (v) => v.impact === 'serious' || v.impact === 'critical' || STRUCTURE.has(v.id),
+  )
   const minor = result.violations.filter((v) => !blocking.includes(v))
 
   const summary = result.violations.map((v) => ({
@@ -52,7 +59,7 @@ async function scan(page: Page, testInfo: TestInfo, where: string, include?: str
   if (unexpected.length) await bugShot(page, testInfo, `a11y-${where}`)
   expect(
     unexpected.map((v) => `${v.id} [${v.impact}] ${v.help}\n    ${v.nodes.slice(0, 6).map((n) => n.target.join(' ')).join('\n    ')}`),
-    `serious/critical axe violations on ${where}`,
+    `serious/critical and structure axe violations on ${where}`,
   ).toEqual([])
 }
 

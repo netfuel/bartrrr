@@ -199,7 +199,10 @@ export type UserProfile = {
   neighborhood: string
   lookingFor?: string[]
   interests?: string[]
+  /** Average review rating, server-maintained. Starts at 5.0 before any review: check reviewCount */
   reputationScore: number
+  /** Reviews received, when known (server count or demo data). See reputationOf(). */
+  reviewCount?: number
   tradeCount: number
   /** Late cancellations (within 24 hours of an agreed swap), server-maintained */
   lateCancellations?: number

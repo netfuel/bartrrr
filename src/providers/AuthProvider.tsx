@@ -138,16 +138,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         useUsersStore.getState().upsertUser(me)
         storeLogin(userId)
 
-        const [users, listings, offers, agreements, notifications, reviews] = await Promise.all([
+        const [fetchedUsers, listings, offers, agreements, notifications, reviews, reviewCounts] = await Promise.all([
           svc.fetchAllUsers(),
           svc.fetchListings(),
           svc.fetchOffers(userId),
           svc.fetchAgreements(userId),
           svc.fetchNotifications(userId),
           svc.fetchAllReviews(),
+          // Ratings fall back to the loaded reviews if the count can't be read
+          svc.fetchReviewCounts().catch((err: unknown) => {
+            console.warn('[Bartrrr] Could not count reviews', err)
+            return null
+          }),
         ])
         if (stale()) return
-        useUsersStore.getState().setUsers(users.some((u) => u.id === me.id) ? users : [me, ...users])
+        const users = reviewCounts
+          ? fetchedUsers.map((u) => ({ ...u, reviewCount: reviewCounts[u.id] ?? 0 }))
+          : fetchedUsers
+        const meWithCount = reviewCounts ? { ...me, reviewCount: reviewCounts[me.id] ?? 0 } : me
+        useUsersStore.getState().setUsers(users.some((u) => u.id === me.id) ? users : [meWithCount, ...users])
         useListingsStore.getState().setListings(listings)
         useOffersStore.getState().setOffers(offers)
         useAgreementsStore.getState().setAgreements(agreements)

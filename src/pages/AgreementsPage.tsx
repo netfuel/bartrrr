@@ -31,6 +31,12 @@ const tabFilter: Record<Tab, AgreementStatus[]> = {
   completed: ['completed', 'cancelled', 'disputed'],
 }
 
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'pending', label: 'To sign' },
+  { id: 'active', label: 'Ready to swap' },
+  { id: 'completed', label: 'Done' },
+]
+
 export default function AgreementsPage() {
   const [tab, setTab] = useState<Tab>('pending')
   const navigate = useNavigate()
@@ -52,12 +58,10 @@ export default function AgreementsPage() {
         className="mb-6"
         active={tab}
         onChange={setTab}
-        tabs={[
-          { id: 'pending', label: 'To sign' },
-          { id: 'active', label: 'Ready to swap' },
-          { id: 'completed', label: 'Done' },
-        ]}
+        tabs={TABS}
       />
+      {/* Keeps the outline in order: h1, this section, then each card's h3 */}
+      <h2 className="sr-only">{TABS.find((t) => t.id === tab)?.label}</h2>
 
       {filtered.length === 0 ? (
         <EmptyState

@@ -4,8 +4,11 @@ import { useOffersStore } from './offers-store'
 import { useListingsStore } from './listings-store'
 import { useAgreementsStore } from './agreements-store'
 import { useNotificationsStore } from './notifications-store'
+import { useReviewsStore } from './reviews-store'
 import { showToast } from './toast-store'
 import { isListingLive, listingStatus } from '@/lib/listings'
+import { reputationOf } from '@/lib/reputation'
+import type { UserProfile } from '@/types'
 
 /**
  * Memoized per-user selectors. useShallow compares the filtered result
@@ -95,4 +98,15 @@ export function useUnreadCount(userId: string | undefined) {
       ? s.notifications.filter((n) => n.userId === userId && !n.readAt).length
       : 0,
   )
+}
+
+/**
+ * A neighbor's rating, or "No ratings yet" before their first review
+ * (T-69). Counts reviews loaded on this device too, so a review that just
+ * came in shows without waiting for the server's count.
+ */
+export function useReputation(user: Pick<UserProfile, 'id' | 'reputationScore' | 'reviewCount'> | undefined) {
+  const id = user?.id
+  const loaded = useReviewsStore((s) => (id ? s.reviews.reduce((n, r) => (r.revieweeId === id ? n + 1 : n), 0) : 0))
+  return reputationOf(user ?? { reputationScore: Number.NaN }, loaded)
 }
