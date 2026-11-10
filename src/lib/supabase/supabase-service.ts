@@ -13,7 +13,7 @@
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './index'
-import { declineContent } from '@/lib/offers'
+import { declineContent, declinePayload } from '@/lib/offers'
 import { categoryTakesCondition } from '@/lib/listings'
 import type {
   AgreementRow,
@@ -124,6 +124,8 @@ function mapOfferMessages(msgs: OfferMessageRow[]): OfferMessage[] {
     content: m.content,
     items: m.items && m.items.length > 0 ? m.items : undefined,
     type: m.type as OfferMessageType,
+    // Migration 014; undefined on a database without it
+    declineReason: (m.decline_reason ?? undefined) as OfferDeclineReason | undefined,
     createdAt: m.created_at,
   }))
 }
@@ -151,11 +153,14 @@ export function mapAgreementRow(row: AgreementRow): TradeAgreement {
       userId: row.party_a_user_id,
       item: row.party_a_item,
       signed: row.party_a_signed,
+      // Migration 014; undefined before it, and for signatures given before it
+      signedAt: row.party_a_signed_at ?? undefined,
     },
     partyB: {
       userId: row.party_b_user_id,
       item: row.party_b_item,
       signed: row.party_b_signed,
+      signedAt: row.party_b_signed_at ?? undefined,
     },
     exchangeMethod: (row.exchange_method ?? undefined) as TradeAgreement['exchangeMethod'],
     exchangeDate: row.exchange_date ?? undefined,
@@ -517,6 +522,7 @@ async function respond(
   messageId: string,
   content: string,
   items: string[] = [],
+  reason?: OfferDeclineReason,
 ): Promise<Offer> {
   const checkedContent = parseOrThrow(offerMessageSchema, content)
   const checkedItems = parseOrThrow(offerItemsSchema, items)
@@ -526,6 +532,7 @@ async function respond(
     p_message_id: messageId,
     p_content: checkedContent,
     p_items: checkedItems,
+    ...(reason ? { p_reason: reason } : {}),
   })
   if (error) throw error
   const saved = await fetchOfferWithMessages(id)
@@ -537,9 +544,25 @@ export function acceptOffer(id: string, messageId: string): Promise<Offer> {
   return respond(id, 'accept', messageId, 'Offer accepted.')
 }
 
-/** Stores the reason and the note together (see declineContent in lib/offers). */
-export function declineOffer(id: string, messageId: string, reason: OfferDeclineReason, note?: string): Promise<Offer> {
-  return respond(id, 'decline', messageId, declineContent(reason, note))
+/** PostgREST: no function matches the arguments sent (schema cache) */
+function isMissingRpcSignature(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'PGRST202'
+}
+
+/**
+ * Sends the reason code as p_reason and the note (or the code) as content
+ * (migration 014, see declinePayload in lib/offers). A database without 014
+ * has no p_reason, so PostgREST answers PGRST202; then it falls back to the
+ * old single text, "<label>. <note>" (declineContent), which 014 also reads.
+ */
+export async function declineOffer(id: string, messageId: string, reason: OfferDeclineReason, note?: string): Promise<Offer> {
+  const payload = declinePayload(reason, note)
+  try {
+    return await respond(id, 'decline', messageId, payload.content, [], payload.reason)
+  } catch (error) {
+    if (!isMissingRpcSignature(error)) throw error
+    return respond(id, 'decline', messageId, declineContent(reason, note))
+  }
 }
 
 export function counterOffer(id: string, messageId: string, content: string, items: string[]): Promise<Offer> {

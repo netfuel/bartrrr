@@ -167,7 +167,7 @@ export default function AgreementDetailPage() {
     if (late) noteLateCancellation(currentUser.id)
     addNotification({
       userId: otherPartyId,
-      type: 'agreement_ready',
+      type: 'trade_canceled',
       title: 'Trade canceled',
       body: `${myFirstName} canceled your trade agreement. Message them if you want to try again.`,
       data: { agreementId: agreement.id },
@@ -180,7 +180,7 @@ export default function AgreementDetailPage() {
     flagAgreement(agreement.id, currentUser.id, reason)
     addNotification({
       userId: otherPartyId,
-      type: 'agreement_ready',
+      type: 'trade_flagged',
       title: 'Trade flagged for review',
       body: `${myFirstName} flagged your trade: “${reason.slice(0, 120)}” Talk it through with them in your messages.`,
       data: { agreementId: agreement.id },

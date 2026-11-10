@@ -28,7 +28,7 @@ export function WithdrawOfferDialog({ offer, currentUser, otherName, listingTitl
     // Local-only in demo mode; with a backend this is a no-op
     addNotification({
       userId: offer.toUserId,
-      type: 'offer_declined',
+      type: 'offer_withdrawn',
       title: 'Offer withdrawn',
       body: `${currentUser.displayName} withdrew their offer on your ${listingTitle || 'listing'}.`,
       data: { offerId: offer.id },

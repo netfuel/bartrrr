@@ -143,6 +143,7 @@ What the repo ships for the Worker's static assets:
 - [x] Migration 011 applied: withdrawing an offer gives the listing owner an "Offer withdrawn" notification
 - [ ] Migration 010 applied: `delete_my_account()` exists and only `authenticated` can execute it; delete a throwaway account from Settings and check its profile reads "Former neighbor" and its photo folder is gone
 - [ ] Migration 013 applied: deleting asks you to confirm it's you. With a throwaway email account, a wrong password keeps the account; the right one deletes it and its photo folder. With a throwaway Google account, "Confirm with Google" comes back to Settings with the dialog open and "Confirmed with Google."; deleting works. Then check the 10-minute rule: confirm with Google, leave the dialog open for 11 minutes, press Delete account, and see "For your security, confirm it's you with Google again…" with the account still there
+- [ ] Migration 014 applied (after 012 and 013; apply it before or with the front end that uses it, though that front end also works without it): `select type, count(*) from public.notifications group by 1` shows `trade_canceled` / `trade_flagged` / `offer_withdrawn` and no "Trade canceled" left under `agreement_ready`; declining an offer with a reason and a note stores the code in `offer_messages.decline_reason` and the note in `content`, and the other neighbor still reads "Their reason: “<reason>. <note>”"; `select * from public.orphaned_photo_paths()` runs in the SQL editor, and `node scripts/sweep-orphan-photos.mjs` (dry run) lists the same files (see "Orphaned photo sweep")
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
 - [ ] Email signup: confirmation email arrives, link lands on `/auth/callback`, then onboarding
 - [ ] Google: new account goes to onboarding with name and photo filled; returning account goes back to where it started
@@ -235,10 +236,46 @@ select a.id, a.created_at,
 
   Code: `src/lib/account-deletion.ts`, `src/components/settings/DeleteAccountSection.tsx`.
 - Deletion requests by email (someone who can't sign in, or asks us to do it): don't delete the user from Supabase → Authentication, which leaves their profile behind. Instead, in the SQL editor run `select public.delete_account('<user id>');` (migration 007; it isn't callable from the app). Find the id under Authentication → Users by email. Then delete their photos: **Storage → listing-photos →** the folder named with their user id → select all → Delete. (Supabase blocks deleting storage files from SQL, so the function can't do this step.)
-- Leftover photos: photos are removed after the account, so if the connection drops or the tab closes right after someone deletes their account, their folder stays behind. Now and then, list folders that no longer belong to an account, then delete them in **Storage → listing-photos**:
-  ```sql
-  select distinct (storage.foldername(name))[1] as folder
-    from storage.objects o
-   where bucket_id = 'listing-photos'
-     and not exists (select 1 from auth.users u where u.id::text = (storage.foldername(o.name))[1]);
-  ```
+- Leftover photos: see [Orphaned photo sweep](#orphaned-photo-sweep). It also catches folders left behind when the connection drops or the tab closes right after someone deletes their account (their listings and avatar were cleared, so none of their files is referenced any more).
+
+## Orphaned photo sweep
+
+Photos upload as soon as they're picked, before the listing or profile is saved. Closing the Create listing page, a failed cleanup after an edit, or an interrupted account deletion leaves files in `listing-photos` that nothing uses. Migration 014 adds `public.orphaned_photo_paths(older_than interval default '7 days', after_path text, max_rows int)`: it lists files in the bucket older than the cutoff (at least 1 day) whose path appears in no `listings.images` URL (any status, withdrawn included) and no `users.avatar_url`. Only the service role can call it. Supabase blocks deleting Storage files from SQL, so `scripts/sweep-orphan-photos.mjs` deletes them through the Storage API.
+
+Run it from a checkout with `npm ci` done. The service role key is under Supabase → Project Settings → API keys; it bypasses Row Level Security, so never put it in a `VITE_` variable, the repo or shell history:
+
+```sh
+export SUPABASE_URL=https://<ref>.supabase.co
+read -rs SUPABASE_SERVICE_ROLE_KEY && export SUPABASE_SERVICE_ROLE_KEY   # paste, Enter
+
+node scripts/sweep-orphan-photos.mjs                 # dry run: lists what it would delete, deletes nothing
+node scripts/sweep-orphan-photos.mjs --delete        # deletes them, 100 per Storage API call
+node scripts/sweep-orphan-photos.mjs --older-than "30 days" --delete --batch 200
+```
+
+Exit code 0 when done, 1 if any file couldn't be deleted (listed as "not deleted"), 2 for bad arguments, missing env, or migration 014 not applied. Running it again is safe: deleted files are no longer listed.
+
+To check by hand first, in the SQL editor: `select * from public.orphaned_photo_paths();` (the SQL editor runs as `postgres`, which may call it).
+
+**Scheduling (optional).** Weekly is plenty. A GitHub Actions workflow with the URL and key as repository secrets:
+
+```yaml
+name: Sweep orphaned photos
+on:
+  schedule: [{ cron: '17 9 * * 1' }]   # Mondays 09:17 UTC
+  workflow_dispatch: {}
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: node scripts/sweep-orphan-photos.mjs --delete
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+```
+
+Keep the cutoff (7 days by default) longer than anyone keeps a Create listing or Settings page open with unsaved photos. If drafts are ever saved across visits, raise it above how long a draft lives.
