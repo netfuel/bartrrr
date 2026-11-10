@@ -34,13 +34,13 @@ export function MessageComposer({
         placeholder={placeholder}
         aria-label={label}
         maxLength={2000}
-        className="flex-1 min-w-0 min-h-[48px] rounded-full border border-ink/40 bg-paper px-5 text-base placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay transition-colors"
+        className="flex-1 min-w-0 min-h-[44px] sm:min-h-[48px] rounded-full border border-ink/40 bg-paper px-5 text-base placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay transition-colors"
       />
       <button
         type="submit"
         disabled={!text.trim()}
         aria-label="Send message"
-        className="pressable flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ink text-cream disabled:opacity-35 disabled:cursor-not-allowed hover:bg-clay-dark transition-colors duration-300"
+        className="pressable flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-ink text-cream disabled:opacity-35 disabled:cursor-not-allowed hover:bg-clay-dark transition-colors duration-300"
       >
         <Send className="h-5 w-5" />
       </button>

@@ -183,10 +183,10 @@ describe('acceptOffer and declineOffer', () => {
     expect(useAgreementsStore.getState().agreements).toHaveLength(0)
   })
 
-  it('decline uses the note when given and rolls back on failure', async () => {
+  it('decline keeps both the reason and the note, and rolls back on failure', async () => {
     vi.mocked(svc.declineOffer).mockRejectedValue(new Error('x'))
     useOffersStore.getState().declineOffer('offer-1', 'owner', 'not_fair', 'Too low')
-    expect(get().messages.at(-1)).toMatchObject({ type: 'decline', content: 'Too low' })
+    expect(get().messages.at(-1)).toMatchObject({ type: 'decline', content: "Offer doesn't feel like a fair trade. Too low" })
     expect(svc.declineOffer).toHaveBeenCalledWith('offer-1', expect.any(String), 'not_fair', 'Too low')
     await flush()
     expect(get()).toEqual(offer())

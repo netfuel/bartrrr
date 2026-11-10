@@ -4,9 +4,10 @@ import { Package, MessageSquare, FileCheck, Plus, ArrowRight, History, Send } fr
 import { useAuth } from '@/providers/AuthProvider'
 import { useListingsStore, useUsersStore, useOffersForUser, useAgreementsForUser, useMyActiveListings } from '@/stores'
 import { Badge, Avatar, Button, EmptyState, Tabs, buttonStyles } from '@/components/ui'
-import { TradeCard, WithdrawOfferDialog } from '@/components/bartrrr'
+import { TradeCard, WithdrawOfferDialog, OfferStatusBadge } from '@/components/bartrrr'
+import { isOpenOffer, whoseMove } from '@/lib/offers'
 import { usePageTitle } from '@/lib/utils'
-import { OFFER_STATUS_LABELS, AGREEMENT_STATUS_LABELS, type Offer } from '@/types'
+import { AGREEMENT_STATUS_LABELS, type Offer } from '@/types'
 
 type Tab = 'listings' | 'incoming' | 'outgoing' | 'trades' | 'history'
 
@@ -40,9 +41,14 @@ export default function DashboardPage() {
   )
 
   if (!currentUser) return null
-  const pendingIncoming = incoming.filter((o) => o.status === 'pending' || o.status === 'countered')
-  const pendingOutgoing = outgoing.filter((o) => o.status === 'pending' || o.status === 'countered')
-  const closedOutgoing = outgoing.filter((o) => o.status === 'declined' || o.status === 'withdrawn' || o.status === 'expired')
+  // Open received offers, yours to answer first; only those count as "to answer"
+  const isMine = (o: Offer) => whoseMove(o, currentUser.id) === 'mine'
+  const openIncoming = incoming.filter(isOpenOffer).sort((a, b) => Number(isMine(b)) - Number(isMine(a)))
+  const pendingIncoming = openIncoming.filter(isMine)
+  const isClosedOffer = (o: Offer) => o.status === 'declined' || o.status === 'withdrawn' || o.status === 'expired'
+  const closedIncoming = incoming.filter(isClosedOffer)
+  const pendingOutgoing = outgoing.filter(isOpenOffer)
+  const closedOutgoing = outgoing.filter(isClosedOffer)
   const activeAgreements = agreements.filter((a) => a.status === 'pending_signatures' || a.status === 'active')
   const completedAgreements = agreements.filter((a) => a.status === 'completed')
 
@@ -118,7 +124,7 @@ export default function DashboardPage() {
 
       {activeTab === 'incoming' && (
         <div className="border-t border-ink">
-          {pendingIncoming.length === 0 ? (
+          {openIncoming.length === 0 ? (
             <EmptyState
               title="No offers to answer"
               description="When a neighbor makes an offer on one of your listings, it shows up here. The more you list, the more offers you'll get."
@@ -126,7 +132,7 @@ export default function DashboardPage() {
               onAction={() => navigate('/listing/new')}
             />
           ) : (
-            pendingIncoming.map((offer) => {
+            openIncoming.map((offer) => {
               const fromUser = getUserById(offer.fromUserId)
               const listing = getListingById(offer.listingId)
               if (!fromUser) return null
@@ -141,15 +147,34 @@ export default function DashboardPage() {
                       <p className="text-small text-muted truncate mt-0.5">for {listing?.title || 'your listing'}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={offer.status === 'countered' ? 'gold' : 'teal'}>
-                        {OFFER_STATUS_LABELS[offer.status]}
-                      </Badge>
+                      <OfferStatusBadge offer={offer} userId={currentUser.id} />
                       <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
                   </div>
                 </Link>
               )
             })
+          )}
+          {closedIncoming.length > 0 && (
+            <div>
+              <p className="text-label text-muted mt-8 mb-2">Closed</p>
+              {closedIncoming.map((offer) => {
+                const fromUser = getUserById(offer.fromUserId)
+                const listing = getListingById(offer.listingId)
+                if (!fromUser) return null
+                return (
+                  <Link key={offer.id} to={`/offers/${offer.id}`}>
+                    <div className="flex items-center gap-3 border-b border-ink/15 px-1 py-3 text-muted transition-colors hover:bg-paper">
+                      <Avatar name={fromUser.displayName} userId={fromUser.id} size="sm" src={fromUser.avatarUrl} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-ink truncate">{fromUser.displayName}: {listing?.title}</p>
+                      </div>
+                      <OfferStatusBadge offer={offer} userId={currentUser.id} />
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
           )}
         </div>
       )}
@@ -181,9 +206,7 @@ export default function DashboardPage() {
                       <p className="text-small text-muted truncate mt-0.5">for {listing?.title || 'their listing'}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={offer.status === 'countered' ? 'gold' : 'teal'}>
-                        {OFFER_STATUS_LABELS[offer.status]}
-                      </Badge>
+                      <OfferStatusBadge offer={offer} userId={currentUser.id} />
                       <ArrowRight className="h-4 w-4 text-muted transition-transform duration-300 ease-out-soft group-hover:translate-x-1 group-hover:text-ink" />
                     </div>
                   </div>
@@ -217,9 +240,7 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-ink truncate">{toUser.displayName}: {listing?.title}</p>
                       </div>
-                      <Badge variant={offer.status === 'declined' ? 'clay' : 'closed'}>
-                        {OFFER_STATUS_LABELS[offer.status]}
-                      </Badge>
+                      <OfferStatusBadge offer={offer} userId={currentUser.id} />
                     </div>
                   </Link>
                 )
