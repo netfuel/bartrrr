@@ -21,6 +21,19 @@ Set up October 2026. No secrets here: keys live in the dashboards named.
 | Transactional email | Supabase Send Email hook → `bartrrr-mail` Worker → Cloudflare Email Service, from `no-reply@bartrrr.app` | Live (200/day account quota) |
 | www → apex redirect | Redirect Rule "www to bartrrr.app": `https://www.*` → `https://${1}`, 301, query string kept | Live |
 
+## Public demo (demo.bartrrr.app)
+
+A second Worker, `bartrrr-demo`, serves an offline demo: sample neighbors, listings, offers and agreements, no login, no backend. It is Git-connected to `netfuel/bartrrr` `main` like production, so it rebuilds on every push.
+
+| Setting | Value |
+|---|---|
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy -c wrangler.demo.jsonc` |
+| Build variables | `VITE_DEMO_MODE=true`, `VITE_SITE_URL=https://demo.bartrrr.app` (no Supabase variables) |
+| Domain | Custom Domain `demo.bartrrr.app` (takes precedence over production's `*.bartrrr.app/*` route) |
+
+With demo mode on and no Supabase variables, any app route signs the visitor in as the first sample neighbor, `/auth/signup` goes straight to the dashboard, and `/auth/login` becomes a "switch neighbor" picker. A banner on every app screen says it's sample data. Nothing is saved: changes live in memory and reset on reload (only the chosen neighbor persists). Demo builds are noindex with a disallow-all `robots.txt` and no sitemap. Sample data lives in `src/data/`.
+
 ## 1. Supabase project
 
 1. Create a project at supabase.com (region near Memphis: East US, `us-east-2` or `us-east-1`).

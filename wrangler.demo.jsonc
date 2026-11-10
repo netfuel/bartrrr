@@ -1,0 +1,20 @@
+// Public demo at https://demo.bartrrr.app: a separate Worker from production.
+// Built with VITE_DEMO_MODE=true and no Supabase variables, so it runs fully
+// offline on sample data and visitors skip login. Production (`bartrrr`)
+// does not read this file.
+//
+// Cloudflare Workers Builds settings for the `bartrrr-demo` Worker:
+//   Build command:  npm run build
+//   Deploy command: npx wrangler deploy -c wrangler.demo.jsonc
+//   Build variables: VITE_DEMO_MODE=true, VITE_SITE_URL=https://demo.bartrrr.app
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bartrrr-demo",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [{ "pattern": "demo.bartrrr.app", "custom_domain": true }],
+  "workers_dev": true
+}

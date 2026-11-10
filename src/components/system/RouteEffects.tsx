@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { SITE_URL } from '@/lib/env'
+import { DEMO_MODE, SITE_URL } from '@/lib/env'
 import { clearChunkReloadFlag } from './chunk-reload'
 
 /** Only these are worth indexing; app screens are behind login. */
@@ -37,7 +37,7 @@ export function RouteEffects() {
       const m = document.createElement('meta')
       m.name = 'robots'
       return m
-    }, 'content', INDEXABLE.has(pathname) ? 'index, follow' : 'noindex, follow')
+    }, 'content', !DEMO_MODE && INDEXABLE.has(pathname) ? 'index, follow' : 'noindex, follow')
 
     clearChunkReloadFlag()
 
