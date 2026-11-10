@@ -30,7 +30,9 @@ A second Worker, `bartrrr-demo`, serves an offline demo: sample neighbors, listi
 | Build command | `npm run build` |
 | Deploy command | `npx wrangler deploy -c wrangler.demo.jsonc` |
 | Build variables | `VITE_DEMO_MODE=true`, `VITE_SITE_URL=https://demo.bartrrr.app` (no Supabase variables) |
-| Domain | Custom Domain `demo.bartrrr.app` (takes precedence over production's `*.bartrrr.app/*` route) |
+| Domain | Custom Domain `demo.bartrrr.app`, plus zone route `demo.bartrrr.app/*` → `bartrrr-demo`. The route is required: without it production's `*.bartrrr.app/*` route answers for the demo hostname. |
+| Branch | `demo-site` until PR #2 merges, then switch Settings → Builds → Production branch to `main` |
+| Build token | `bartrrr-demo build token` |
 
 With demo mode on and no Supabase variables, any app route signs the visitor in as the first sample neighbor, `/auth/signup` goes straight to the dashboard, and `/auth/login` becomes a "switch neighbor" picker. A banner on every app screen says it's sample data. Nothing is saved: changes live in memory and reset on reload (only the chosen neighbor persists). Demo builds are noindex with a disallow-all `robots.txt` and no sitemap. Sample data lives in `src/data/`.
 
