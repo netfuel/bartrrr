@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Star, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -7,11 +7,17 @@ import { Badge, Avatar, Button } from '@/components/ui'
 import type { Listing, UserProfile } from '@/types'
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/types'
 import { useAuth } from '@/providers/AuthProvider'
+import { listingStatus } from '@/lib/listings'
 
 export interface TradeCardProps {
   listing: Listing
   user: UserProfile
+  /** Shown as an Offer button, but never on your own or a closed listing */
   onOffer?: () => void
+  /** Replaces the Offer button (e.g. Relist on your dashboard) */
+  action?: ReactNode
+  /** Overrides the "No longer available" label on a closed listing */
+  statusLabel?: string
   className?: string
 }
 
@@ -19,11 +25,18 @@ function TradeCardInner({
   listing,
   user,
   onOffer,
+  action,
+  statusLabel,
   className,
 }: TradeCardProps) {
   const { currentUser } = useAuth()
+  const isOwn = currentUser?.id === listing.userId
+  // Past its 30 days reads as closed even before the server's sweep reaches us
+  const status = listingStatus(listing)
+  const isClosed = status === 'closed'
   const isPerfectMatch =
-    currentUser?.interests?.includes(listing.category) ?? false
+    !isOwn && !isClosed && (currentUser?.interests?.includes(listing.category) ?? false)
+  const canOffer = Boolean(onOffer) && !isOwn && status === 'active'
 
   return (
     <article
@@ -41,7 +54,10 @@ function TradeCardInner({
               alt=""
               loading="lazy"
               decoding="async"
-              className="photo-warm w-full h-full object-cover transition-transform duration-[1200ms] ease-out-soft group-hover/card:scale-[1.04]"
+              className={cn(
+                'photo-warm w-full h-full object-cover transition-transform duration-[1200ms] ease-out-soft group-hover/card:scale-[1.04]',
+                isClosed && 'opacity-60',
+              )}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted/60">
@@ -54,6 +70,11 @@ function TradeCardInner({
             {CATEGORY_LABELS[listing.category]}
           </Badge>
         </div>
+        {isClosed && (
+          <div className="absolute top-3 right-3">
+            <Badge variant="closed">{statusLabel ?? 'No longer available'}</Badge>
+          </div>
+        )}
         {isPerfectMatch && (
           <div className="absolute top-3 right-3">
             <span className="inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-[5px] text-label leading-none text-cream">
@@ -114,11 +135,11 @@ function TradeCardInner({
               {user.reputationScore.toFixed(1)}
             </span>
           </Link>
-          {onOffer && (
+          {action ?? (canOffer && (
             <Button variant="primary" size="sm" onClick={onOffer} className="shrink-0" aria-label={`Make an offer on ${listing.title}`}>
               Offer
             </Button>
-          )}
+          ))}
         </div>
       </div>
     </article>

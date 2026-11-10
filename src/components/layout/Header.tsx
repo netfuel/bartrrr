@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Search, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUnreadCount } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { NotificationDropdown } from './NotificationDropdown'
-import { Wordmark } from '@/components/ui'
+import { Avatar, Wordmark } from '@/components/ui'
 
 export interface HeaderProps {
   className?: string
@@ -83,6 +83,26 @@ export function Header({ className }: HeaderProps) {
           <NotificationDropdown onClose={() => setShowNotifications(false)} />
         )}
       </div>
+
+      {/* Phones: your profile, with Edit profile and Log out on it. The
+          desktop sidebar has the same account corner at its foot. */}
+      <NavLink
+        to="/profile/me"
+        aria-label="Your profile"
+        className={({ isActive }) =>
+          cn(
+            'pressable lg:hidden -ml-1 sm:-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors',
+            isActive ? 'bg-ink' : 'hover:bg-sand-light',
+          )
+        }
+      >
+        <Avatar
+          name={currentUser?.displayName || 'Neighbor'}
+          userId={currentUser?.id || ''}
+          src={currentUser?.avatarUrl}
+          size="md"
+        />
+      </NavLink>
     </header>
   )
 }

@@ -54,7 +54,10 @@ export function RouteEffects() {
       if (!target) return
       if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
       target.focus({ preventScroll: true })
-      window.scrollTo(0, 0)
+      // A link to a section (/dashboard#closed-listings) lands on it, not the top
+      const anchor = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null
+      if (anchor) anchor.scrollIntoView({ block: 'start' })
+      else window.scrollTo(0, 0)
     })
     return () => cancelAnimationFrame(raf)
   }, [pathname])

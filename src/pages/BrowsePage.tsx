@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Map, List, SlidersHorizontal } from 'lucide-react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Map, List, Rss, SlidersHorizontal } from 'lucide-react'
 import { cn, usePageTitle } from '@/lib/utils'
 import { Chip, EmptyState, Skeleton } from '@/components/ui'
 import { lazy, Suspense } from 'react'
@@ -11,6 +11,7 @@ const ListingsMap = lazy(() =>
 )
 import { useListingsStore, useUsersStore } from '@/stores'
 import { useMediaQuery } from '@/lib/utils/use-media-query'
+import { isListingLive } from '@/lib/listings'
 import type { Category } from '@/types'
 import { CATEGORY_LABELS } from '@/types'
 
@@ -52,7 +53,7 @@ export default function BrowsePage() {
   const listings = useListingsStore((s) => s.listings)
   const getUserById = useUsersStore((s) => s.getUserById)
 
-  const hasActiveListings = listings.some((l) => l.status === 'active')
+  const hasActiveListings = listings.some((l) => isListingLive(l))
   const isFiltered = Boolean(searchQuery || maxDistance || selectedCategory)
   const clearFilters = () => {
     setSelectedCategory(null)
@@ -61,7 +62,7 @@ export default function BrowsePage() {
   }
 
   const filteredListings = listings
-    .filter((l) => l.status === 'active')
+    .filter((l) => isListingLive(l)) // past its 30 days drops out before the server closes it
     .filter((l) => !searchQuery || matchesSearch(l, searchQuery))
     .filter((l) => !maxDistance || (l.distanceMi !== undefined && l.distanceMi <= maxDistance))
     .filter((l) => !selectedCategory || l.category === selectedCategory)
@@ -90,6 +91,14 @@ export default function BrowsePage() {
           >
             <Map className="h-4 w-4" />
           </button>
+          {/* Phones: the feed is the third way to look around (the sidebar has it on desktop) */}
+          <Link
+            to="/feed"
+            aria-label="Neighborhood feed"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-300 hover:bg-sand-light"
+          >
+            <Rss className="h-4 w-4" />
+          </Link>
         </div>
 
         <span aria-hidden="true" className="h-6 w-px shrink-0 bg-ink/20 lg:hidden" />

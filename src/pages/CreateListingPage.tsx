@@ -9,6 +9,7 @@ import { useAuth } from '@/providers/AuthProvider'
 import { neighborhoodCenter } from '@/data/neighborhoods'
 import { PhotoPicker } from '@/components/listings/PhotoPicker'
 import { deleteListingPhotos } from '@/lib/photos'
+import { categoryTakesCondition } from '@/lib/listings'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
 const conditions = (Object.keys(CONDITION_LABELS) as ListingCondition[]).map((value) => ({
@@ -63,7 +64,7 @@ export default function CreateListingPage() {
       title,
       description,
       category: category!,
-      condition: condition || undefined,
+      condition: (categoryTakesCondition(category) && condition) || undefined,
       seeking,
       images,
       userId: currentUser.id,
@@ -138,11 +139,15 @@ export default function CreateListingPage() {
               <p id="category-label" className="text-label text-ink-2 mb-2.5">Category</p>
               <div role="group" aria-labelledby="category-label" className="flex flex-wrap gap-2">
                 {categories.map((cat) => (
-                  <Chip key={cat} label={CATEGORY_LABELS[cat]} selected={category === cat} onToggle={() => setCategory(cat)} />
+                  <Chip key={cat} label={CATEGORY_LABELS[cat]} selected={category === cat} onToggle={() => {
+                    setCategory(cat)
+                    // A hidden condition must not ride along to services or skills
+                    if (!categoryTakesCondition(cat)) setCondition(null)
+                  }} />
                 ))}
               </div>
             </div>
-            {(category === 'goods' || category === 'outdoor') && (
+            {categoryTakesCondition(category) && (
               <div>
                 <p id="condition-label" className="text-label text-ink-2 mb-2.5">Condition (optional)</p>
                 <div role="group" aria-labelledby="condition-label" className="flex flex-wrap gap-2">

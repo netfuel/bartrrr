@@ -1,7 +1,8 @@
-import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { defineConfig, loadEnv, searchForWorkspaceRoot, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import { createRequire } from 'module'
 
 /** Preconnect to the Supabase project so the first auth/data call is faster. */
 function supabasePreconnect(url: string | undefined): Plugin {
@@ -18,6 +19,13 @@ function supabasePreconnect(url: string | undefined): Plugin {
       ]
     },
   }
+}
+
+/** The node_modules folder packages actually resolve from (may sit above the root). */
+function nodeModulesDir() {
+  const require = createRequire(path.join(process.cwd(), 'package.json'))
+  // maplibre-gl/package.json isn't exported; its CSS is, and sits in dist/
+  return path.resolve(path.dirname(require.resolve('maplibre-gl/dist/maplibre-gl.css')), '../..')
 }
 
 export default defineConfig(({ mode }) => {
@@ -56,10 +64,19 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      fs: {
+        // Agent worktrees (.claude/worktrees/*) resolve packages from the main
+        // checkout's node_modules, outside the worktree root. Without this,
+        // Vite refuses those files, and the map's `?url` worker import comes
+        // back as the raw worker module instead of its URL (T-64).
+        allow: [searchForWorkspaceRoot(process.cwd()), nodeModulesDir()],
+      },
       watch: {
         // Agent worktrees and archives live inside the repo; watching them
         // makes dev-server startup and HMR crawl.
-        ignored: ['**/.claude/**', '**/_archive/**'],
+        // Anchored to this checkout: a bare '**/.claude/**' also matched every
+        // file when the dev server runs inside a worktree, so edits never reloaded.
+        ignored: [`${path.join(__dirname, '.claude')}/**`, `${path.join(__dirname, '_archive')}/**`],
       },
     },
   }

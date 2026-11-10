@@ -9,6 +9,7 @@ import { CATEGORY_LABELS, CONDITION_LABELS } from '@/types'
 import { usePageTitle } from '@/lib/utils'
 import { PhotoPicker } from '@/components/listings/PhotoPicker'
 import { deleteListingPhotos } from '@/lib/photos'
+import { categoryTakesCondition } from '@/lib/listings'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
 const conditions: ListingCondition[] = ['new', 'like_new', 'good', 'fair']
@@ -57,7 +58,7 @@ export default function EditListingPage() {
       title,
       description,
       category: category!,
-      condition: condition || undefined,
+      condition: (categoryTakesCondition(category) && condition) || undefined,
       seeking,
       images,
     })
@@ -118,13 +119,17 @@ export default function EditListingPage() {
                 key={cat}
                 label={CATEGORY_LABELS[cat]}
                 selected={category === cat}
-                onToggle={() => setCategory(cat)}
+                onToggle={() => {
+                  setCategory(cat)
+                  // A hidden condition must not ride along to services or skills
+                  if (!categoryTakesCondition(cat)) setCondition(null)
+                }}
               />
             ))}
           </div>
         </div>
 
-        {(category === 'goods' || category === 'outdoor') && (
+        {categoryTakesCondition(category) && (
           <div>
             <p id="edit-condition-label" className="text-label text-ink-2 mb-2.5">Condition (optional)</p>
             <div role="group" aria-labelledby="edit-condition-label" className="flex flex-wrap gap-2">

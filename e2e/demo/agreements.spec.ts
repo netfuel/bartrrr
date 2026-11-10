@@ -418,7 +418,6 @@ test.describe('Agreements list', () => {
   })
 
   test('the agreements list is reachable from the main navigation', async ({ page }, testInfo) => {
-    test.fail(testInfo.project.name === 'mobile', 'BUG: on phones the bottom bar has no Agreements (or Dashboard) entry, so the agreements list is unreachable from navigation')
     await start(page, 'Jamie', '/offers')
     const nav = page.locator('[aria-label="Main navigation"]:visible') // <aside> on desktop, <nav> on phones
     const link = nav.getByRole('link', { name: /Agreements/ })
