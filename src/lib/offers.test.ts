@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DECLINE_REASON_LABELS, type Offer, type OfferMessage } from '@/types'
-import { declineContent, declineSummary, isOpenOffer, lastMove, messagePreview, parseDecline, whoseMove } from './offers'
+import { declineContent, declinePayload, declineSummary, isOpenOffer, lastMove, messagePreview, parseDecline, whoseMove } from './offers'
 
 let n = 0
 const msg = (fromUserId: string, type: OfferMessage['type'], content = 'x'): OfferMessage => ({
@@ -85,5 +85,51 @@ describe('declines', () => {
     expect(declineSummary('Too low')).toBe('Too low')
     expect(messagePreview({ type: 'decline', content: 'not_fair' })).toBe(`Declined: ${label}`)
     expect(messagePreview({ type: 'message', content: 'not_fair' })).toBe('not_fair')
+  })
+})
+
+describe('decline reason codes (migration 014, T-67)', () => {
+  const label = DECLINE_REASON_LABELS.not_fair
+
+  it('sends the code, and the note or the code as content', () => {
+    expect(declinePayload('not_fair', '  Too low  ')).toEqual({ reason: 'not_fair', content: 'Too low' })
+    expect(declinePayload('not_fair', '   ')).toEqual({ reason: 'not_fair', content: 'not_fair' })
+    expect(declinePayload('not_fair')).toEqual({ reason: 'not_fair', content: 'not_fair' })
+  })
+
+  it('round-trips every reason through the new shape, with and without a note', () => {
+    for (const key of Object.keys(DECLINE_REASON_LABELS) as (keyof typeof DECLINE_REASON_LABELS)[]) {
+      const bare = declinePayload(key)
+      expect(parseDecline(bare.content, bare.reason)).toEqual({ reason: key })
+      const noted = declinePayload(key, 'A note. With dots.')
+      expect(parseDecline(noted.content, noted.reason)).toEqual({ reason: key, note: 'A note. With dots.' })
+    }
+  })
+
+  it('a note that happens to read like another reason stays a note under its code', () => {
+    const other = DECLINE_REASON_LABELS.not_interested
+    expect(parseDecline(other, 'not_fair')).toEqual({ reason: 'not_fair', note: other })
+  })
+
+  it('reads old rows the 014 backfill gave a code (content left as written)', () => {
+    expect(parseDecline(declineContent('not_fair', 'Too low'), 'not_fair')).toEqual({ reason: 'not_fair', note: 'Too low' })
+    expect(parseDecline(label, 'not_fair')).toEqual({ reason: 'not_fair' })
+    expect(parseDecline('not_fair', 'not_fair')).toEqual({ reason: 'not_fair' })
+  })
+
+  it('without a code (database before 014, note-only decline) reads content as before', () => {
+    expect(parseDecline(declineContent('not_fair', 'Too low'), null)).toEqual({ reason: 'not_fair', note: 'Too low' })
+    expect(parseDecline('Too low', undefined)).toEqual({ note: 'Too low' })
+  })
+
+  it('ignores a code the app doesn\'t know', () => {
+    expect(parseDecline('Too low', 'rude')).toEqual({ note: 'Too low' })
+    expect(parseDecline('Too low', 'toString')).toEqual({ note: 'Too low' })
+  })
+
+  it('previews use the code', () => {
+    expect(declineSummary('Too low', 'not_fair')).toBe(`Declined: ${label}. Too low`)
+    expect(messagePreview({ type: 'decline', content: 'Too low', declineReason: 'not_fair' })).toBe(`Declined: ${label}. Too low`)
+    expect(messagePreview({ type: 'decline', content: 'not_fair', declineReason: 'not_fair' })).toBe(`Declined: ${label}`)
   })
 })

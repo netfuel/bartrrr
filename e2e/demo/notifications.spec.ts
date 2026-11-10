@@ -55,6 +55,15 @@ async function expectStyle(page: Page, who: keyof typeof USER_IDS) {
   }
 }
 
+/** Types of this neighbor's notifications with a given title. */
+async function typesOf(page: Page, who: keyof typeof USER_IDS, title: string): Promise<string[]> {
+  return withStores(page, (s, [id, t]) =>
+    s.useNotificationsStore.getState().notifications
+      .filter((n: Loose) => n.userId === id && n.title === t)
+      .map((n: Loose) => n.type as string),
+  [USER_IDS[who], title] as const)
+}
+
 async function makeOffer(page: Page, listingPath: string, item: string) {
   await go(page, listingPath)
   await page.getByRole('button', { name: 'Make an offer', exact: true }).click()
@@ -155,6 +164,8 @@ test.describe('N-01 notifications', () => {
     await checkAndFollow(page, 'Offer withdrawn', 'Sam Nguyen withdrew their offer on your Vintage Record Player.', /\/offers\/offer-001$/)
     await expect(page.locator('main [role="status"]')).toContainText('Sam withdrew this offer.')
     await expectStyle(page, 'Jamie')
+    // T-04: its own type, not offer_declined
+    expect(await typesOf(page, 'Jamie', 'Offer withdrawn')).toEqual(['offer_withdrawn'])
   })
 
   test('agreement notifications: wording and links', async ({ page }) => {
@@ -210,6 +221,9 @@ test.describe('N-01 notifications', () => {
     await go(page, '/dashboard')
     await checkAndFollow(page, 'Trade canceled', 'Jamie canceled your trade agreement. Message them if you want to try again.', /\/agreements\/agreement-001$/)
     await expectStyle(page, 'Dave')
+    // T-04: their own types, not agreement_ready
+    expect(await typesOf(page, 'Dave', 'Trade canceled')).toEqual(['trade_canceled'])
+    expect(await typesOf(page, 'Dave', 'Trade flagged for review')).toEqual(['trade_flagged'])
   })
 
   test('a match notification links to the new listing', async ({ page }) => {

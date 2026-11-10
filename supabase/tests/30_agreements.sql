@@ -4,6 +4,7 @@
 --   G-02 signing               G-06 cancel and late cancellations
 --   G-03 edits clear signatures G-07 flag for review
 --   G-04 outsiders             G-08 notifications, operator paths, DEPLOY.md query
+--   G-09 signature times (PRD 5.7, migration 014)
 
 select tests.as('trusted');
 insert into public.listings (id, title, description, category, seeking, user_id, neighborhood)
@@ -132,13 +133,64 @@ select tests.err('G-07', 'disputed completed → completed again', $$update publ
 -- ─── Notifications for the other neighbor ───────────────────────────────────
 select tests.as('ann');
 select tests.check('G-08', 'Ann told Bob changed details', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t1' and title = 'Trade details changed' and body like 'Bob %'));
-select tests.check('G-08', 'Ann told Bob canceled t2', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t2' and title = 'Trade canceled' and body like 'Bob canceled%'));
-select tests.check('G-08', 'Ann told Bob flagged t5 with reason', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t5' and title = 'Trade flagged for review' and body like '%Mixer missing a part%'));
+select tests.check('G-08', 'Ann told Bob canceled t2', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t2' and type = 'trade_canceled' and title = 'Trade canceled' and body like 'Bob canceled%'));
+select tests.check('G-08', 'Ann told Bob flagged t5 with reason', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t5' and type = 'trade_flagged' and title = 'Trade flagged for review' and body like '%Mixer missing a part%'));
 select tests.check('G-08', 'Ann not notified of her own cancel', not exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t1' and title = 'Trade canceled'));
 select tests.as('bob');
-select tests.check('G-08', 'Bob told Ann canceled t1', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t1' and title = 'Trade canceled' and body like 'Ann canceled%'));
-select tests.check('G-08', 'Bob told Ann flagged t4', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t4' and title = 'Trade flagged for review'));
+select tests.check('G-08', 'Bob told Ann canceled t1', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t1' and type = 'trade_canceled' and title = 'Trade canceled' and body like 'Ann canceled%'));
+select tests.check('G-08', 'Bob told Ann flagged t4', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t4' and type = 'trade_flagged' and title = 'Trade flagged for review'));
 select tests.check('G-08', 'Bob told both signed on t4', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t4' and title = 'You''re both signed: time to swap'));
+
+-- ─── G-09 signature times (PRD 5.7, migration 014) ──────────────────────────
+-- party_a_signed_at / party_b_signed_at: stamped when a signature is given,
+-- cleared when it's cleared, never taken from the client.
+select tests.as('trusted');
+insert into public.listings (id, title, description, category, seeking, user_id, neighborhood)
+values ('listing-t7', 'Thing 7', 'desc', 'goods', 'anything', 'bbbbbbbb-0000-0000-0000-000000000002', 'Midtown');
+select tests.as('ann');
+select public.make_offer('offer-t7', 'listing-t7', 'msg-t7', 'Swap?', array['Item 7']);
+select tests.as('bob');
+select public.respond_to_offer('offer-t7', 'accept', 'msg-ta7', 'Deal', '{}');
+select tests.check('G-09', 'a new agreement has no signature times',
+  (select party_a_signed_at is null and party_b_signed_at is null from public.agreements where id = 'agreement-offer-t7'));
+select tests.as('ann');
+update public.agreements set exchange_method = 'in_person', exchange_date = tests.iso(now() + interval '3 days'),
+       exchange_location = 'Cossitt Library' where id = 'agreement-offer-t7';
+select tests.ok('G-09', 'Ann signs and tries to backdate her signature time',
+  $$update public.agreements set party_a_signed = true, party_a_signed_at = '2020-01-01' where id = 'agreement-offer-t7'$$);
+select tests.check('G-09', 'Ann''s signature time is the server''s now(), not hers; Bob''s still empty',
+  (select tests.near(party_a_signed_at, now()) and party_b_signed_at is null from public.agreements where id = 'agreement-offer-t7'),
+  (select coalesce(party_a_signed_at::text, 'null') from public.agreements where id = 'agreement-offer-t7'));
+select tests.ok('G-09', 'Ann can''t set Bob''s signature time either',
+  $$update public.agreements set party_b_signed_at = now() where id = 'agreement-offer-t7'$$);
+select tests.check('G-09', 'Bob''s signature time is still empty',
+  (select party_b_signed_at is null from public.agreements where id = 'agreement-offer-t7'));
+create temp table g09 as select party_a_signed_at as a_at from public.agreements where id = 'agreement-offer-t7';
+select tests.ok('G-09', 'an unrelated update (notes) keeps Ann''s time',
+  $$update public.agreements set party_a_signed_at = null where id = 'agreement-offer-t7'$$);
+select tests.check('G-09', 'Ann''s time unchanged',
+  (select a.party_a_signed_at = g.a_at from public.agreements a, g09 g where a.id = 'agreement-offer-t7'));
+
+select tests.as('bob');
+select tests.ok('G-09', 'Bob changes the place after Ann signed', $$update public.agreements set exchange_location = 'Overton Park' where id = 'agreement-offer-t7'$$);
+select tests.check('G-09', 'clearing the signature clears its time',
+  (select not party_a_signed and party_a_signed_at is null from public.agreements where id = 'agreement-offer-t7'));
+select pg_sleep(0.01);
+select tests.ok('G-09', 'Bob signs', $$update public.agreements set party_b_signed = true where id = 'agreement-offer-t7'$$);
+select tests.as('ann');
+select tests.ok('G-09', 'Ann signs again', $$update public.agreements set party_a_signed = true where id = 'agreement-offer-t7'$$);
+select tests.check('G-09', 'both times set, Ann''s is the new signature, after Bob''s; agreement active',
+  (select a.status = 'active' and a.party_b_signed_at is not null and a.party_a_signed_at > g.a_at
+          and a.party_a_signed_at >= a.party_b_signed_at
+     from public.agreements a, g09 g where a.id = 'agreement-offer-t7'));
+-- (not completed here: G-08 counts trades)
+select tests.check('G-09', 'neighbors can read the times (the agreement record shows them)',
+  (select count(*) = 1 from public.agreements where id = 'agreement-offer-t7' and party_a_signed_at is not null));
+select tests.as('trusted');
+select tests.ok('G-09', 'an operator can correct a signature time from the SQL editor',
+  $$update public.agreements set party_b_signed_at = '2026-11-01 12:00:00+00' where id = 'agreement-offer-t7'$$);
+select tests.check('G-09', 'the correction is kept',
+  (select party_b_signed_at = '2026-11-01 12:00:00+00'::timestamptz from public.agreements where id = 'agreement-offer-t7'));
 
 -- ─── Trusted context: operator / delete_account ─────────────────────────────
 select tests.as('trusted');
@@ -150,7 +202,7 @@ select tests.ok('G-08', 'delete_account(Cat) is unaffected', $$select public.del
 select tests.ok('G-08', 'delete_account(Bob) cancels open agreements', $$select public.delete_account('bbbbbbbb-0000-0000-0000-000000000002')$$);
 select tests.check('G-08', 't4 and t6 cancelled with cancelled_at, not late',
   (select bool_and(status = 'cancelled' and cancelled_at is not null and not cancelled_late) from public.agreements where id in ('agreement-offer-t4', 'agreement-offer-t6')));
-select tests.check('G-08', 'Ann notified of the system cancel', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t6' and user_id = tests.uid('ann') and title = 'Trade canceled'));
+select tests.check('G-08', 'Ann notified of the system cancel', exists (select 1 from public.notifications where agreement_id = 'agreement-offer-t6' and user_id = tests.uid('ann') and type = 'trade_canceled' and title = 'Trade canceled'));
 
 -- Operator query from DEPLOY.md ("Flagged trades")
 select tests.check('G-08', 'DEPLOY.md flagged-trades query lists t5 with who flagged it and why',

@@ -203,6 +203,27 @@ describe('sign and complete', () => {
     expect(get().status).toBe('active')
   })
 
+  it('signing records a time; editing the details clears both (PRD 5.7, migration 014)', () => {
+    useAgreementsStore.setState({
+      agreements: [agreement({ status: 'pending_signatures', partyB: { userId: 'b', item: 'G', signed: false } })],
+    })
+    vi.mocked(svc.signAgreement).mockReturnValue(new Promise(() => {}))
+    useAgreementsStore.getState().signAgreement('agreement-offer-1', 'b')
+    expect(get().partyB.signedAt).toEqual(expect.stringMatching(/^\d{4}-\d\d-\d\dT/))
+    expect(get().partyA.signedAt).toBeUndefined()
+
+    useAgreementsStore.setState({
+      agreements: [agreement({
+        status: 'pending_signatures',
+        partyA: { userId: 'a', item: 'Bike', signed: true, signedAt: '2026-11-01T12:00:00.000Z' },
+        partyB: { userId: 'b', item: 'G', signed: false },
+      })],
+    })
+    vi.mocked(svc.updateExchangeDetails).mockReturnValue(new Promise(() => {}))
+    useAgreementsStore.getState().updateExchangeDetails('agreement-offer-1', 'b', { exchangeLocation: 'Porch' })
+    expect(get().partyA).toMatchObject({ signed: false, signedAt: undefined })
+  })
+
   it.each([
     ['canceled', { status: 'cancelled' as const }, 'b'],
     ['flagged', { status: 'disputed' as const }, 'b'],

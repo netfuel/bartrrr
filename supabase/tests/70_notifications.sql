@@ -81,10 +81,14 @@ select tests.check('P-06', 'tradeCompletions off: no new-review notification',
 select tests.as('trusted');
 insert into public.listings (id, title, description, category, seeking, user_id, neighborhood) values
   ('LA2', 'Bread pan', 'd', 'goods', 'help', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young'),
-  ('LA3', 'Cake stand', 'd', 'goods', 'help', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young');
+  ('LA3', 'Cake stand', 'd', 'goods', 'help', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young'),
+  ('LA4', 'Pie tin', 'd', 'goods', 'help', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young');
 select tests.as('bob');
 select public.make_offer('o-ba2', 'LA2', 'm-ba2', 'Blower for the pan?', array['Leaf blower']);
 select public.make_offer('o-ba3', 'LA3', 'm-ba3', 'Blower for the stand?', array['Leaf blower']);
+select tests.as('ann');
+select public.make_offer('o-ab4', 'LB', 'm-ab4', 'Pie tin for the blower?', array['Pie tin']);
+select public.respond_to_offer('o-ab4', 'withdraw', null, null, '{}');
 select tests.as('ann');
 select public.respond_to_offer('o-ba3', 'decline', 'm-ba3-d', 'not_fair', '{}');
 select public.respond_to_offer('o-ba2', 'accept', 'm-ba2-a', 'Deal', '{}');
@@ -96,9 +100,27 @@ select tests.as('bob');
 select tests.check('P-06', 'everything off: accepted and declined offers are still announced (no setting for them)',
   exists (select 1 from public.notifications where offer_id = 'o-ba2' and type = 'offer_accepted')
   and exists (select 1 from public.notifications where offer_id = 'o-ba3' and type = 'offer_declined'));
-select tests.check('P-06', 'everything off: "Trade canceled" is never skipped',
-  exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba2' and title = 'Trade canceled'));
-select tests.check('P-06', 'everything off: "Trade flagged for review" is never skipped',
-  exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba' and title = 'Trade flagged for review'));
+select tests.check('P-06', 'everything off: "Trade canceled" is never skipped (type trade_canceled, T-04)',
+  exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba2' and type = 'trade_canceled' and title = 'Trade canceled'));
+select tests.check('P-06', 'everything off: "Trade flagged for review" is never skipped (type trade_flagged, T-04)',
+  exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba' and type = 'trade_flagged' and title = 'Trade flagged for review'));
+select tests.check('P-06', 'everything off: "Offer withdrawn" is still sent (type offer_withdrawn, no setting, T-04)',
+  exists (select 1 from public.notifications where offer_id = 'o-ab4' and type = 'offer_withdrawn' and title = 'Offer withdrawn'));
+select tests.check('P-06', 'T-04 cancel, flag and withdraw no longer borrow agreement_ready / offer_declined',
+  not exists (select 1 from public.notifications
+               where (type = 'agreement_ready' and title in ('Trade canceled', 'Trade flagged for review'))
+                  or (type = 'offer_declined' and title = 'Offer withdrawn')));
+select tests.as('trusted');
+select tests.check('P-06', 'T-04 the three new types have no setting (notification_pref_key is null)',
+  public.notification_pref_key('trade_canceled') is null
+  and public.notification_pref_key('trade_flagged') is null
+  and public.notification_pref_key('offer_withdrawn') is null
+  and public.notification_pref_key('agreement_ready') = 'agreementUpdates');
+select tests.ok('P-06', 'T-04 notify_always() still sends trade_canceled to a neighbor with agreementUpdates off',
+  $$select public.notify_always('bbbbbbbb-0000-0000-0000-000000000002', 'trade_canceled', 'Trade canceled', 'x', '{}')$$);
+select tests.err('P-06', 'T-04 the type constraint still refuses unknown types',
+  $$insert into public.notifications (user_id, type, title, body) values ('bbbbbbbb-0000-0000-0000-000000000002', 'trade_cancelled', 't', 'b')$$,
+  'notifications_type_check');
+select tests.as('bob');
 select tests.check('P-06', 'notifications record who caused them (data.actorId), for account deletion',
   (select data->>'actorId' = tests.uid('ann') from public.notifications where offer_id = 'o-ba3' and type = 'offer_declined'));

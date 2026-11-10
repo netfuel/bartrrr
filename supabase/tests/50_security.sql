@@ -198,7 +198,7 @@ select tests.as('trusted');
 create table tests.rpc_rules (fn text primary key, why text);
 insert into tests.rpc_rules values
   ('make_offer(text,text,text,text,text[])', 'acts as the caller; checked below'),
-  ('respond_to_offer(text,text,text,text,text[])', 'acts as the caller under RLS; checked below'),
+  ('respond_to_offer(text,text,text,text,text[],text)', 'acts as the caller under RLS; checked below (p_reason added in 014)'),
   ('delete_my_account()', 'only ever deletes the caller (40_deletion.sql X-02/X-03)'),
   ('my_notification_prefs()', 'returns only the caller''s own settings; checked below'),
   ('agreement_exchange_at(text)', 'parses a string; reads no table');
