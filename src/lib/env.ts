@@ -19,6 +19,12 @@ export const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://bartrrr.app')
 
 export const HAS_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 
+/**
+ * Public demo (demo.bartrrr.app): demo mode with no backend. Visitors skip
+ * login and land as a sample neighbor; everything stays in memory.
+ */
+export const OFFLINE_DEMO = DEMO_MODE && !HAS_SUPABASE
+
 /** Env vars the app can't run without (outside demo mode). */
 export const MISSING_REQUIRED_ENV: string[] = DEMO_MODE
   ? []

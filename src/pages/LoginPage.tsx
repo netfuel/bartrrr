@@ -4,7 +4,7 @@ import { Button, Input, AuthDivider } from '@/components/ui'
 import { AuthShell } from '@/components/layout'
 import { LegalConsent, OAuthButtons } from '@/components/auth'
 import { useAuth } from '@/providers/AuthProvider'
-import { DEMO_MODE, HAS_SUPABASE } from '@/lib/env'
+import { DEMO_MODE, HAS_SUPABASE, OFFLINE_DEMO } from '@/lib/env'
 import {
   DEFAULT_AFTER_LOGIN,
   authPathWithReturn,
@@ -40,7 +40,8 @@ export default function LoginPage() {
     if (awaitingSession && isAuthenticated) navigate(returnTo, { replace: true })
   }, [awaitingSession, isAuthenticated, navigate, returnTo])
 
-  if (isAuthenticated && !awaitingSession && !isLoading) {
+  // The public demo keeps this page open while signed in: it's how visitors switch neighbors
+  if (isAuthenticated && !awaitingSession && !isLoading && !OFFLINE_DEMO) {
     return <Navigate to={returnTo} replace />
   }
 
@@ -64,7 +65,7 @@ export default function LoginPage() {
     <AuthShell image="/photo-editorial.jpg" caption={<>Trade, <em>don't buy.</em></>}>
       {/* Heading */}
       <div className="mb-10 animate-fade-up">
-        <h1 className="text-heading-page text-ink">Welcome back, neighbor.</h1>
+        <h1 className="text-heading-page text-ink">{OFFLINE_DEMO ? 'Pick a neighbor.' : 'Welcome back, neighbor.'}</h1>
       </div>
 
       {HAS_SUPABASE && (
@@ -140,6 +141,7 @@ export default function LoginPage() {
         <p role="alert" className="text-small text-clay-dark">{loginError}</p>
       )}
 
+      {!OFFLINE_DEMO && (
       <div className="mt-10 border-t border-ink/20 pt-6">
         <p className="text-base text-ink-2">
           New to Bartrrr?{' '}
@@ -151,6 +153,7 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+      )}
     </AuthShell>
   )
 }

@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { BottomBar } from './BottomBar'
 import { Header } from './Header'
+import { DemoBanner } from './DemoBanner'
 
 export function PageShell() {
   const location = useLocation()
@@ -10,6 +11,7 @@ export function PageShell() {
     <div className="min-h-screen bg-cream">
       <Sidebar />
       <div className="lg:ml-60">
+        <DemoBanner />
         <Header />
         {/* key on pathname replays the entrance animation on every route change.
             Opacity only: a filling transform animation would turn <main> into

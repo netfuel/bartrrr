@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
+import { OFFLINE_DEMO } from '@/lib/env'
 import { Loader2 } from 'lucide-react'
 import { PageShell, ProtectedRoute } from '@/components/layout'
 import { Toaster } from '@/components/ui'
@@ -52,7 +53,7 @@ export default function App() {
         {/* Public routes (no shell) */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/auth/signup" element={<SignupPage />} />
+        <Route path="/auth/signup" element={OFFLINE_DEMO ? <Navigate to="/dashboard" replace /> : <SignupPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />

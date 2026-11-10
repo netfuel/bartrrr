@@ -10,7 +10,10 @@ import { useGSAP } from '@gsap/react'
 import { cn, usePageTitle } from '@/lib/utils'
 import { buttonStyles, Wordmark } from '@/components/ui'
 import { CATEGORY_LABELS, type Listing } from '@/types'
-import { DEMO_MODE, HAS_SUPABASE } from '@/lib/env'
+import { DEMO_MODE, HAS_SUPABASE, OFFLINE_DEMO } from '@/lib/env'
+
+// Public demo skips sign-up: every "get started" goes straight into the app
+const START_PATH = OFFLINE_DEMO ? '/dashboard' : '/auth/signup'
 import { fetchShowcaseListings } from '@/lib/supabase/supabase-service'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -302,13 +305,13 @@ export default function LandingPage() {
               to="/auth/login"
               className="pressable text-label inline-flex min-h-[40px] items-center rounded-full border border-ink px-4 sm:px-5 hover:bg-ink hover:text-cream transition-colors duration-300"
             >
-              Log in
+              {OFFLINE_DEMO ? 'Pick a neighbor' : 'Log in'}
             </Link>
             <Link
-              to="/auth/signup"
+              to={START_PATH}
               className="pressable text-label inline-flex min-h-[40px] items-center border border-ink bg-ink px-4 sm:px-6 text-cream hover:border-clay-dark hover:bg-clay-dark transition-colors duration-300"
             >
-              Get started
+              {OFFLINE_DEMO ? 'Open the demo' : 'Get started'}
             </Link>
           </div>
         </div>
@@ -358,7 +361,7 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:col-span-5 lg:justify-end">
-            <Link to="/auth/signup" className={buttonStyles({ variant: 'primary', size: 'lg', className: 'text-label w-full px-8 sm:w-auto' })}>
+            <Link to={START_PATH} className={buttonStyles({ variant: 'primary', size: 'lg', className: 'text-label w-full px-8 sm:w-auto' })}>
               Start trading
             </Link>
             <Link to="/browse" className={buttonStyles({ variant: 'outline', size: 'lg', className: 'text-label w-full px-8 sm:w-auto' })}>
@@ -429,7 +432,7 @@ export default function LandingPage() {
           ))}
           {/* End cap */}
           <Link
-            to="/auth/signup"
+            to={START_PATH}
             className="group pressable flex w-[78vw] max-w-[300px] shrink-0 snap-start flex-col items-start justify-between gap-3 border border-ink bg-ink p-6 text-cream transition-colors duration-500 hover:bg-clay-dark sm:w-[300px]"
           >
             <span className="font-display text-[88px] font-light leading-none transition-transform duration-500 ease-out-soft group-hover:translate-x-2">→</span>
@@ -458,7 +461,7 @@ export default function LandingPage() {
             </p>
           </div>
           <Link
-            to="/auth/signup"
+            to={START_PATH}
             className="group pressable flex flex-col items-start justify-between gap-6 border-t border-ink bg-ink p-8 text-cream transition-colors duration-500 hover:bg-clay-dark sm:p-10 lg:col-span-5 lg:border-l lg:border-t-0"
           >
             <span className="font-display text-[88px] font-light leading-none transition-transform duration-500 ease-out-soft group-hover:translate-x-2">→</span>
@@ -662,7 +665,7 @@ export default function LandingPage() {
             <p className="eyebrow mb-8">Memphis neighbors</p>
             <h2 className="text-display mb-14">Ready<br /><em>to swap?</em></h2>
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
-              <Link to="/auth/signup" className={buttonStyles({ variant: 'primary', size: 'lg', className: 'text-label w-full px-10 sm:w-auto' })}>
+              <Link to={START_PATH} className={buttonStyles({ variant: 'primary', size: 'lg', className: 'text-label w-full px-10 sm:w-auto' })}>
                 Get started
               </Link>
               <p className="text-label text-muted">Free to use · No cash, ever</p>
@@ -685,7 +688,7 @@ export default function LandingPage() {
         <Wordmark className="text-[28px]" />
         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
           <Link to="/browse" className="text-label link-underline">Browse</Link>
-          <Link to="/auth/signup" className="text-label link-underline">Sign up</Link>
+          <Link to={START_PATH} className="text-label link-underline">Sign up</Link>
           <Link to="/auth/login" className="text-label link-underline">Log in</Link>
           <Link to="/privacy" className="text-label link-underline">Privacy</Link>
           <Link to="/terms" className="text-label link-underline">Terms</Link>
