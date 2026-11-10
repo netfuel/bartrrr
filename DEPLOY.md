@@ -12,7 +12,7 @@ Set up October 2026. No secrets here: keys live in the dashboards named.
 | Site | Cloudflare Worker `bartrrr`, Git-connected to `netfuel/bartrrr` `main`; every push builds and deploys | Live |
 | Domains | `bartrrr.app`, `www.bartrrr.app`, route `*.bartrrr.app/*`; workers.dev URL `bartrrr.netfuel.workers.dev` | Live |
 | Build variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SITE_URL`, `VITE_AUTH_PROVIDERS=google` | Set |
-| Database + auth | Supabase project `bartrrr`, ref `uykknvmxntknclkyqvao`, East US (Ohio) `us-east-2` | Migrations 001–011 applied (008 photos, 009 agreement actions, 010 self-service deletion, 011 withdrawn notice) |
+| Database + auth | Supabase project `bartrrr`, ref `uykknvmxntknclkyqvao`, East US (Ohio) `us-east-2` | Migrations 001–013 applied (008 photos, 009 agreement actions, 010 self-service deletion, 011 withdrawn notice, 012 regression fixes, 013 deletion re-auth). Push with `npx supabase db push --remote` (current CLI defaults to a local stack) |
 | Offer expiry | `pg_cron` job `bartrrr-expire-offers`, every 15 minutes | Active |
 | Google sign-in | Google Cloud project `bartrrr`, OAuth client "Bartrrr web", app published (External) | Live |
 | Apple sign-in | Not set up; hidden by `VITE_AUTH_PROVIDERS=google` | To do |
@@ -140,7 +140,7 @@ What the repo ships for the Worker's static assets:
 - [x] Migrations 001–007 applied; offer-expiry cron job active
 - [x] Migration 008 applied: Storage shows a public `listing-photos` bucket (2 MB limit, WebP/JPEG); posting a listing with a photo works
 - [ ] Migration 009 applied (`npx supabase db push`): on a test trade, set a time and place, cancel one agreement and flag another; the other neighbor gets a notification each time, and the flagged trade shows up in the query under "Flagged trades"
-- [ ] Migration 011 applied: withdrawing an offer gives the listing owner an "Offer withdrawn" notification
+- [x] Migration 011 applied: withdrawing an offer gives the listing owner an "Offer withdrawn" notification
 - [ ] Migration 010 applied: `delete_my_account()` exists and only `authenticated` can execute it; delete a throwaway account from Settings and check its profile reads "Former neighbor" and its photo folder is gone
 - [ ] Migration 013 applied: deleting asks you to confirm it's you. With a throwaway email account, a wrong password keeps the account; the right one deletes it and its photo folder. With a throwaway Google account, "Confirm with Google" comes back to Settings with the dialog open and "Confirmed with Google."; deleting works. Then check the 10-minute rule: confirm with Google, leave the dialog open for 11 minutes, press Delete account, and see "For your security, confirm it's you with Google again…" with the account still there
 - [ ] Production has no demo data: `supabase/seed.sql` is local-only; no `*@bartrrr.demo` auth users or `listing-0xx` rows (see step 1 if an old 002 was applied)
