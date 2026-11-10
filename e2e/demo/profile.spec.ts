@@ -85,11 +85,25 @@ test.describe('P-01 name and bio', () => {
   test('bio is capped at 500 characters', async ({ page }) => {
     await openSettings(page)
     const bio = page.getByLabel('Bio')
-    await expect(bio).toHaveAttribute('maxlength', '500')
     await bio.fill('a'.repeat(600))
     await expect(bio).toHaveValue('a'.repeat(500))
+    await expect(page.getByText('500 of 500 characters')).toBeVisible()
     await page.getByRole('button', { name: 'Save changes' }).click()
     expect((await me<string>(page, 'u => u.bio')).length).toBe(500)
+  })
+
+  test('T-66: emoji count once, so 500 fit in the bio and 60 in the name', async ({ page }) => {
+    await openSettings(page)
+    const bio = page.getByLabel('Bio')
+    await expect(bio).not.toHaveAttribute('maxlength', /.*/)
+    await bio.fill('🌻'.repeat(520))
+    await expect(bio).toHaveValue('🌻'.repeat(500))
+    const name = page.getByLabel('Display name')
+    await name.fill('🦊'.repeat(60))
+    await expect(name).toHaveValue('🦊'.repeat(60))
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    expect(await me<string>(page, 'u => u.bio')).toBe('🌻'.repeat(500))
+    expect(await me<string>(page, 'u => u.displayName')).toBe('🦊'.repeat(60))
   })
 
   test('the name allows as many characters as sign up does (60)', async ({ page }) => {

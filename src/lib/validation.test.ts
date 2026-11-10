@@ -147,9 +147,15 @@ describe('listingInputSchema', () => {
   it('condition is optional, description may be empty', () => {
     ok(listingInputSchema, { ...valid, condition: undefined, description: '' })
   })
-  it('title is 1 to 120', () => {
-    ok(listingInputSchema, { ...valid, title: 't'.repeat(120) })
-    bad(listingInputSchema, { ...valid, title: 't'.repeat(121) })
+  it('condition may be null to clear it on an edit (T-49)', () => {
+    ok(listingInputSchema.partial(), { condition: null })
+    bad(listingInputSchema.partial(), { condition: 'mint' })
+  })
+  it('title is 1 to 80, the same as the form (T-65)', () => {
+    ok(listingInputSchema, { ...valid, title: 't'.repeat(80) })
+    const long = listingInputSchema.safeParse({ ...valid, title: 't'.repeat(81) })
+    expect(long.success).toBe(false)
+    expect(long.error?.issues[0]?.message).toBe('Keep the title to 80 characters or fewer.')
     bad(listingInputSchema, { ...valid, title: '  ' })
   })
   it('description up to 4000', () => {
@@ -188,8 +194,9 @@ describe('listingInputSchema', () => {
   it(
     'counts emoji as one character like the database does (T-30)',
     () => {
-      // 120 bikes is 120 characters to Postgres (listings_title_len) but 240 to .max()
-      ok(listingInputSchema, { ...valid, title: '🚲'.repeat(120) })
+      // 80 bikes is 80 characters to Postgres (char_length) but 160 to .max()
+      ok(listingInputSchema, { ...valid, title: '🚲'.repeat(80) })
+      bad(listingInputSchema, { ...valid, title: '🚲'.repeat(81) })
     },
   )
 })

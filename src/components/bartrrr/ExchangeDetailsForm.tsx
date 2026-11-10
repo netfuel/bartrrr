@@ -92,7 +92,7 @@ export function ExchangeDetailsForm({ initial, anySigned, otherName, onSave, onC
         id="exchange-place"
         label="Place"
         value={place}
-        maxLength={300}
+        limit={300}
         placeholder="Cossitt Library, front steps"
         onChange={(e) => {
           setPlace(e.target.value)
@@ -106,7 +106,7 @@ export function ExchangeDetailsForm({ initial, anySigned, otherName, onSave, onC
         id="exchange-notes"
         label="Notes (optional)"
         value={notes}
-        maxLength={1000}
+        limit={1000}
         rows={3}
         placeholder="Bring a box, it's heavy."
         onChange={(e) => {

@@ -32,7 +32,8 @@ export type Listing = {
   title: string
   description: string
   category: Category
-  condition?: ListingCondition
+  /** null clears it on an edit (a listing switched to services or skills) */
+  condition?: ListingCondition | null
   seeking: string
   images: string[]
   userId: string

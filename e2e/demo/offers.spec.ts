@@ -70,6 +70,52 @@ test.describe('F-01 make an offer', () => {
     await expect(row).toContainText('Succulent Collection')
   })
 
+  test("T-68: a browse card's Offer button opens the make-offer form right there", async ({ page }) => {
+    await start(page, 'Jamie', '/browse')
+    const offer = page.getByRole('button', { name: 'Make an offer on Succulent Collection (12 pots)' })
+    await offer.click()
+    // Same form as the listing page, without leaving browse
+    await expect(page).toHaveURL('/browse')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('heading', { name: 'Make an offer' })).toBeVisible()
+    await expect(dialog).toContainText('Succulent Collection (12 pots)')
+    // Closing leaves you where you were
+    await dialog.getByRole('button', { name: 'Close' }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page).toHaveURL('/browse')
+
+    await offer.click()
+    await dialog.getByRole('textbox', { name: 'What are you offering?' }).or(dialog.getByRole('textbox', { name: 'Or describe something else' })).fill('A jar of fig jam')
+    await dialog.getByRole('button', { name: 'Send offer' }).click()
+    await expect(page).toHaveURL(/\/offers\/offer-/)
+    await expectToast(page, 'Offer sent. They have 72 hours to reply.')
+    await expect(page.locator('main').getByText('A jar of fig jam', { exact: true }).first()).toBeVisible()
+  })
+
+  test("T-68: a similar listing's Offer button opens the form for that listing", async ({ page }) => {
+    await start(page, 'Jamie', '/listing/listing-003')
+    const similar = page
+      .getByRole('main')
+      .getByRole('article')
+      .filter({ has: page.getByRole('button', { name: /^Make an offer on / }) })
+      .first()
+    await expect(similar).toBeVisible()
+    const title = (await similar.getByRole('heading', { level: 3 }).textContent())!
+    await similar.getByRole('button', { name: `Make an offer on ${title}` }).click()
+    await expect(page).toHaveURL('/listing/listing-003')
+    await expect(page.getByRole('dialog')).toContainText(title)
+  })
+
+  test('T-68: no card Offer button on your own or closed listings', async ({ page }) => {
+    await start(page, 'Jamie', '/browse')
+    await expect(page.getByRole('heading', { level: 3, name: 'Raised Garden Bed Kit' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Make an offer on Raised Garden Bed Kit' })).toHaveCount(0)
+    await withStores(page, (s) => {
+      s.useListingsStore.getState().updateListing('listing-005', { status: 'closed' })
+    })
+    await expect(page.getByRole('button', { name: 'Make an offer on Succulent Collection (12 pots)' })).toHaveCount(0)
+  })
+
   test('not on your own listing', async ({ page }) => {
     await start(page, 'Jamie', '/listing/listing-001')
     await expect(page.getByRole('heading', { name: 'Vintage Record Player' })).toBeVisible()

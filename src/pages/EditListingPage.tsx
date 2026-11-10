@@ -10,6 +10,7 @@ import { usePageTitle } from '@/lib/utils'
 import { PhotoPicker } from '@/components/listings/PhotoPicker'
 import { deleteListingPhotos } from '@/lib/photos'
 import { categoryTakesCondition } from '@/lib/listings'
+import { LISTING_TITLE_MAX } from '@/lib/validation'
 
 const categories: Category[] = ['goods', 'services', 'skills', 'outdoor']
 const conditions: ListingCondition[] = ['new', 'like_new', 'good', 'fair']
@@ -58,7 +59,8 @@ export default function EditListingPage() {
       title,
       description,
       category: category!,
-      condition: (categoryTakesCondition(category) && condition) || undefined,
+      // null clears a condition that no longer applies (T-49)
+      condition: (categoryTakesCondition(category) && condition) || null,
       seeking,
       images,
     })
@@ -100,7 +102,7 @@ export default function EditListingPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="What are you offering?"
-          maxLength={80}
+          limit={LISTING_TITLE_MAX}
           error={titleError || undefined}
         />
 
@@ -109,6 +111,7 @@ export default function EditListingPage() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Size, condition, how long it takes: whatever a neighbor would want to know"
+          limit={4000}
         />
 
         <div>
@@ -150,6 +153,7 @@ export default function EditListingPage() {
           value={seeking}
           onChange={(e) => setSeeking(e.target.value)}
           placeholder="Like: gardening help, kitchen appliances, or good books"
+          limit={1000}
           error={seekingError || undefined}
         />
 

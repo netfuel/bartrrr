@@ -121,6 +121,24 @@ describe('updateListing (L-02)', () => {
     })
   })
 
+  it('switching to a category without a condition clears it (T-49)', () => {
+    updateListing.mockReturnValue(new Promise(() => {}))
+    useListingsStore.getState().updateListing('listing-1', { category: 'services' })
+    expect(updateListing).toHaveBeenCalledWith('listing-1', { category: 'services', condition: null })
+    expect(get()?.condition).toBeNull()
+    // Switching back to goods doesn't bring the old condition back
+    useListingsStore.getState().updateListing('listing-1', { category: 'goods' })
+    expect(get()?.condition).toBeNull()
+  })
+
+  it('null clears a condition, and a failed clear puts it back (T-49, T-29)', async () => {
+    updateListing.mockRejectedValue(new Error('x'))
+    useListingsStore.getState().updateListing('listing-1', { condition: null })
+    expect(get()?.condition).toBeNull()
+    await flush()
+    expect(get()?.condition).toBe('good')
+  })
+
   it('deletes photos dropped from the listing only after a successful save', async () => {
     let resolve!: (l: Listing) => void
     updateListing.mockReturnValue(new Promise((r) => (resolve = r)))

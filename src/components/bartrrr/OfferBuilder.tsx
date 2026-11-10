@@ -123,6 +123,7 @@ export function OfferBuilder({ listingId, toUserId, onClose }: OfferBuilderProps
             placeholder="Say hi, and why you think it's a fair trade"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
+            limit={2000}
             rows={2}
           />
         </div>

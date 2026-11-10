@@ -199,7 +199,8 @@ test.describe('O-02 onboarding', () => {
     await expect(page.getByRole('heading', { level: 1, name: /Welcome, neighbor!/ })).toBeVisible()
 
     const name = page.getByLabel('What should neighbors call you?')
-    await expect(name).toHaveAttribute('maxlength', '60')
+    // Limited to 60 characters counted like the database (T-66), not maxLength
+    await expect(name).not.toHaveAttribute('maxlength', /.*/)
     await expect(page.getByText(/Add a name to continue/)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Get started' })).toBeDisabled()
     await name.fill('   ')

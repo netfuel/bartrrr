@@ -22,7 +22,8 @@ export default function ListingDetailPage() {
   const getUserById = useUsersStore((s) => s.getUserById)
   const user = listing ? getUserById(listing.userId) : undefined
   const [imageIndex, setImageIndex] = useState(0)
-  const [showOfferBuilder, setShowOfferBuilder] = useState(false)
+  // This listing, or a similar listing's card Offer button (T-68)
+  const [offerFor, setOfferFor] = useState<{ id: string; userId: string } | null>(null)
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
   usePageTitle(listing?.title ?? 'Listing')
   const galleryRef = useRef<HTMLDivElement>(null)
@@ -211,7 +212,7 @@ export default function ListingDetailPage() {
               {relatedListings.map((rl) => {
                 const rlUser = getUserById(rl.userId)
                 if (!rlUser) return null
-                return <TradeCard key={rl.id} listing={rl} user={rlUser} onOffer={() => navigate(`/listing/${rl.id}`)} />
+                return <TradeCard key={rl.id} listing={rl} user={rlUser} onOffer={() => setOfferFor(rl)} />
               })}
             </div>
         </div>
@@ -251,7 +252,7 @@ export default function ListingDetailPage() {
               )}
             </div>
           ) : status === 'active' ? (
-            <Button variant="primary" size="lg" className="w-full" onClick={() => setShowOfferBuilder(true)}>
+            <Button variant="primary" size="lg" className="w-full" onClick={() => setOfferFor(listing)}>
               Make an offer
             </Button>
           ) : (
@@ -287,11 +288,11 @@ export default function ListingDetailPage() {
       )}
 
       {/* OfferBuilder modal */}
-      {showOfferBuilder && (
+      {offerFor && (
         <OfferBuilder
-          listingId={listing.id}
-          toUserId={listing.userId}
-          onClose={() => setShowOfferBuilder(false)}
+          listingId={offerFor.id}
+          toUserId={offerFor.userId}
+          onClose={() => setOfferFor(null)}
         />
       )}
     </div>

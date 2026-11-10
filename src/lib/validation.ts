@@ -91,11 +91,16 @@ export const profileUpdateSchema = z
   })
   .partial()
 
+/** Listing titles: what the post and edit forms allow (T-65). */
+export const LISTING_TITLE_MAX = 80
+
 export const listingInputSchema = z.object({
-  title: trimmed(120, 1),
+  // The form caps titles at 80 so they fit on cards; the database allows 120 (T-65)
+  title: z.string().trim().min(1).superRefine(maxChars(LISTING_TITLE_MAX, `Keep the title to ${LISTING_TITLE_MAX} characters or fewer.`)),
   description: trimmed(4000),
   category: z.enum(['goods', 'services', 'skills', 'outdoor']),
-  condition: z.enum(['new', 'like_new', 'good', 'fair']).optional(),
+  // null clears it (an edit that switches to services or skills, T-49)
+  condition: z.enum(['new', 'like_new', 'good', 'fair']).nullable().optional(),
   seeking: trimmed(1000, 1),
   images: z.array(httpsUrlSchema).max(6),
 })
