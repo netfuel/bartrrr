@@ -3,6 +3,7 @@ import { AlertCircle, Camera, Loader2 } from 'lucide-react'
 import { Avatar, Button } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { PhotoError, deleteOwnedPhotos, uploadAvatar } from '@/lib/photos'
+import { getGooglePhotoUrl } from '@/lib/auth/google-photo'
 import { useUsersStore, showToast } from '@/stores'
 import type { UserProfile } from '@/types'
 
@@ -15,6 +16,9 @@ type Status =
  * Upload, replace or remove a profile photo. Saves on its own, apart from
  * the rest of the settings form: a new photo shows up as soon as it lands.
  * The old file is deleted only after the new one is saved.
+ *
+ * Neighbors who sign in with Google can go back to their Google picture
+ * ("Use my Google photo") after replacing or removing it.
  */
 export function AvatarUploader({ user }: { user: UserProfile }) {
   const updateUser = useUsersStore((s) => s.updateUser)
@@ -23,6 +27,17 @@ export function AvatarUploader({ user }: { user: UserProfile }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const busy = status.kind === 'busy'
   const current = user.avatarUrl || undefined
+  const [googlePhoto, setGooglePhoto] = useState<string | undefined>()
+  const canUseGoogle = Boolean(googlePhoto) && googlePhoto !== current
+
+  // The Google picture comes from the auth session, not the profile
+  useEffect(() => {
+    let live = true
+    getGooglePhotoUrl(user.id)
+      .then((url) => { if (live) setGooglePhoto(url) })
+      .catch(() => undefined)
+    return () => { live = false }
+  }, [user.id])
 
   // Free the local preview when it's replaced or the page goes away
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
@@ -81,6 +96,21 @@ export function AvatarUploader({ user }: { user: UserProfile }) {
     })
   }
 
+  const restoreGooglePhoto = () => {
+    const previous = current
+    if (!googlePhoto) return
+    setStatus({ kind: 'busy', label: 'Saving…' })
+    updateUser(user.id, { avatarUrl: googlePhoto }, {
+      onSaved: () => {
+        // Our stored copy goes once nothing points at it (Google's stays)
+        if (previous && previous !== googlePhoto) deleteOwnedPhotos([previous])
+        setStatus({ kind: 'idle' })
+        showToast('Your Google photo is back.', 'success')
+      },
+      onFailed: () => setStatus({ kind: 'error', message: 'Your Google photo didn’t save. Try again in a moment.' }),
+    })
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-label text-ink-2">Profile photo</span>
@@ -112,6 +142,16 @@ export function AvatarUploader({ user }: { user: UserProfile }) {
           <Button variant="outline" size="sm" onClick={choose} disabled={busy}>
             {current ? 'Change photo' : 'Add a photo'}
           </Button>
+          {canUseGoogle && (
+            <button
+              type="button"
+              onClick={restoreGooglePhoto}
+              disabled={busy}
+              className="text-label min-h-[32px] text-ink-2 underline-offset-4 hover:text-ink hover:underline disabled:opacity-50"
+            >
+              Use my Google photo
+            </button>
+          )}
           {current && (
             <button
               type="button"

@@ -3,8 +3,10 @@ import type { TradeAgreement } from '@/types'
 import {
   canCancel,
   canFlag,
+  canSaveCopy,
   exchangeTime,
   formatExchangeTime,
+  formatLongDate,
   formatShortDate,
   fromLocalInputValue,
   isBeingAgreed,
@@ -222,5 +224,22 @@ describe('datetime-local round trip', () => {
   })
   it('the ambiguous 1:30 AM on Nov 1 resolves to one real instant (the first, CDT)', () => {
     expect(fromLocalInputValue('2026-11-01T01:30')).toBe('2026-11-01T06:30:00.000Z')
+  })
+})
+
+describe('saving a copy (T-14)', () => {
+  it('is offered once both neighbors signed', () => {
+    expect(canSaveCopy(agreement())).toBe(true)
+    expect(canSaveCopy(agreement({ status: 'pending_signatures', partyB: { userId: 'b', item: 'x', signed: false } }))).toBe(false)
+    expect(canSaveCopy(agreement({ status: 'draft', partyA: { userId: 'a', item: 'x', signed: false }, partyB: { userId: 'b', item: 'x', signed: false } }))).toBe(false)
+  })
+  it('stays available as a record for closed agreements, signed or not', () => {
+    const unsigned = { partyA: { userId: 'a', item: 'x', signed: false }, partyB: { userId: 'b', item: 'x', signed: false } }
+    expect(canSaveCopy(agreement({ status: 'completed' }))).toBe(true)
+    expect(canSaveCopy(agreement({ status: 'cancelled', ...unsigned }))).toBe(true)
+    expect(canSaveCopy(agreement({ status: 'disputed' }))).toBe(true)
+  })
+  it('formatLongDate reads like a document date', () => {
+    expect(formatLongDate('2026-04-06T17:00:00Z')).toBe('April 6, 2026')
   })
 })
