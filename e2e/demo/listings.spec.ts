@@ -234,6 +234,32 @@ test.describe('L-02 photos', () => {
     await expect(next(page)).toBeEnabled()
   })
 
+  test('the error tile shows a clearly visible clay warning icon', async ({ page }) => {
+    // T-10: the icon was squeezed to nothing on phones and drawn hairline-faint on desktop
+    await startListing(page)
+    await photoInput(page).setInputFiles([notAPhoto])
+    const tile = page.getByRole('list', { name: 'Listing photos' }).locator('li').filter({ hasText: 'That file isn’t a photo.' })
+    const icon = tile.locator('svg').first()
+    await expect(icon).toBeVisible()
+    const look = await icon.evaluate((el) => {
+      const cs = getComputedStyle(el)
+      const r = el.getBoundingClientRect()
+      const li = el.closest('li')!.getBoundingClientRect()
+      return {
+        color: cs.color,
+        opacity: Number(cs.opacity),
+        stroke: parseFloat(cs.strokeWidth),
+        size: Math.min(r.width, r.height),
+        inside: r.top >= li.top && r.bottom <= li.bottom && r.left >= li.left && r.right <= li.right,
+      }
+    })
+    expect(look.color).toBe('rgb(156, 91, 60)') // --color-clay
+    expect(look.opacity).toBe(1)
+    expect(look.stroke).toBeGreaterThanOrEqual(2)
+    expect(look.size).toBeGreaterThanOrEqual(18)
+    expect(look.inside).toBe(true)
+  })
+
   test('Next waits while photos are uploading, and says why', async ({ page }) => {
     await slowPhotoPrep(page, 1500)
     await startListing(page)
@@ -312,9 +338,30 @@ test.describe('L-04 required fields', () => {
     await startListing(page)
     await next(page).click()
     const title = page.getByLabel('Title')
-    await expect(title).toHaveAttribute('maxlength', '80')
     await title.fill('T'.repeat(100))
     await expect(title).toHaveValue('T'.repeat(80))
+    await expect(page.getByText('80 of 80 characters')).toBeVisible()
+  })
+
+  test('T-66: emoji count as one character, so 80 emoji fit an 80-character title', async ({ page }) => {
+    await startListing(page)
+    await next(page).click()
+    const title = page.getByLabel('Title')
+    // maxLength counts UTF-16 units and would have cut this at 40 bikes
+    await expect(title).not.toHaveAttribute('maxlength', /.*/)
+    await title.fill('🚲'.repeat(80))
+    await expect(title).toHaveValue('🚲'.repeat(80))
+    await title.fill('🚲'.repeat(90))
+    await expect(title).toHaveValue('🚲'.repeat(80))
+    await expect(page.getByText('80 of 80 characters')).toBeVisible()
+    await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Goods' }).click()
+    await next(page).click()
+    await page.getByLabel('I\'d trade this for…').fill('🌱'.repeat(1000))
+    await expect(page.getByLabel('I\'d trade this for…')).toHaveValue('🌱'.repeat(1000))
+    await next(page).click()
+    await page.getByRole('button', { name: 'Post listing' }).click()
+    await expect(page).toHaveURL(/\/listing\/listing-[\w-]+$/)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('🚲'.repeat(80))
   })
 
   test('the review step shows exactly what will be posted', async ({ page }) => {
@@ -369,6 +416,20 @@ test.describe('L-05 edit a listing', () => {
     await expect(page).toHaveURL('/listing/listing-013')
     await expect(page.getByText('Services', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Good', { exact: true })).toHaveCount(0)
+    // T-49: the old condition is cleared in the store too, not just hidden
+    const stored = await readStore<string | null | undefined>(
+      page,
+      'listings-store',
+      "s => s.listings.find(l => l.id === 'listing-013').condition",
+    )
+    expect(stored ?? null).toBeNull()
+    // So switching back to Goods doesn't bring it back
+    await page.getByRole('button', { name: 'Edit listing' }).click()
+    await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Goods' }).click()
+    await expect(page.getByRole('group', { name: 'Condition (optional)' }).locator('[aria-pressed="true"]')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page).toHaveURL('/listing/listing-013')
+    await expect(page.getByText('Good', { exact: true })).toHaveCount(0)
   })
 
   test('edit text and photos, then save', async ({ page }) => {
@@ -404,7 +465,8 @@ test.describe('L-05 edit a listing', () => {
     await page.getByLabel('What would you like in return?').fill('')
     await expect(page.getByText('Tell neighbors what you’d like in return.')).toBeVisible()
     await expect(save).toBeDisabled()
-    await expect(page.getByLabel('Title')).toHaveAttribute('maxlength', '80')
+    await page.getByLabel('Title').fill('T'.repeat(100))
+    await expect(page.getByLabel('Title')).toHaveValue('T'.repeat(80))
   })
 
   test('Cancel leaves the listing as it was and frees new photos', async ({ page }) => {

@@ -65,6 +65,7 @@ export function ReviewForm({ revieweeName, onSubmit }: ReviewFormProps) {
         placeholder="What should other neighbors know?"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
+        limit={1000}
         rows={2}
       />
 

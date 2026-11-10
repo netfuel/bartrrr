@@ -1,4 +1,5 @@
 /// <reference lib="dom" />
+import { mkdirSync } from 'node:fs'
 import type { Page, TestInfo } from '@playwright/test'
 import { test, expect as baseExpect } from '../fixtures'
 import { NEIGHBORHOOD_CENTERS } from '../../src/data/neighborhoods'
@@ -29,6 +30,62 @@ const MAP_ZOOM = 13
 
 const listCards = (page: Page) => page.getByRole('main').getByRole('article')
 const markers = (page: Page) => page.locator('.maplibregl-marker')
+
+/**
+ * Listings at the same spot (every listing sits at its neighborhood center)
+ * share one pin with a count (T-62). Each pin lists the ids it stands for.
+ */
+const pinFor = (page: Page, listingId: string) =>
+  page.locator(`.maplibregl-marker[data-listing-ids~="${listingId}"]`)
+
+/** How many listings the map's pins stand for, all together. */
+const pinnedCount = (page: Page) =>
+  markers(page).evaluateAll((ms) => ms.reduce((n, m) => n + Number((m as HTMLElement).dataset.count ?? 1), 0))
+
+const expectAllPinned = async (page: Page, n: number) => {
+  await expect(markers(page).first()).toBeAttached()
+  await expect.poll(() => pinnedCount(page)).toBe(n)
+}
+
+/** The list a shared pin opens. */
+const pinList = (page: Page) => page.getByRole('region', { name: /^\d+ listings (in .+|here)$/ })
+
+/** Open a listing's preview from the map, through its pin's list when it shares one. */
+async function openOnMap(page: Page, listingId: string, title: string) {
+  const pin = pinFor(page, listingId)
+  // Pins can sit under each other; dispatch the click on the right pin
+  await pin.dispatchEvent('click')
+  if ((await pin.getAttribute('data-count')) !== '1') {
+    await pinList(page).getByRole('button', { name: title }).click()
+  }
+}
+
+/** Screenshots for the T-62 report, when asked for (CLUSTER_SHOTS_DIR). */
+async function clusterShot(page: Page, testInfo: TestInfo, name: string) {
+  const dir = process.env.CLUSTER_SHOTS_DIR
+  if (!dir) return
+  mkdirSync(dir, { recursive: true })
+  await page.screenshot({ path: `${dir}/${name}-${testInfo.project.name}.png` })
+}
+
+/** Two new listings that land on the Downtown Memphis center. Returns their ids by title. */
+async function addTwoDowntown(page: Page, a: [string, string], b: [string, string]) {
+  for (const [title, category] of [a, b]) {
+    await writeStore(
+      page,
+      'listings-store',
+      `(store) => store.getState().addListing({
+        title: '${title}', description: '', category: '${category}', seeking: 'anything',
+        images: [], userId: 'user-002',
+        location: { lat: 35.1495, lng: -90.0493, neighborhood: 'Downtown Memphis' } })`,
+    )
+  }
+  return readStore<Record<string, string>>(
+    page,
+    'listings-store',
+    `s => Object.fromEntries(s.listings.filter(l => ['${a[0]}', '${b[0]}'].includes(l.title)).map(l => [l.title, l.id]))`,
+  )
+}
 
 /** On phones the map is behind the Map view toggle. */
 async function showMap(page: Page, testInfo: TestInfo) {
@@ -63,16 +120,15 @@ async function pinPositions(page: Page) {
       }
       const cx = ((center.lng + 180) / 360) * world
       const cy = toY(center.lat)
-      return [...document.querySelectorAll<HTMLElement>('.maplibregl-marker')].map((m) => {
+      return [...document.querySelectorAll<HTMLElement>('.maplibregl-marker')].flatMap((m) => {
         const b = m.getBoundingClientRect()
         const x = cx + (b.left + b.width / 2 - (map.left + map.width / 2))
         const y = cy + (b.top + b.height / 2 - (map.top + map.height / 2))
         const n = Math.PI - (2 * Math.PI * y) / world
-        return {
-          title: m.getAttribute('aria-label') ?? '',
-          lng: (x / world) * 360 - 180,
-          lat: (Math.atan(Math.sinh(n)) * 180) / Math.PI,
-        }
+        const lng = (x / world) * 360 - 180
+        const lat = (Math.atan(Math.sinh(n)) * 180) / Math.PI
+        // One entry per listing the pin stands for
+        return (m.dataset.listingIds ?? '').split(' ').map((id) => ({ id, lng, lat }))
       })
     },
     { center: MAP_CENTER, zoom: MAP_ZOOM },
@@ -80,7 +136,7 @@ async function pinPositions(page: Page) {
 }
 
 test.describe('D-01 browse map', () => {
-  test('map mounts with one pin per active listing', async ({ page }, testInfo) => {
+  test('map mounts with every active listing pinned', async ({ page }, testInfo) => {
     await stubMapStyle(page)
     await login(page, 'Jamie')
     await expect(page).toHaveURL('/browse')
@@ -88,9 +144,8 @@ test.describe('D-01 browse map', () => {
     await showMap(page, testInfo)
     await expect(page.locator('.maplibregl-map')).toBeVisible()
     await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible()
-    const n = await activeCount(page)
-    await expect(markers(page)).toHaveCount(n)
-    // Each pin is named after its listing
+    await expectAllPinned(page, await activeCount(page))
+    // Each pin is named after its listing, or its listings and neighborhood
     await expect(markers(page).first()).toHaveAttribute('role', 'button')
     await expect(markers(page).first()).toHaveAttribute('aria-label', /\S/)
     // Required map credit
@@ -125,8 +180,9 @@ test.describe('D-01 browse map', () => {
         location: { lat: 35.14567, lng: -90.05111, neighborhood: 'Downtown Memphis' } })`,
     )
     await showMap(page, testInfo)
-    await expect(markers(page)).toHaveCount(await activeCount(page))
-    const pin = (await pinPositions(page)).find((p) => p.title === 'Pin check')!
+    await expectAllPinned(page, await activeCount(page))
+    const id = await readStore<string>(page, 'listings-store', "s => s.listings.find(l => l.title === 'Pin check').id")
+    const pin = (await pinPositions(page)).find((p) => p.id === id)!
     const center = NEIGHBORHOOD_CENTERS['Downtown Memphis']
     // Stored at ~1 km precision (two decimals), so within 0.006° of the center
     expect(Math.abs(pin.lat - center.lat)).toBeLessThan(0.006)
@@ -141,20 +197,19 @@ test.describe('D-01 browse map', () => {
   })
 
   test('sample listing pins sit at their neighborhood centers', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: demo listings in src/data/mock-listings.ts use made-up coordinates up to ~3 km from their neighborhood center (e.g. Cooper-Young lawn mowing sits in Midtown)')
     await stubMapStyle(page)
     await login(page, 'Jamie')
     await showMap(page, testInfo)
-    await expect(markers(page)).toHaveCount(await activeCount(page))
-    const listings = await readStore<{ title: string; hood: string }[]>(
+    await expectAllPinned(page, await activeCount(page))
+    const listings = await readStore<{ id: string; title: string; hood: string }[]>(
       page,
       'listings-store',
-      "s => s.listings.filter(l => l.status === 'active').map(l => ({ title: l.title, hood: l.location.neighborhood }))",
+      "s => s.listings.filter(l => l.status === 'active').map(l => ({ id: l.id, title: l.title, hood: l.location.neighborhood }))",
     )
     const pins = await pinPositions(page)
     const off = listings
       .map((l) => {
-        const p = pins.find((x) => x.title === l.title)!
+        const p = pins.find((x) => x.id === l.id)!
         const c = NEIGHBORHOOD_CENTERS[l.hood]
         return { title: l.title, dLat: Math.abs(p.lat - c.lat), dLng: Math.abs(p.lng - c.lng) }
       })
@@ -166,17 +221,15 @@ test.describe('D-01 browse map', () => {
     await stubMapStyle(page)
     await login(page, 'Jamie')
     await showMap(page, testInfo)
-    const pin = markers(page).and(page.getByRole('button', { name: 'Bike Tune-Up Service', exact: true }))
-    await expect(pin).toBeAttached()
-    // Pins can sit under each other; dispatch the click on the named pin
-    await pin.dispatchEvent('click')
+    await expect(pinFor(page, 'listing-004')).toBeAttached()
+    await openOnMap(page, 'listing-004', 'Bike Tune-Up Service')
     const preview = page.locator('.maplibregl-map').locator('..').getByRole('button', { name: 'View listing' })
     await expect(preview).toBeVisible()
     await expect(page.getByText('Overton Square').first()).toBeVisible()
     await expect(page.getByText('Sam Nguyen').first()).toBeVisible()
     await page.getByRole('button', { name: 'Close preview' }).click()
     await expect(preview).toBeHidden()
-    await pin.dispatchEvent('click')
+    await openOnMap(page, 'listing-004', 'Bike Tune-Up Service')
     await page.getByRole('button', { name: 'View listing' }).click()
     await expect(page).toHaveURL('/listing/listing-004')
     await expect(page.getByRole('heading', { level: 1, name: 'Bike Tune-Up Service' })).toBeVisible()
@@ -186,11 +239,17 @@ test.describe('D-01 browse map', () => {
     await stubMapStyle(page)
     await login(page, 'Jamie')
     await showMap(page, testInfo)
-    const pin = markers(page).and(page.getByRole('button', { name: 'Bike Tune-Up Service', exact: true }))
-    await expect(pin).toHaveAttribute('tabindex', '0', { timeout: 3000 })
-    // Enter opens the preview and moves focus into it
+    const pin = pinFor(page, 'listing-004')
+    await expect(pin).toHaveAttribute('tabindex', '0')
+    const shared = (await pin.getAttribute('data-count')) !== '1'
+    const row = pinList(page).getByRole('button', { name: 'Bike Tune-Up Service' })
+    // Enter opens the preview (or the pin's list) and moves focus into it
     await pin.focus()
     await page.keyboard.press('Enter')
+    if (shared) {
+      await expect(pinList(page).getByRole('listitem').first().getByRole('button')).toBeFocused()
+      await row.press('Enter')
+    }
     const view = page.getByRole('button', { name: 'View listing' })
     await expect(view).toBeFocused()
     await expect(page.getByText('Sam Nguyen').first()).toBeVisible()
@@ -198,16 +257,86 @@ test.describe('D-01 browse map', () => {
     await page.getByRole('button', { name: 'Close preview' }).click()
     await pin.focus()
     await page.keyboard.press(' ')
+    if (shared) await row.press(' ')
     await expect(view).toBeVisible()
+    // Escape closes it and puts focus back on the pin
+    await page.keyboard.press('Escape')
+    await expect(view).toBeHidden()
+    await expect(pin).toBeFocused()
+  })
+
+  test('T-62: listings at the same neighborhood center share one pin with a count', async ({ page }, testInfo) => {
+    await stubMapStyle(page)
+    await login(page, 'Jamie')
+    // Both land on the Downtown Memphis center (stored at ~1 km precision)
+    const ids = await addTwoDowntown(page, ['Cluster lamp', 'goods'], ['Cluster bike repair', 'services'])
+    const lamp = ids['Cluster lamp']
+    const repair = ids['Cluster bike repair']
+    await showMap(page, testInfo)
+    await expectAllPinned(page, await activeCount(page))
+    // One pin for both: not two stacked pins with only the top one clickable
+    const pin = pinFor(page, lamp)
+    await expect(pin).toHaveCount(1)
+    await expect(pinFor(page, repair)).toHaveCount(1)
+    expect((await pin.getAttribute('data-listing-ids'))!.split(' ')).toContain(repair)
+    const count = Number(await pin.getAttribute('data-count'))
+    expect(count).toBeGreaterThanOrEqual(2)
+    await expect(pin).toHaveAttribute('aria-label', `${count} listings in Downtown Memphis`)
+    await expect(pin).toHaveText(String(count))
+    // Never moved off the neighborhood center
+    const center = NEIGHBORHOOD_CENTERS['Downtown Memphis']
+    const pos = (await pinPositions(page)).find((p) => p.id === lamp)!
+    expect(Math.abs(pos.lat - center.lat)).toBeLessThan(0.006)
+    expect(Math.abs(pos.lng - center.lng)).toBeLessThan(0.006)
+    await clusterShot(page, testInfo, 'cluster-pin')
+
+    await pin.dispatchEvent('click')
+    const list = page.getByRole('region', { name: `${count} listings in Downtown Memphis` })
+    await expect(list).toBeVisible()
+    await expect(list.getByRole('listitem')).toHaveCount(count)
+    await expect(list.getByRole('button', { name: /Cluster lamp/ })).toBeVisible()
+    await expect(list.getByRole('button', { name: /Cluster bike repair/ })).toBeVisible()
+    await clusterShot(page, testInfo, 'cluster-list')
+    await list.getByRole('button', { name: /Cluster bike repair/ }).click()
+    await expect(page.getByRole('button', { name: 'View listing' })).toBeVisible()
+    // Back to the list, then on to the listing
+    await page.getByRole('button', { name: `All ${count} listings here` }).click()
+    await expect(list).toBeVisible()
+    await list.getByRole('button', { name: /Cluster lamp/ }).click()
+    await page.getByRole('button', { name: 'View listing' }).click()
+    await expect(page).toHaveURL(`/listing/${lamp}`)
+    await expect(page.getByRole('heading', { level: 1, name: 'Cluster lamp' })).toBeVisible()
+  })
+
+  test('T-62: a shared pin opens its list from the keyboard, and Escape returns to the pin', async ({ page }, testInfo) => {
+    await stubMapStyle(page)
+    await login(page, 'Jamie')
+    const ids = await addTwoDowntown(page, ['Cluster one', 'goods'], ['Cluster two', 'goods'])
+    await showMap(page, testInfo)
+    const pin = pinFor(page, ids['Cluster one'])
+    await expect(pin).toHaveAttribute('tabindex', '0')
+    await expect(pin).toHaveAttribute('role', 'button')
+    await pin.focus()
+    await page.keyboard.press('Enter')
+    const list = pinList(page)
+    await expect(list.getByRole('listitem').first().getByRole('button')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(list).toBeHidden()
+    await expect(pin).toBeFocused()
+    await page.keyboard.press(' ')
+    await expect(list).toBeVisible()
+    await list.getByRole('button', { name: /Cluster two/ }).press('Enter')
+    await expect(page.getByRole('button', { name: 'View listing' })).toBeFocused()
+    await expect(page.getByText('Cluster two').first()).toBeVisible()
   })
 
   test('the map opens on your own neighborhood', async ({ page }, testInfo) => {
     await stubMapStyle(page)
     await login(page, 'Priya')
     await showMap(page, testInfo)
-    await expect(markers(page)).toHaveCount(await activeCount(page))
+    await expectAllPinned(page, await activeCount(page))
     const box = await page.locator('.maplibregl-map').boundingBox()
-    const own = markers(page).and(page.getByRole('button', { name: 'Succulent Collection (12 pots)', exact: true }))
+    const own = pinFor(page, 'listing-005')
     const pinBox = await own.boundingBox()
     expect(pinBox).not.toBeNull()
     expect(pinBox!.x).toBeGreaterThanOrEqual(box!.x)
@@ -228,6 +357,28 @@ test.describe('D-01 browse map', () => {
 })
 
 test.describe('D-02 filters, search and empty states', () => {
+  test('browse cards give the owner room for at least a first name', async ({ page }) => {
+    // T-61: at 1280 px owner names were cut to "Ma…" beside the Offer button
+    await login(page, 'Jamie')
+    await expect(listCards(page).first()).toBeVisible()
+    const cut = await listCards(page).evaluateAll((cards) =>
+      cards.flatMap((card) => {
+        const name = card.querySelector('a[href^="/profile/"] span.truncate') as HTMLElement | null
+        if (!name) return []
+        const first = (name.textContent ?? '').split(' ')[0]
+        const probe = document.createElement('span')
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap'
+        probe.style.font = getComputedStyle(name).font
+        probe.textContent = first
+        document.body.append(probe)
+        const need = probe.getBoundingClientRect().width
+        probe.remove()
+        return name.clientWidth + 0.5 < need ? [`${name.textContent} (${name.clientWidth}px < ${Math.ceil(need)}px)`] : []
+      }),
+    )
+    expect(cut).toEqual([])
+  })
+
   test('category chips filter the list and the map', async ({ page }, testInfo) => {
     await stubMapStyle(page)
     await login(page, 'Jamie')
@@ -244,7 +395,7 @@ test.describe('D-02 filters, search and empty states', () => {
     await expect(listCards(page)).toHaveCount(services.length)
     for (const title of services) await expect(page.getByRole('heading', { level: 3, name: title })).toBeVisible()
     await showMap(page, testInfo)
-    await expect(markers(page)).toHaveCount(services.length)
+    await expectAllPinned(page, services.length)
     if (isMobile(testInfo)) await page.getByRole('button', { name: 'List view' }).click()
     // Pressing the selected chip again clears it
     await group.getByRole('button', { name: 'Services' }).click()
@@ -333,8 +484,9 @@ test.describe('D-02 filters, search and empty states', () => {
     await expect(page.getByRole('heading', { level: 3, name: 'Bike Tune-Up Service' })).toHaveCount(0)
     await expect(listCards(page)).toHaveCount(await activeCount(page))
     await showMap(page, testInfo)
-    await expect(markers(page)).toHaveCount(await activeCount(page))
-    await expect(page.locator('.maplibregl-marker[aria-label="KitchenAid Stand Mixer"]')).toHaveCount(0)
+    await expectAllPinned(page, await activeCount(page))
+    await expect(pinFor(page, 'listing-003')).toHaveCount(0)
+    await expect(pinFor(page, 'listing-004')).toHaveCount(0)
   })
 
   test('with nothing listed, browse invites the first listing', async ({ page }) => {

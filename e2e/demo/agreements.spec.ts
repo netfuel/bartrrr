@@ -329,7 +329,11 @@ test.describe('G-09 flag for review', () => {
 
     await reason.fill('a'.repeat(600))
     await expect(reason).toHaveValue('a'.repeat(500))
-    await expect(dialog).toContainText('500 of 500 characters. Dave will see this.')
+    await expect(dialog).toContainText('Dave will see this.')
+    await expect(dialog).toContainText('500 of 500 characters')
+    // T-66: an emoji counts once, like the server counts it
+    await reason.fill('😠'.repeat(520))
+    await expect(reason).toHaveValue('😠'.repeat(500))
 
     await reason.fill('Dave moved the meetup twice and then stopped replying.')
     await dialog.getByRole('button', { name: 'Flag trade' }).click()

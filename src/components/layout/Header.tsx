@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Search, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useMediaQuery } from '@/lib/utils/use-media-query'
 import { useUnreadCount } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { NotificationDropdown } from './NotificationDropdown'
@@ -19,6 +20,7 @@ export function Header({ className }: HeaderProps) {
   const notifRef = useRef<HTMLDivElement>(null)
 
   const unreadCount = useUnreadCount(currentUser?.id)
+  const roomyHeader = useMediaQuery('(min-width: 640px)')
 
   const handleSearch = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
@@ -58,7 +60,8 @@ export function Header({ className }: HeaderProps) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleSearch}
-          placeholder="Search listings or neighborhoods"
+          // The full hint is cut off ("Search listi") in a phone's header
+          placeholder={roomyHeader ? 'Search listings or neighborhoods' : 'Search'}
           className="w-full min-w-0 rounded-full border border-ink/30 bg-paper pl-10 pr-4 py-2.5 text-[15px] placeholder:text-muted hover:border-ink focus:outline-none focus:border-clay focus:ring-1 focus:ring-clay transition-colors"
         />
       </div>

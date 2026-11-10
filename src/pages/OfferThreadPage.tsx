@@ -8,6 +8,7 @@ import { hasBackend } from '@/stores/persist'
 import { useAuth } from '@/providers/AuthProvider'
 import { showToast } from '@/stores/toast-store'
 import { formatTimeLeft, usePageTitle } from '@/lib/utils'
+import { useFixedBarHeight } from '@/lib/utils/use-fixed-bar-height'
 import { declineContent, isOpenOffer, lastMove, whoseMove } from '@/lib/offers'
 import { OFFER_STATUS_LABELS, OFFER_TTL_HOURS, DECLINE_REASON_LABELS, type OfferDeclineReason } from '@/types'
 
@@ -59,6 +60,8 @@ export default function OfferThreadPage() {
     ro.observe(bar)
     return () => ro.disconnect()
   }, [offer?.id, currentUser?.id])
+  // Toasts float above the bar instead of over Accept and Decline
+  useFixedBarHeight(barRef, [offer?.id, currentUser?.id])
 
   // Newest message in view: on load (instantly), then smoothly when you send
   // something, or when a reply arrives while you're already at the bottom

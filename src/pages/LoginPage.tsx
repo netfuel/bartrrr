@@ -133,6 +133,12 @@ export default function LoginPage() {
               onDone={() => navigate(returnTo, { replace: true })}
             />
           </Suspense>
+          {/* With a backend the notice sits under the email form above */}
+          {!HAS_SUPABASE && (
+            <div className="mt-6">
+              <LegalConsent action="logging in" />
+            </div>
+          )}
         </div>
       )}
 

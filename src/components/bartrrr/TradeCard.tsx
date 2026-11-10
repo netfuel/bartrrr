@@ -116,10 +116,12 @@ function TradeCardInner({
         </div>
 
         {/* Footer */}
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-ink/15 pt-4">
+        {/* On a narrow card the action wraps under the owner, not the
+            other way round: the owner keeps room for at least a first name */}
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-ink/15 pt-4 [&>:last-child:not(:first-child)]:ml-auto">
           <Link
             to={`/profile/${user.username}`}
-            className="flex items-center gap-2 min-w-0 rounded-sm"
+            className="flex flex-[1_1_9.5rem] items-center gap-2 min-w-0 rounded-sm"
           >
             <Avatar
               src={user.avatarUrl}

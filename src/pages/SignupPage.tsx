@@ -245,7 +245,7 @@ export default function SignupPage() {
                       label="Your name"
                       autoComplete="name"
                       required
-                      maxLength={60}
+                      limit={60}
                       helperText="Your first name is fine. Neighbors see it on your listings and offers."
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
@@ -303,6 +303,12 @@ export default function SignupPage() {
                   <Suspense fallback={null}>
                     <DemoUserPicker mode="signup" onDone={() => navigate('/onboarding', { replace: true })} />
                   </Suspense>
+                  {/* With a backend the notice sits under the email form above */}
+                  {!HAS_SUPABASE && (
+                    <div className="mt-6">
+                      <LegalConsent action="joining" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -95,6 +95,16 @@ test.describe('M-02 offer thread messages', () => {
 
     await composer(page).fill('x'.repeat(2100))
     await expect(composer(page)).toHaveValue('x'.repeat(2000))
+    await expect(page.getByText('2,000 of 2,000 characters')).toBeVisible()
+  })
+
+  test('T-66: emoji count once, so 2,000 fit in a message', async ({ page }) => {
+    await start(page, 'Jamie', '/offers/offer-001')
+    await expect(composer(page)).not.toHaveAttribute('maxlength', /.*/)
+    await composer(page).fill('👋'.repeat(2050))
+    await expect(composer(page)).toHaveValue('👋'.repeat(2000))
+    await sendBtn(page).click()
+    await expect(page.locator('main p').filter({ hasText: '👋'.repeat(2000) })).toBeVisible()
   })
 
   test('links are shown exactly as typed, as text, not as markup', async ({ page }) => {

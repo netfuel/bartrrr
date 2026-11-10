@@ -6,6 +6,7 @@ import {
   captureBugShots,
   goInApp,
   imageSize,
+  isMobile,
   login,
   makePng,
   notAPhoto,
@@ -33,6 +34,13 @@ const me = <T,>(page: Page, pick: string) =>
   readStore<T>(page, 'users-store', `s => (${pick})(s.users.find(u => u.id === '${JAMIE}'))`)
 
 const neighborhoodGroup = (page: Page) => page.getByRole('group', { name: 'Neighborhood' })
+const changeNeighborhood = (page: Page) => page.getByRole('button', { name: 'Change neighborhood' })
+
+/** Phones show the saved neighborhood with a Change button (T-11); open the grid there. */
+async function showNeighborhoods(page: Page) {
+  if (await changeNeighborhood(page).isVisible()) await changeNeighborhood(page).click()
+  await expect(neighborhoodGroup(page)).toBeVisible()
+}
 const avatarInput = (page: Page) => page.locator('input[type="file"]')
 
 /** Set fields on Jamie before Settings mounts (it reads them once). */
@@ -85,11 +93,25 @@ test.describe('P-01 name and bio', () => {
   test('bio is capped at 500 characters', async ({ page }) => {
     await openSettings(page)
     const bio = page.getByLabel('Bio')
-    await expect(bio).toHaveAttribute('maxlength', '500')
     await bio.fill('a'.repeat(600))
     await expect(bio).toHaveValue('a'.repeat(500))
+    await expect(page.getByText('500 of 500 characters')).toBeVisible()
     await page.getByRole('button', { name: 'Save changes' }).click()
     expect((await me<string>(page, 'u => u.bio')).length).toBe(500)
+  })
+
+  test('T-66: emoji count once, so 500 fit in the bio and 60 in the name', async ({ page }) => {
+    await openSettings(page)
+    const bio = page.getByLabel('Bio')
+    await expect(bio).not.toHaveAttribute('maxlength', /.*/)
+    await bio.fill('🌻'.repeat(520))
+    await expect(bio).toHaveValue('🌻'.repeat(500))
+    const name = page.getByLabel('Display name')
+    await name.fill('🦊'.repeat(60))
+    await expect(name).toHaveValue('🦊'.repeat(60))
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    expect(await me<string>(page, 'u => u.bio')).toBe('🌻'.repeat(500))
+    expect(await me<string>(page, 'u => u.displayName')).toBe('🦊'.repeat(60))
   })
 
   test('the name allows as many characters as sign up does (60)', async ({ page }) => {
@@ -114,6 +136,7 @@ test.describe('P-01 name and bio', () => {
 test.describe('P-02 neighborhood picker', () => {
   test('the saved neighborhood is selected and a new one saves', async ({ page }) => {
     await openSettings(page)
+    await showNeighborhoods(page)
     const group = neighborhoodGroup(page)
     await expect(group.getByRole('button')).toHaveCount(NEIGHBORHOODS.length)
     await expect(group.getByRole('button', { name: 'Downtown Memphis' })).toHaveAttribute('aria-pressed', 'true')
@@ -121,6 +144,7 @@ test.describe('P-02 neighborhood picker', () => {
     await expect(page.getByText(/Shown on your listings instead of your address\./)).toBeVisible()
 
     await group.getByRole('button', { name: 'Midtown' }).click()
+    await showNeighborhoods(page)
     await expect(group.getByRole('button', { name: 'Midtown' })).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByText('New listings will show in Midtown once you save. Listings you’ve already posted stay where they are.')).toBeVisible()
     // Not saved until Save changes
@@ -133,6 +157,7 @@ test.describe('P-02 neighborhood picker', () => {
     await login(page, 'Jamie')
     await setJamie(page, { neighborhood: 'cooper-young' })
     await goInApp(page, '/settings')
+    await showNeighborhoods(page)
     await expect(neighborhoodGroup(page).getByRole('button', { name: 'Cooper-Young' })).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByText('Not on our map')).toHaveCount(0)
   })
@@ -141,6 +166,7 @@ test.describe('P-02 neighborhood picker', () => {
     await login(page, 'Jamie')
     await setJamie(page, { neighborhood: 'Vinton Square' })
     await goInApp(page, '/settings')
+    await showNeighborhoods(page)
     const group = neighborhoodGroup(page)
     await expect(group.getByRole('button')).toHaveCount(NEIGHBORHOODS.length + 1)
     const legacy = group.getByRole('button', { name: /Vinton Square/ })
@@ -151,9 +177,52 @@ test.describe('P-02 neighborhood picker', () => {
     await group.getByRole('button', { name: 'Midtown' }).click()
     await expect(page.getByText(/isn’t on our map yet/)).toHaveCount(0)
     // The old value stays as a choice until saved
+    await showNeighborhoods(page)
     await expect(legacy).toBeVisible()
     await page.getByRole('button', { name: 'Save changes' }).click()
     expect(await me<string>(page, 'u => u.neighborhood')).toBe('Midtown')
+  })
+
+  test('phones show the neighborhood on one line with Change; wider screens show the grid', async ({ page }, testInfo) => {
+    // T-11: the full grid made Settings very long on phones
+    await openSettings(page)
+    if (!isMobile(testInfo)) {
+      await expect(changeNeighborhood(page)).toBeHidden()
+      await expect(neighborhoodGroup(page)).toBeVisible()
+      return
+    }
+    const change = changeNeighborhood(page)
+    await expect(change).toHaveAttribute('aria-expanded', 'false')
+    await expect(neighborhoodGroup(page)).toBeHidden()
+    await expect(change.locator('xpath=..')).toContainText('Downtown Memphis')
+    const short = await page.evaluate(() => document.documentElement.scrollHeight)
+
+    await change.click()
+    await expect(change).toHaveAttribute('aria-expanded', 'true')
+    const group = neighborhoodGroup(page)
+    await expect(group.getByRole('button')).toHaveCount(NEIGHBORHOODS.length)
+    const tall = await page.evaluate(() => document.documentElement.scrollHeight)
+    expect(tall - short).toBeGreaterThan(400)
+
+    // Picking one folds the list back up, keeps focus on Change, and saves as before
+    await group.getByRole('button', { name: 'Midtown' }).click()
+    await expect(group).toBeHidden()
+    await expect(change).toBeFocused()
+    await expect(change.locator('xpath=..')).toContainText('Midtown')
+    await expect(page.getByText('New listings will show in Midtown once you save. Listings you’ve already posted stay where they are.')).toBeVisible()
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    expect(await me<string>(page, 'u => u.neighborhood')).toBe('Midtown')
+  })
+
+  test('phones show an old typed neighborhood on the summary line, marked "Not on our map"', async ({ page }, testInfo) => {
+    test.skip(!isMobile(testInfo), 'Phone layout only')
+    await login(page, 'Jamie')
+    await setJamie(page, { neighborhood: 'Vinton Square' })
+    await goInApp(page, '/settings')
+    const summary = changeNeighborhood(page).locator('xpath=..')
+    await expect(summary).toContainText('Vinton Square')
+    await expect(summary).toContainText('Not on our map')
+    await expect(page.getByText('“Vinton Square” isn’t on our map yet', { exact: false })).toBeVisible()
   })
 
   test('keeping the old typed neighborhood saves it unchanged', async ({ page }) => {

@@ -6,6 +6,7 @@ import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
 import { persist, revertKeys } from './persist'
 import { deleteListingPhotos } from '@/lib/photos'
+import { categoryTakesCondition } from '@/lib/listings'
 
 interface NewListingData {
   title: string
@@ -120,6 +121,9 @@ export const useListingsStore = create<ListingsState>((set, get) => {
         Object.entries({ title, description, category, condition, seeking, images, status, location })
           .filter(([, v]) => v !== undefined),
       ) as Partial<Listing>
+      // Switching to a category without a condition clears the old one, so it
+      // can't come back if the listing is switched back later (T-49)
+      if (category !== undefined && !categoryTakesCondition(category)) clean.condition = null
       patch(id, clean, "Couldn't save your listing changes")
     },
 

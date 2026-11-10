@@ -61,8 +61,9 @@ export function DeclineModal({ onDecline, onClose, otherName = 'your neighbor' }
           rows={3}
           /* The reason is a separate code (migration 014), but a database
              without 014 stores "<label>. <note>" in one 2000-character
-             message, so leave room for the longest label */
-          maxLength={1800}
+             message, so leave room for the longest label. Counted like
+             the database: an emoji is 1 (T-66) */
+          limit={1800}
         />
 
         {!selectedReason && (

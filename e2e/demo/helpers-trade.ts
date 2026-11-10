@@ -112,7 +112,7 @@ export async function shot(page: Page, name: string, projectName: string) {
 /** The offer thread's status line (aria-live region). */
 export const offerStatus = (page: Page) => page.locator('main [role="status"][aria-live="polite"]')
 
-/** Dismiss any visible toasts (they sit over the header on phones). */
+/** Dismiss any visible toasts (so they can't cover what a test taps next). */
 export async function dismissToasts(page: Page) {
   await withStores(page, (s) => {
     for (const t of s.useToastStore.getState().toasts) s.useToastStore.getState().dismissToast(t.id)

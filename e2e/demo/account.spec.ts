@@ -24,6 +24,9 @@ test.describe('A-01 log in and sign up (demo)', () => {
     await expect(picker.getByRole('button')).toHaveCount(8)
     // First neighbor is preselected
     await expect(picker.getByRole('button', { name: /Jamie Oakley/ })).toHaveAttribute('aria-pressed', 'true')
+    // T-63: the name comes first, not the avatar's initials ("JO Jamie Oakley")
+    // or its photo's alt text, whether or not the photo loads
+    await expect(picker.getByRole('button', { name: /^Jamie Oakley Downtown Memphis/ })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Log in as Jamie' })).toBeEnabled()
 
     await picker.getByRole('button', { name: /Maria Santos/ }).click()
@@ -132,9 +135,20 @@ test.describe('A-01 log in and sign up (demo)', () => {
   })
 
   test('sign up and log in pages state the terms and the age limit', async ({ page }) => {
-    test.fail(true, 'BUG: demo login/signup never show the terms, privacy and 18+ notice (LegalConsent only renders with a backend)')
-    await page.goto('/auth/login')
-    await expect(page.getByText(/You must be 18 or older/)).toBeVisible()
+    for (const [path, action] of [['/auth/login', 'logging in'], ['/auth/signup', 'joining']]) {
+      await page.goto(path)
+      if (path === '/auth/signup') {
+        // The picker, and the notice beside it, come after the area check
+        await page.getByRole('button', { name: 'Enter a ZIP code instead' }).click()
+        await page.getByLabel('ZIP code').fill('38104')
+        await page.getByRole('button', { name: 'Check availability' }).click()
+        await expect(page.getByRole('button', { name: 'Join as Jamie' })).toBeVisible()
+      }
+      const notice = page.getByText(`By ${action}, you agree to our terms of use and privacy policy. You must be 18 or older.`)
+      await expect(notice).toBeVisible()
+      await expect(notice.getByRole('link', { name: 'terms of use' })).toHaveAttribute('href', '/terms')
+      await expect(notice.getByRole('link', { name: 'privacy policy' })).toHaveAttribute('href', '/privacy')
+    }
   })
 
   test.skip('email and password sign up, confirmation email', () => {

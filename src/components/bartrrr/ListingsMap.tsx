@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type * as maplibregl from 'maplibre-gl'
-import { Map as MapIcon } from 'lucide-react'
+import { ArrowLeft, Map as MapIcon } from 'lucide-react'
 import type { Listing, UserProfile } from '@/types'
+import { CATEGORY_LABELS } from '@/types'
+import { clusterLabel, groupByLocation } from '@/lib/map-clusters'
 import { formatDistance } from '@/lib/utils'
 import { neighborhoodCenter } from '@/data/neighborhoods'
 import { useAuth } from '@/providers/AuthProvider'
@@ -78,6 +80,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   skills: '#86662a',   // gold
   outdoor: '#5f6532',  // moss
 }
+// A pin for several listings of different categories
+const MIXED_COLOR = '#403a34' // ink
 
 export interface ListingsMapProps {
   listings: Listing[]
@@ -93,20 +97,37 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
   const [mapReady, setMapReady] = useState(false)
   const [mapFailed, setMapFailed] = useState(false)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
+  // A pin standing for several listings at one spot shows them as a list (T-62)
+  const [clusterKey, setClusterKey] = useState<string | null>(null)
   const navigate = useNavigate()
   const { currentUser } = useAuth()
   // Open on the neighbor's own neighborhood (falls back to central Memphis).
   // Read once: the map isn't re-centered while it's open.
   const initialCenter = useRef(neighborhoodCenter(currentUser?.neighborhood))
-  // A pin opened from the keyboard moves focus into its preview
-  const focusPreview = useRef(false)
+  const groups = useMemo(() => groupByLocation(listings), [listings])
+  const openCluster = clusterKey ? groups.find((g) => g.key === clusterKey) : undefined
+  // A pin opened from the keyboard moves focus into its preview or list,
+  // and Escape takes it back to the pin
+  const focusPanel = useRef(false)
+  const openedFrom = useRef<HTMLElement | null>(null)
   const viewButton = useRef<HTMLButtonElement>(null)
+  const clusterList = useRef<HTMLUListElement>(null)
   useEffect(() => {
-    if (selectedListing && focusPreview.current) {
-      focusPreview.current = false
+    if (!focusPanel.current) return
+    if (selectedListing) {
+      focusPanel.current = false
       viewButton.current?.focus()
+    } else if (openCluster) {
+      focusPanel.current = false
+      clusterList.current?.querySelector('button')?.focus()
     }
-  }, [selectedListing])
+  }, [selectedListing, openCluster])
+
+  const closePanels = (restoreFocus = false) => {
+    setSelectedListing(null)
+    setClusterKey(null)
+    if (restoreFocus && openedFrom.current?.isConnected) openedFrom.current.focus()
+  }
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return
@@ -170,7 +191,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
     }
   }, [])
 
-  // Add/update markers when listings change
+  // Add/update markers when listings change: one per location
   useEffect(() => {
     const maplibre = maplibreRef.current
     if (!mapReady || !map.current || !maplibre) return
@@ -179,11 +200,15 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
     markersRef.current.forEach((m) => m.remove())
     markersRef.current = []
 
-    listings.forEach((listing) => {
-      const { lat, lng } = listing.location
-      if (!lat || !lng) return
-
-      const color = CATEGORY_COLORS[listing.category] || '#9c5b3c'
+    groups.forEach((group) => {
+      const { lat, lng } = group
+      const count = group.listings.length
+      const single = count === 1
+      const categories = new Set(group.listings.map((l) => l.category))
+      const color =
+        categories.size === 1 ? CATEGORY_COLORS[group.listings[0].category] || '#9c5b3c' : MIXED_COLOR
+      const size = single ? 16 : 28
+      const halo = single ? 10 : 8
 
       // Outer wrapper — MapLibre owns the transform on this element for positioning.
       // Never touch its transform or the pin will jump to (0,0).
@@ -192,35 +217,55 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
       wrapper.style.cssText = `width: 44px; height: 44px; cursor: pointer; display: grid; place-items: center; border-radius: 9999px;`
       wrapper.setAttribute('role', 'button')
       wrapper.setAttribute('tabindex', '0')
-      wrapper.setAttribute('aria-label', listing.title)
+      wrapper.setAttribute('aria-label', single ? group.listings[0].title : clusterLabel(group))
+      // Which listings this pin stands for (also read by the e2e tests)
+      wrapper.dataset.listingIds = group.listings.map((l) => l.id).join(' ')
+      wrapper.dataset.count = String(count)
 
       // Inner element handles all visual styling & hover scale. A dot inside
       // a soft halo reads as "around here", not a doorstep: location is
       // neighborhood-level until both neighbors agree to a trade.
       const pin = document.createElement('div')
       pin.style.cssText = `
-        width: 16px;
-        height: 16px;
+        width: ${size}px;
+        height: ${size}px;
         border-radius: 9999px;
         background: ${color};
         border: 2px solid #f6f1eb;
-        box-shadow: 0 0 0 10px ${color}29, 0 1px 3px rgba(64,58,52,0.3);
+        box-shadow: 0 0 0 ${halo}px ${color}29, 0 1px 3px rgba(64,58,52,0.3);
         transition: transform 0.3s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.3s;
+        display: grid;
+        place-items: center;
+        color: #f6f1eb;
+        font: 600 13px/1 var(--font-body, system-ui), system-ui, sans-serif;
+        font-variant-numeric: tabular-nums;
       `
+      if (!single) {
+        // The count is in the aria-label; this is the visible version
+        pin.setAttribute('aria-hidden', 'true')
+        pin.textContent = count > 99 ? '99+' : String(count)
+      }
       wrapper.appendChild(pin)
 
       wrapper.addEventListener('mouseenter', () => {
-        pin.style.transform = 'scale(1.25)'
-        pin.style.boxShadow = `0 0 0 14px ${color}38, 0 2px 6px rgba(64,58,52,0.35)`
+        pin.style.transform = 'scale(1.2)'
+        pin.style.boxShadow = `0 0 0 ${halo + 4}px ${color}38, 0 2px 6px rgba(64,58,52,0.35)`
       })
       wrapper.addEventListener('mouseleave', () => {
         pin.style.transform = 'scale(1)'
-        pin.style.boxShadow = `0 0 0 10px ${color}29, 0 1px 3px rgba(64,58,52,0.3)`
+        pin.style.boxShadow = `0 0 0 ${halo}px ${color}29, 0 1px 3px rgba(64,58,52,0.3)`
       })
       const open = (byKeyboard = false) => {
-        focusPreview.current = byKeyboard
-        setSelectedListing(listing)
-        map.current?.flyTo({ center: [lng, lat], zoom: 15 })
+        focusPanel.current = byKeyboard
+        openedFrom.current = wrapper
+        if (single) {
+          setClusterKey(null)
+          setSelectedListing(group.listings[0])
+        } else {
+          setSelectedListing(null)
+          setClusterKey(group.key)
+        }
+        map.current?.flyTo({ center: [lng, lat], zoom: Math.max(15, map.current.getZoom()) })
       }
       wrapper.addEventListener('click', () => open())
       wrapper.addEventListener('keydown', (e) => {
@@ -237,7 +282,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
 
       markersRef.current.push(marker)
     })
-  }, [listings, mapReady])
+  }, [groups, mapReady])
 
   // Couldn't load the map library, its style or WebGL: point to the list view
   if (mapFailed) {
@@ -262,21 +307,99 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
     )
   }
 
+  const panelClass =
+    'animate-slide-up absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-paper rounded-none border border-ink p-4 shadow-float z-10'
+  const onPanelKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation()
+      closePanels(true)
+    }
+  }
+  const backToCluster = openCluster && openCluster.listings.length > 1 && selectedListing
+
   return (
     <div className={`relative ${className}`}>
       <div ref={mapContainer} className="w-full h-full" />
 
+      {/* Several listings at one spot: pick one */}
+      {openCluster && !selectedListing && (
+        <section
+          aria-labelledby="map-cluster-title"
+          onKeyDown={onPanelKeyDown}
+          className={`${panelClass} max-h-[min(60%,420px)] flex flex-col`}
+        >
+          <button
+            type="button"
+            aria-label="Close list"
+            className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-sand-light hover:text-ink text-xs"
+            onClick={() => closePanels(true)}
+          >
+            ✕
+          </button>
+          <h2 id="map-cluster-title" className="font-display text-[18px] leading-tight text-ink pr-8 mb-1">
+            {clusterLabel(openCluster)}
+          </h2>
+          <p className="text-small text-muted mb-3">
+            Pins show the neighborhood, not an address, so neighbors nearby share one.
+          </p>
+          <ul ref={clusterList} className="-mx-1 overflow-y-auto divide-y divide-ink/15 border-t border-ink/15">
+            {openCluster.listings.map((l) => (
+              <li key={l.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    focusPanel.current = true
+                    setSelectedListing(l)
+                  }}
+                  className="flex w-full min-h-[56px] items-center gap-3 px-1 py-2 text-left hover:bg-cream focus-visible:bg-cream transition-colors"
+                >
+                  {l.images[0] ? (
+                    <img src={l.images[0]} alt="" className="photo-warm h-11 w-11 shrink-0 rounded-none object-cover" />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="h-11 w-11 shrink-0 bg-sand-light"
+                      style={{ borderLeft: `3px solid ${CATEGORY_COLORS[l.category] ?? MIXED_COLOR}` }}
+                    />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-display text-[16px] leading-tight text-ink truncate">{l.title}</span>
+                    <span className="block text-small text-muted truncate">
+                      {CATEGORY_LABELS[l.category]}
+                      {users[l.userId] && ` · ${users[l.userId].displayName}`}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Listing preview card on pin click */}
       {selectedListing && (
-        <div className="animate-slide-up absolute bottom-4 left-4 right-4 mx-auto max-w-md bg-paper rounded-none border border-ink p-4 shadow-float z-10">
+        <div className={panelClass} onKeyDown={onPanelKeyDown}>
           <button
             type="button"
             aria-label="Close preview"
             className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-sand-light hover:text-ink text-xs"
-            onClick={() => setSelectedListing(null)}
+            onClick={() => closePanels(true)}
           >
             ✕
           </button>
+          {backToCluster && (
+            <button
+              type="button"
+              onClick={() => {
+                focusPanel.current = true
+                setSelectedListing(null)
+              }}
+              className="mb-2 -mt-1 inline-flex min-h-[32px] items-center text-label text-muted hover:text-ink transition-colors"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              All {openCluster.listings.length} listings here
+            </button>
+          )}
           <div className="flex items-start gap-3">
             {selectedListing.images[0] && (
               <img

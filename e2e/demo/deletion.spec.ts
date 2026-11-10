@@ -130,6 +130,28 @@ test.describe('X-01 delete account section', () => {
     await page.mouse.click(5, 5)
     await expect(dialog(page)).toHaveCount(0)
   })
+
+  for (const size of [{ width: 360, height: 640 }, { width: 390, height: 844 }]) {
+    test(`both choices are in reach without scrolling at ${size.width}×${size.height}`, async ({ page }) => {
+      // T-12: on phones the delete button sat below the fold
+      await page.setViewportSize(size)
+      await openDialog(page)
+      const d = dialog(page)
+      for (const name of ['Keep my account', 'Delete account']) {
+        const box = (await d.getByRole('button', { name, exact: true }).boundingBox())!
+        expect(box.y, name).toBeGreaterThanOrEqual(0)
+        expect(box.y + box.height, name).toBeLessThanOrEqual(size.height)
+        expect(box.height, name).toBeGreaterThanOrEqual(44)
+      }
+      // Still asks for the same things, and the pinned button submits the form
+      await d.getByLabel('Type DELETE to confirm').fill('DELETE')
+      await expect(d.getByRole('button', { name: 'Delete account', exact: true })).toBeDisabled()
+      await d.getByLabel('Your password').fill('demo-password')
+      await expect(d.getByRole('button', { name: 'Delete account', exact: true })).toBeEnabled()
+      await d.getByLabel('Type DELETE to confirm').press('Enter')
+      await expect(page).toHaveURL('/goodbye')
+    })
+  }
 })
 
 test.describe('X-04 confirm it’s you before deleting', () => {

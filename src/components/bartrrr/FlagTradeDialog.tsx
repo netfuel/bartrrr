@@ -48,14 +48,15 @@ export function FlagTradeDialog({ otherName, completed, onFlag, onClose }: FlagT
         label="What went wrong?"
         placeholder="The mixer was missing its whisk attachment."
         value={reason}
-        maxLength={500}
+        limit={500}
+        showCount
         rows={3}
         onChange={(e) => {
           setReason(e.target.value)
           setError(undefined)
         }}
         error={error}
-        helperText={`${reason.trim().length} of 500 characters. ${otherName} will see this.`}
+        helperText={`${otherName} will see this.`}
       />
 
       <div className="flex gap-3 mt-6">

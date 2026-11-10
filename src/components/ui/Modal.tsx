@@ -10,6 +10,11 @@ export interface ModalProps {
   align?: 'center' | 'sheet'
   className?: string
   children: React.ReactNode
+  /**
+   * Actions pinned to the bottom of the dialog. The content above scrolls on
+   * its own, so the buttons stay in reach on a short phone screen.
+   */
+  footer?: React.ReactNode
 }
 
 const FOCUSABLE =
@@ -19,7 +24,7 @@ const FOCUSABLE =
  * Accessible modal primitive: backdrop, Escape to close, focus moved into
  * the dialog on open and restored on close, Tab cycling trapped inside.
  */
-export function Modal({ onClose, labelledBy, align = 'center', className, children }: ModalProps) {
+export function Modal({ onClose, labelledBy, align = 'center', className, children, footer }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   // Callers pass inline closures; reading the latest via a ref keeps the
   // effect below mount-only, so a parent re-render (e.g. a realtime update)
@@ -82,13 +87,21 @@ export function Modal({ onClose, labelledBy, align = 'center', className, childr
         aria-modal="true"
         aria-labelledby={labelledBy}
         className={cn(
-          'relative w-full max-w-md max-h-[88svh] overflow-y-auto border border-ink bg-paper p-6 sm:p-7 shadow-float focus:outline-none',
+          'relative w-full max-w-md max-h-[88svh] border border-ink bg-paper shadow-float focus:outline-none',
+          footer ? 'flex flex-col' : 'overflow-y-auto p-6 sm:p-7',
           align === 'sheet' ? 'animate-slide-up sm:animate-scale-in' : 'animate-scale-in',
           'rounded-none',
           className,
         )}
       >
-        {children}
+        {footer ? (
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-5 sm:px-7 sm:pt-7">{children}</div>
+            <div className="shrink-0 border-t border-ink/20 bg-paper px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:px-7 sm:py-4">{footer}</div>
+          </>
+        ) : (
+          children
+        )}
       </div>
     </div>,
     document.body,

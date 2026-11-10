@@ -1,21 +1,32 @@
 import { forwardRef, type TextareaHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
+import { showsCharCounter, useCharLimit } from '@/lib/utils/char-limit'
+import { CharCounter } from './CharCounter'
 
 export interface TextareaProps
   extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string
   error?: string
   helperText?: string
+  /**
+   * Most characters allowed, counted like the database (an emoji is 1).
+   * Use this instead of maxLength, which counts emoji as 2 (T-66). Typing and
+   * pasting stop at the limit, and a counter shows near it.
+   */
+  limit?: number
+  /** Show the counter all the time, not only near the limit. */
+  showCount?: boolean
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, error, helperText, className, id, ...props }, ref) => {
+  ({ label, error, helperText, limit, showCount, className, id, onChange, onCompositionStart, onCompositionEnd, ...props }, ref) => {
+    const limitHandlers = useCharLimit<HTMLTextAreaElement>(limit, { onChange, onCompositionStart, onCompositionEnd })
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-')
-    const describedBy = error
-      ? `${inputId}-error`
-      : helperText
-        ? `${inputId}-helper`
-        : undefined
+    const counter = showsCharCounter(props.value, limit, showCount)
+    const describedBy =
+      [error ? `${inputId}-error` : helperText ? `${inputId}-helper` : '', counter ? `${inputId}-count` : '']
+        .filter(Boolean)
+        .join(' ') || undefined
 
     return (
       <div className="flex flex-col gap-1.5">
@@ -39,16 +50,22 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             className,
           )}
           {...props}
+          {...limitHandlers}
         />
-        {error && (
-          <p id={`${inputId}-error`} className="text-small text-clay-dark animate-fade-in">
-            {error}
-          </p>
-        )}
-        {helperText && !error && (
-          <p id={`${inputId}-helper`} className="text-small text-muted">
-            {helperText}
-          </p>
+        {(error || helperText || counter) && (
+          <div className="flex items-start justify-between gap-3">
+            {error && (
+              <p id={`${inputId}-error`} className="text-small text-clay-dark animate-fade-in">
+                {error}
+              </p>
+            )}
+            {helperText && !error && (
+              <p id={`${inputId}-helper`} className="text-small text-muted">
+                {helperText}
+              </p>
+            )}
+            {counter && <CharCounter id={`${inputId}-count`} value={props.value} limit={limit} className="ml-auto shrink-0" />}
+          </div>
         )}
       </div>
     )
