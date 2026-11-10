@@ -1,0 +1,7 @@
+/* Applied only while taking visual baselines (toHaveScreenshot stylePath).
+   The hero video's frame varies from run to run; hide it (the hero's ink
+   background shows through) instead of masking, so the headline on top
+   of it stays in the baseline. */
+video {
+  visibility: hidden !important;
+}

@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:db": "bash supabase/tests/run.sh",
     "test:e2e": "playwright test",
-    "test:smoke": "playwright test -c playwright.smoke.config.ts"
+    "test:smoke": "playwright test -c playwright.smoke.config.ts",
+    "test:bundle": "node scripts/check-bundle.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
