@@ -6,6 +6,7 @@ import { TradeCard, OfferBuilder } from '@/components/bartrrr'
 import { useListingsStore, useUsersStore, showToast, relistListing } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { formatDistance, usePageTitle } from '@/lib/utils'
+import { useFixedBarHeight } from '@/lib/utils/use-fixed-bar-height'
 import { categoryTakesCondition, isListingLive, listingStatus } from '@/lib/listings'
 import { CATEGORY_LABELS, CATEGORY_COLORS, CONDITION_LABELS } from '@/types'
 
@@ -27,6 +28,9 @@ export default function ListingDetailPage() {
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
   usePageTitle(listing?.title ?? 'Listing')
   const galleryRef = useRef<HTMLDivElement>(null)
+  // Toasts float above the sticky offer bar instead of over it
+  const ctaRef = useRef<HTMLDivElement>(null)
+  useFixedBarHeight(ctaRef, [listing?.id, user?.id])
   const justCreated = Boolean(location.state?.justCreated)
 
   const scrollToImage = (i: number) => {
@@ -219,7 +223,7 @@ export default function ListingDetailPage() {
       )}
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-0 left-0 lg:left-60 right-0 bg-cream/90 backdrop-blur-md border-t border-ink px-4 py-3 sm:p-4 z-30">
+      <div ref={ctaRef} className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-0 left-0 lg:left-60 right-0 bg-cream/90 backdrop-blur-md border-t border-ink px-4 py-3 sm:p-4 z-30">
         <div className="max-w-6xl mx-auto flex items-center gap-6 sm:px-2">
           <div className="hidden min-w-0 flex-1 sm:block">
             <p className="font-display text-[19px] leading-tight text-ink truncate">{listing.title}</p>

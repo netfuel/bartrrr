@@ -234,6 +234,32 @@ test.describe('L-02 photos', () => {
     await expect(next(page)).toBeEnabled()
   })
 
+  test('the error tile shows a clearly visible clay warning icon', async ({ page }) => {
+    // T-10: the icon was squeezed to nothing on phones and drawn hairline-faint on desktop
+    await startListing(page)
+    await photoInput(page).setInputFiles([notAPhoto])
+    const tile = page.getByRole('list', { name: 'Listing photos' }).locator('li').filter({ hasText: 'That file isn’t a photo.' })
+    const icon = tile.locator('svg').first()
+    await expect(icon).toBeVisible()
+    const look = await icon.evaluate((el) => {
+      const cs = getComputedStyle(el)
+      const r = el.getBoundingClientRect()
+      const li = el.closest('li')!.getBoundingClientRect()
+      return {
+        color: cs.color,
+        opacity: Number(cs.opacity),
+        stroke: parseFloat(cs.strokeWidth),
+        size: Math.min(r.width, r.height),
+        inside: r.top >= li.top && r.bottom <= li.bottom && r.left >= li.left && r.right <= li.right,
+      }
+    })
+    expect(look.color).toBe('rgb(156, 91, 60)') // --color-clay
+    expect(look.opacity).toBe(1)
+    expect(look.stroke).toBeGreaterThanOrEqual(2)
+    expect(look.size).toBeGreaterThanOrEqual(18)
+    expect(look.inside).toBe(true)
+  })
+
   test('Next waits while photos are uploading, and says why', async ({ page }) => {
     await slowPhotoPrep(page, 1500)
     await startListing(page)

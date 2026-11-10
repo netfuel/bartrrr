@@ -81,6 +81,63 @@ test.describe('N-01 phone navigation', () => {
     await expect(page.getByRole('heading', { level: 1, name: /What's happening in/ })).toBeVisible()
     await expect(bar(page).getByRole('link', { name: 'Browse' })).toHaveClass(/text-ink/)
   })
+
+  test('the header search has a hint that fits', async ({ page }) => {
+    // T-61: "Search listings or neighborhoods" was cut to "Search listi"
+    await login(page, 'Jamie')
+    const search = page.getByRole('searchbox', { name: 'Search listings' })
+    await expect(search).toHaveAttribute('placeholder', 'Search')
+    const fits = await search.evaluate((el) => {
+      const input = el as HTMLInputElement
+      const cs = getComputedStyle(input)
+      const ctx = document.createElement('canvas').getContext('2d')!
+      ctx.font = `${cs.fontSize} ${cs.fontFamily}`
+      const room = input.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+      return ctx.measureText(input.placeholder).width <= room
+    })
+    expect(fits).toBe(true)
+  })
+
+  test('toasts stay clear of the header, the bottom bar and the offer action bar', async ({ page }) => {
+    // T-44: toasts sat over the search box and bell for 5 s, catching taps
+    const overlaps = async (a: string, b: string) => {
+      const boxes = await Promise.all([a, b].map((s) => page.locator(s).first().boundingBox()))
+      const [p, q] = boxes as { x: number; y: number; width: number; height: number }[]
+      return p.y < q.y + q.height && q.y < p.y + p.height && p.x < q.x + q.width && q.x < p.x + p.width
+    }
+    const toast = '[aria-live="polite"] > [role="status"]'
+    await login(page, 'Jamie')
+    await goInApp(page, '/settings')
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page.locator(toast).filter({ hasText: 'Settings saved.' })).toBeVisible()
+    // Still announced: inside the polite live region, as a status
+    await expect(page.locator('[aria-live="polite"]').getByRole('status')).toHaveText(/Settings saved\./)
+    expect(await overlaps(toast, 'header')).toBe(false)
+    expect(await overlaps(toast, 'nav[aria-label="Main navigation"]')).toBe(false)
+    // The header's search and bell take taps while the toast is up
+    await page.getByRole('button', { name: /^Notifications/ }).click()
+    await expect(page.getByRole('button', { name: /^Notifications/ })).toHaveAttribute('aria-expanded', 'true')
+
+    // An offer thread: its Accept / Counter-offer bar stays uncovered
+    await goInApp(page, '/offers')
+    const thread = page.getByRole('main').locator('a[href^="/offers/"]').first()
+    await goInApp(page, (await thread.getAttribute('href'))!)
+    const actionBar = page.getByRole('main').locator('div.fixed').first()
+    await expect(actionBar).toBeVisible()
+    await page.evaluate(async (path) => {
+      const mod = await import(/* @vite-ignore */ path)
+      mod.showToast('Message sent.', 'success')
+    }, '/src/stores/toast-store.ts')
+    await expect(page.locator(toast).filter({ hasText: 'Message sent.' })).toBeVisible()
+    const barTop = (await actionBar.boundingBox())!.y
+    // Polls past the toast's rise-in animation
+    await expect
+      .poll(async () => {
+        const b = (await page.locator(toast).last().boundingBox())!
+        return b.y + b.height <= barTop
+      })
+      .toBe(true)
+  })
 })
 
 test.describe('N-02 own profile and desktop sidebar', () => {

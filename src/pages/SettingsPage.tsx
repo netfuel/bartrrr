@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Input, Textarea } from '@/components/ui'
 import { AvatarUploader } from '@/components/profile/AvatarUploader'
@@ -7,7 +7,7 @@ import { knownNeighborhood } from '@/data/neighborhoods'
 import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection'
 import { useAuth } from '@/providers/AuthProvider'
 import { useUsersStore, showToast } from '@/stores'
-import { usePageTitle } from '@/lib/utils'
+import { cn, usePageTitle } from '@/lib/utils'
 import type { NotificationPrefs } from '@/types'
 
 const DEFAULT_PREFS: NotificationPrefs = {
@@ -36,6 +36,9 @@ export default function SettingsPage() {
   const savedNeighborhood = currentUser?.neighborhood?.trim() || ''
   const legacyNeighborhood = savedNeighborhood && !knownNeighborhood(savedNeighborhood) ? savedNeighborhood : undefined
   const [neighborhood, setNeighborhood] = useState(knownNeighborhood(savedNeighborhood) ?? savedNeighborhood)
+  // Phones only: the neighborhood grid opens from a Change button
+  const [pickingNeighborhood, setPickingNeighborhood] = useState(false)
+  const changeNeighborhoodRef = useRef<HTMLButtonElement>(null)
   const [bio, setBio] = useState(currentUser?.bio || '')
   const [prefs, setPrefs] = useState<NotificationPrefs>(
     currentUser?.notificationPrefs ?? DEFAULT_PREFS
@@ -93,13 +96,52 @@ export default function SettingsPage() {
                 “{legacyNeighborhood}” isn’t on our map yet, so new listings go near the center of Memphis. Pick the closest neighborhood to place them better.
               </p>
             )}
-            <NeighborhoodPicker
-              value={neighborhood}
-              onChange={setNeighborhood}
-              legacy={legacyNeighborhood}
-              labelledBy="settings-neighborhood-label"
-              describedBy="settings-neighborhood-helper"
-            />
+            {/* Phones: the current choice and a Change button, since the full
+                grid makes Settings very long. Wider screens show the grid. */}
+            {neighborhood && (
+              <div className="flex min-h-[60px] items-center justify-between gap-3 border border-ink px-4 py-2 sm:hidden">
+                <p className="min-w-0">
+                  <span className="block text-[15px] font-medium text-ink">{neighborhood}</span>
+                  {neighborhood === legacyNeighborhood && (
+                    <span className="text-label mt-1 block text-[10px] text-muted">Not on our map</span>
+                  )}
+                </p>
+                <Button
+                  ref={changeNeighborhoodRef}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-expanded={pickingNeighborhood}
+                  aria-controls="settings-neighborhood-picker"
+                  aria-label="Change neighborhood"
+                  onClick={() => setPickingNeighborhood((open) => !open)}
+                  className="min-h-[44px] shrink-0"
+                >
+                  Change
+                </Button>
+              </div>
+            )}
+            <div
+              id="settings-neighborhood-picker"
+              className={cn(!pickingNeighborhood && neighborhood && 'hidden', 'sm:block')}
+            >
+              <NeighborhoodPicker
+                value={neighborhood}
+                onChange={(n) => {
+                  const wasOpen = pickingNeighborhood || !neighborhood
+                  setNeighborhood(n)
+                  // Phones go back to the one-line summary (wider screens keep
+                  // the grid), with focus on Change, not lost with the tile
+                  if (wasOpen && !window.matchMedia('(min-width: 640px)').matches) {
+                    setPickingNeighborhood(false)
+                    requestAnimationFrame(() => changeNeighborhoodRef.current?.focus())
+                  }
+                }}
+                legacy={legacyNeighborhood}
+                labelledBy="settings-neighborhood-label"
+                describedBy="settings-neighborhood-helper"
+              />
+            </div>
             <p id="settings-neighborhood-helper" className="text-small text-muted">
               {neighborhood && neighborhood !== savedNeighborhood
                 ? `New listings will show in ${neighborhood} once you save. Listings you’ve already posted stay where they are.`

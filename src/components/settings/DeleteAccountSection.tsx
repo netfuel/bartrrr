@@ -182,6 +182,7 @@ function DeleteAccountDialog({
   const titleId = useId()
   const inputId = useId()
   const passwordId = useId()
+  const formId = useId()
   const userId = currentUser?.id
 
   // Load the goodbye page now, so it can show even if the connection drops
@@ -300,14 +301,31 @@ function DeleteAccountDialog({
         : 'Enter your password above too.'
 
   return (
-    <Modal onClose={close} align="sheet" labelledBy={titleId} className="sm:max-w-lg">
+    <Modal
+      onClose={close}
+      align="sheet"
+      labelledBy={titleId}
+      className="sm:max-w-lg"
+      // Pinned below the scrolling details, so both choices are in reach
+      // without scrolling on a phone
+      footer={
+        <div className="flex flex-col-reverse gap-1.5 sm:flex-row sm:gap-3">
+          <Button type="button" variant="ghost" onClick={close} disabled={busy || leaving} className="sm:flex-1">
+            Keep my account
+          </Button>
+          <Button type="submit" form={formId} variant="primary" disabled={!ready} loading={busy} className="sm:flex-1">
+            {busy ? 'Deleting…' : 'Delete account'}
+          </Button>
+        </div>
+      }
+    >
       <h2 id={titleId} className="font-display text-xl font-semibold text-ink">
         Delete your account?
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-ink-2">
         This can’t be undone. When you delete your account, we:
       </p>
-      <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2 marker:text-muted">
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-snug text-ink-2 marker:text-muted sm:space-y-1.5 sm:leading-relaxed">
         <li>Delete your sign-in details, profile photo, bio, interests, notifications and notification settings.</li>
         <li>Delete listings nobody has made an offer on, and take down and clear the rest.</li>
         <li>Delete the listing photos you uploaded.</li>
@@ -335,6 +353,7 @@ function DeleteAccountDialog({
       )}
 
       <form
+        id={formId}
         className="mt-6 space-y-5"
         onSubmit={(e) => {
           e.preventDefault()
@@ -398,15 +417,6 @@ function DeleteAccountDialog({
             {error}
           </p>
         )}
-
-        <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row">
-          <Button type="button" variant="ghost" onClick={close} disabled={busy || leaving} className="sm:flex-1">
-            Keep my account
-          </Button>
-          <Button type="submit" variant="primary" disabled={!ready} loading={busy} className="sm:flex-1">
-            {busy ? 'Deleting…' : 'Delete account'}
-          </Button>
-        </div>
       </form>
     </Modal>
   )

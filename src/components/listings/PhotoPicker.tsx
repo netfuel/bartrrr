@@ -209,18 +209,32 @@ export function PhotoPicker({ value, onChange, userId, saved = [], onBusyChange 
                 <span className="text-label text-[10px]">Uploading</span>
               </div>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 text-center">
-                <AlertCircle className="h-5 w-5 text-clay" aria-hidden="true" />
-                <span className="text-[12px] leading-tight text-ink">{p.error}</span>
-                <div className="flex gap-1.5">
-                  {p.retryable && <button type="button" onClick={() => retry(p)} className="text-label inline-flex min-h-[28px] items-center gap-1 rounded-full border border-ink bg-cream px-2.5 text-[10px] hover:bg-ink hover:text-cream">
-                    <RotateCcw className="h-3 w-3" aria-hidden="true" /> Retry
-                  </button>}
-                  <button type="button" onClick={() => dismiss(p)} aria-label="Remove this photo" className="flex h-7 w-7 items-center justify-center rounded-full border border-ink bg-cream hover:bg-ink hover:text-cream">
-                    <X className="h-3 w-3" />
-                  </button>
+              <>
+                {/* Corners, like a photo's own remove button, so the message
+                    can't squeeze the warning out of a small tile */}
+                <AlertCircle
+                  className="absolute left-2 top-2 h-5 w-5 shrink-0 text-clay"
+                  // Heavier than the hairline icon stroke (globals.css), which reads faint at this size
+                  style={{ strokeWidth: 2.25 }}
+                  aria-hidden="true"
+                />
+                <button
+                  type="button"
+                  onClick={() => dismiss(p)}
+                  aria-label="Remove this photo"
+                  className="absolute right-1.5 top-1.5 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-ink bg-cream hover:bg-ink hover:text-cream"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <div className="absolute inset-0 flex overflow-y-auto px-2 pb-2 pt-10 text-center">
+                  <div className="m-auto flex flex-col items-center gap-1.5">
+                    <span className="text-[11px] leading-tight text-ink sm:text-[12px]">{p.error}</span>
+                    {p.retryable && <button type="button" onClick={() => retry(p)} className="text-label inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded-full border border-ink bg-cream px-2.5 text-[10px] hover:bg-ink hover:text-cream">
+                      <RotateCcw className="h-3 w-3" aria-hidden="true" /> Retry
+                    </button>}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </li>
         ))}

@@ -146,10 +146,13 @@ test.describe('W-05 web app manifest', () => {
   })
 
   test('theme color in the page matches the manifest', async ({ page, request }) => {
-    test.fail(true, 'BUG: <meta theme-color> (#f6f1eb) and manifest theme_color (#C05A35) disagree')
     await page.goto('/')
     const meta = await page.locator('meta[name="theme-color"]').getAttribute('content')
     const manifest = await (await request.get('/manifest.webmanifest')).json()
     expect(meta?.toLowerCase()).toBe(String(manifest.theme_color).toLowerCase())
+    // Both are the page's linen (--color-linen), so the splash screen matches the page too
+    const body = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
+    expect(body).toBe('rgb(246, 241, 235)')
+    expect(String(manifest.background_color).toLowerCase()).toBe('#f6f1eb')
   })
 })

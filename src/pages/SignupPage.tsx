@@ -303,6 +303,12 @@ export default function SignupPage() {
                   <Suspense fallback={null}>
                     <DemoUserPicker mode="signup" onDone={() => navigate('/onboarding', { replace: true })} />
                   </Suspense>
+                  {/* With a backend the notice sits under the email form above */}
+                  {!HAS_SUPABASE && (
+                    <div className="mt-6">
+                      <LegalConsent action="joining" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

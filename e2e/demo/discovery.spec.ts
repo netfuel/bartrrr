@@ -197,7 +197,6 @@ test.describe('D-01 browse map', () => {
   })
 
   test('sample listing pins sit at their neighborhood centers', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: demo listings in src/data/mock-listings.ts use made-up coordinates up to ~3 km from their neighborhood center (e.g. Cooper-Young lawn mowing sits in Midtown)')
     await stubMapStyle(page)
     await login(page, 'Jamie')
     await showMap(page, testInfo)
@@ -358,6 +357,28 @@ test.describe('D-01 browse map', () => {
 })
 
 test.describe('D-02 filters, search and empty states', () => {
+  test('browse cards give the owner room for at least a first name', async ({ page }) => {
+    // T-61: at 1280 px owner names were cut to "Ma…" beside the Offer button
+    await login(page, 'Jamie')
+    await expect(listCards(page).first()).toBeVisible()
+    const cut = await listCards(page).evaluateAll((cards) =>
+      cards.flatMap((card) => {
+        const name = card.querySelector('a[href^="/profile/"] span.truncate') as HTMLElement | null
+        if (!name) return []
+        const first = (name.textContent ?? '').split(' ')[0]
+        const probe = document.createElement('span')
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap'
+        probe.style.font = getComputedStyle(name).font
+        probe.textContent = first
+        document.body.append(probe)
+        const need = probe.getBoundingClientRect().width
+        probe.remove()
+        return name.clientWidth + 0.5 < need ? [`${name.textContent} (${name.clientWidth}px < ${Math.ceil(need)}px)`] : []
+      }),
+    )
+    expect(cut).toEqual([])
+  })
+
   test('category chips filter the list and the map', async ({ page }, testInfo) => {
     await stubMapStyle(page)
     await login(page, 'Jamie')
