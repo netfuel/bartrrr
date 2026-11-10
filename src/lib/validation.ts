@@ -7,7 +7,28 @@ import { ValidationError } from './validation-error'
  * database rejects the write. The database remains the real enforcement.
  */
 
-const trimmed = (max: number, min = 0) => z.string().trim().min(min).max(max)
+/**
+ * Length in characters the way Postgres char_length counts them: code
+ * points, so an emoji is 1, not the 2 UTF-16 units String.length sees.
+ */
+export const charCount = (s: string) => [...s].length
+
+/**
+ * A max-length rule that counts code points (zod's .max() counts UTF-16
+ * units, so emoji would count double against limits the database counts
+ * once). Same issue shape and default message as .max().
+ */
+const maxChars = (max: number, message?: string) => (v: string, ctx: z.RefinementCtx) => {
+  if (charCount(v) > max) {
+    ctx.addIssue({ code: 'too_big', origin: 'string', maximum: max, inclusive: true, input: v, ...(message && { message }) })
+  }
+}
+
+const trimmed = (max: number, min = 0) => z.string().trim().min(min).superRefine(maxChars(max))
+
+/** bcrypt (Supabase Auth) only takes the first 72 bytes and refuses longer ones. */
+export const PASSWORD_MAX_BYTES = 72
+const utf8Bytes = (s: string) => new TextEncoder().encode(s).length
 
 export const emailSchema = z
   .string()
@@ -19,6 +40,12 @@ export const passwordSchema = z
   .string()
   .min(8, 'Use at least 8 characters.')
   .max(72, 'Use 72 characters or fewer.')
+  // Accented letters and emoji take 2–4 bytes each; only flag this when the
+  // character count passed, so people see one reason at a time
+  .refine(
+    (p) => p.length > 72 || utf8Bytes(p) <= PASSWORD_MAX_BYTES,
+    'Use a shorter password. Accented letters and emoji count extra toward the 72-character limit.',
+  )
   .regex(/[a-zA-Z]/, 'Include at least one letter.')
   .regex(/\d/, 'Include at least one number.')
 
@@ -92,15 +119,15 @@ export const exchangeDetailsSchema = z.object({
     .refine((v) => !Number.isNaN(Date.parse(v)), 'Pick a date and time for the swap.')
     .refine((v) => Date.parse(v) > Date.now(), "Pick a time that hasn't happened yet.")
     .optional(),
-  exchangeLocation: z.string().trim().max(300, 'Keep the place to 300 characters or fewer.').optional(),
-  specialInstructions: z.string().trim().max(1000, 'Keep notes to 1,000 characters or fewer.').optional(),
+  exchangeLocation: z.string().trim().superRefine(maxChars(300, 'Keep the place to 300 characters or fewer.')).optional(),
+  specialInstructions: z.string().trim().superRefine(maxChars(1000, 'Keep notes to 1,000 characters or fewer.')).optional(),
 })
 
 export const disputeReasonSchema = z
   .string()
   .trim()
   .min(1, 'Say briefly what went wrong.')
-  .max(500, 'Keep it to 500 characters or fewer.')
+  .superRefine(maxChars(500, 'Keep it to 500 characters or fewer.'))
 
 export { ValidationError }
 

@@ -45,6 +45,15 @@ describe('friendlyAuthError', () => {
   it('OAuth cancel strings from the URL', () => {
     expect(friendlyAuthError('access_denied')).toBe("Login was canceled. Try again whenever you're ready.")
   })
+  it.each([
+    new AuthApiError('Password cannot be longer than 72 characters', 422, 'validation_failed'),
+    new AuthApiError('Password cannot be longer than 72 characters', 422, 'weak_password'),
+    new Error('bcrypt: password length exceeds 72 bytes'),
+  ])('T-31: password too long → shorter password (%s)', (err) => {
+    expect(friendlyAuthError(err)).toBe(
+      'Use a shorter password. Accented letters and emoji count extra toward the 72-character limit.',
+    )
+  })
   it('generic expired text', () => {
     expect(friendlyAuthError(new Error('Token has expired'))).toBe('That link has expired. Request a new one.')
   })

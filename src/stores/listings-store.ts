@@ -4,7 +4,7 @@ import { mockListings } from '@/data/mock-listings'
 import { DEMO_MODE } from '@/lib/env'
 import { generateId } from '@/lib/utils'
 import * as svc from '@/lib/supabase/supabase-service'
-import { persist } from './persist'
+import { persist, revertKeys } from './persist'
 import { deleteListingPhotos } from '@/lib/photos'
 
 interface NewListingData {
@@ -63,7 +63,11 @@ export const useListingsStore = create<ListingsState>((set, get) => {
           deleteListingPhotos(previous.images.filter((u) => !saved.images.includes(u)))
         }
       },
-      rollback: () => replace(id, previous),
+      rollback: () => {
+        // Undo only the keys this edit set, and only where no newer edit replaced them
+        const current = get().listings.find((l) => l.id === id)
+        if (previous && current) replace(id, revertKeys(current, previous, data))
+      },
     })
   }
 

@@ -51,3 +51,31 @@ export function persist<T>(
     .then((result) => opts.onSuccess?.(result))
     .catch(persistError(opts.error, opts.rollback))
 }
+
+/** Structural equality for plain data (strings, numbers, arrays, plain objects). */
+export function sameValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false
+  if (Array.isArray(a) !== Array.isArray(b)) return false
+  const ra = a as Record<string, unknown>
+  const rb = b as Record<string, unknown>
+  const ka = Object.keys(ra).filter((k) => ra[k] !== undefined)
+  const kb = Object.keys(rb).filter((k) => rb[k] !== undefined)
+  return ka.length === kb.length && ka.every((k) => sameValue(ra[k], rb[k]))
+}
+
+/**
+ * Undo one optimistic write without clobbering anything newer. Only the keys
+ * this write `applied` are touched, and each goes back to its `previous`
+ * value only while `current` still holds what this write put there. A key
+ * that a later edit (or a server copy) has changed since is left alone.
+ */
+export function revertKeys<T extends object>(current: T, previous: T, applied: Partial<T>): T {
+  const next = { ...current }
+  for (const key of Object.keys(applied) as (keyof T)[]) {
+    if (!sameValue(current[key], applied[key])) continue
+    if (key in previous) next[key] = previous[key]
+    else delete next[key]
+  }
+  return next
+}

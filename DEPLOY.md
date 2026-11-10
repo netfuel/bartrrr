@@ -200,6 +200,26 @@ update public.agreements set status = 'cancelled' where id = '<agreement id>';
 
 Late cancellations: `users.late_cancellations` counts cancellations made less than 24 hours before an agreed swap (both had signed), or after the swap time. The server works it out when the agreement is canceled; it shows on the neighbor's profile. To review: `select id, cancelled_by, cancelled_at, exchange_date from public.agreements where cancelled_late order by cancelled_at desc;`
 
+### Signed before time and place were required
+
+Agreements one neighbor signed before migration 009 may have no method, time or place. 009 refuses the second signature until all three are set, and saving them clears the early signature, so both sign again. The app explains this on the agreement. To find these rows (and perhaps message both neighbors):
+
+```sql
+select a.id, a.created_at,
+       pa.display_name as party_a, a.party_a_signed,
+       pb.display_name as party_b, a.party_b_signed,
+       a.exchange_method, a.exchange_date, a.exchange_location
+  from public.agreements a
+  join public.users pa on pa.id = a.party_a_user_id
+  join public.users pb on pb.id = a.party_b_user_id
+ where a.status in ('draft', 'under_review', 'pending_signatures')
+   and (a.party_a_signed <> a.party_b_signed)
+   and (a.exchange_method is null
+        or nullif(btrim(a.exchange_date), '') is null
+        or nullif(btrim(a.exchange_location), '') is null)
+ order by a.created_at;
+```
+
 ## Legal pages
 
 `/privacy` and `/terms` are public and indexed. The facts they depend on (operator name, contact email, minimum age, governing law, last-updated date) live in `src/lib/legal.ts`.

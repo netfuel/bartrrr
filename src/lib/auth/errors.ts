@@ -12,6 +12,11 @@ export function friendlyAuthError(err: unknown): string {
   if (isNetworkError(err)) {
     return "We couldn't reach Bartrrr. Check your connection and try again."
   }
+  // GoTrue: "Password cannot be longer than 72 characters"; bcrypt: "password
+  // length exceeds 72 bytes". Either way the fix is a shorter password.
+  if (m.includes('password') && /longer than|too long|exceeds|72 (bytes|characters)/.test(m)) {
+    return 'Use a shorter password. Accented letters and emoji count extra toward the 72-character limit.'
+  }
   switch (code) {
     case 'invalid_credentials':
       return "That email and password don't match. Try again or reset your password."

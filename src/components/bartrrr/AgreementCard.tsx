@@ -178,7 +178,8 @@ export function AgreementCard({
         </div>
       )}
 
-      {open && !bothSigned && hasSigned && (
+      {/* With details missing they can't sign yet (009); the page explains what's next */}
+      {open && !bothSigned && hasSigned && missing.length === 0 && (
         <p className="border-t border-ink/30 px-5 py-4 text-center text-[15px] text-ink-2 sm:px-7">
           You signed. Waiting for {them.user.displayName.split(' ')[0]} to sign. We'll let you know.
         </p>

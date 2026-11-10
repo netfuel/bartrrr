@@ -85,8 +85,8 @@ describe('updateUser avatar save callbacks (P-03)', () => {
     expect(get().avatarUrl).toBe(NEW)
   })
 
-  it.fails(
-    'a failed save rolls back only its own change BUG: rollback restores the whole old profile, wiping a later edit that saved',
+  it(
+    'a failed save rolls back only its own change (T-28: a later edit that saved stays)',
     async () => {
       let failAvatar!: (e: unknown) => void
       vi.mocked(svc.updateUser)

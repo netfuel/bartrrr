@@ -56,8 +56,8 @@ describe('passwordSchema', () => {
     ok(passwordSchema, 'pass1🚲🪴word')
     ok(passwordSchema, 'a1' + RTL.slice(0, 10))
   })
-  it.fails(
-    'rejects a password over 72 bytes even when under 72 characters BUG: bcrypt/Supabase limit is 72 bytes, schema counts UTF-16 units',
+  it(
+    'rejects a password over 72 bytes even when under 72 characters (T-31)',
     () => {
       // 36 × "é" is 36 characters but 72 bytes; with "a1" it's 74 bytes.
       const pw = 'a1' + 'é'.repeat(36)
@@ -185,8 +185,8 @@ describe('listingInputSchema', () => {
     const result = listingInputSchema.safeParse({ ...valid, description: 'x'.repeat(100_000) })
     expect(result.success).toBe(false)
   })
-  it.fails(
-    'counts emoji as one character like the database does BUG: zod max counts UTF-16 units, char_length counts code points',
+  it(
+    'counts emoji as one character like the database does (T-30)',
     () => {
       // 120 bikes is 120 characters to Postgres (listings_title_len) but 240 to .max()
       ok(listingInputSchema, { ...valid, title: '🚲'.repeat(120) })
@@ -300,6 +300,11 @@ describe('exchangeDetailsSchema', () => {
     bad(exchangeDetailsSchema, { exchangeLocation: 'p'.repeat(301) })
     bad(exchangeDetailsSchema, { specialInstructions: 's'.repeat(1001) })
   })
+  it('T-30: emoji count once, and the messages stay the same', () => {
+    ok(exchangeDetailsSchema, { exchangeLocation: '🌳'.repeat(300), specialInstructions: '📦'.repeat(1000) })
+    const r = exchangeDetailsSchema.safeParse({ exchangeLocation: '🌳'.repeat(301) })
+    expect(r.error?.issues[0]?.message).toBe('Keep the place to 300 characters or fewer.')
+  })
 })
 
 describe('disputeReasonSchema', () => {
@@ -308,6 +313,14 @@ describe('disputeReasonSchema', () => {
     ok(disputeReasonSchema, 'r'.repeat(500))
     bad(disputeReasonSchema, 'r'.repeat(501))
     bad(disputeReasonSchema, '   ')
+  })
+  it('T-30: emoji count once', () => {
+    ok(disputeReasonSchema, '😕'.repeat(500))
+    expect(disputeReasonSchema.safeParse('😕'.repeat(501)).error?.issues[0]?.message).toBe('Keep it to 500 characters or fewer.')
+  })
+  it('T-30: trimmed() keeps the default too-big message', () => {
+    expect(offerMessageSchema.safeParse('🚲'.repeat(2001)).error?.issues[0]).toMatchObject({ code: 'too_big', maximum: 2000 })
+    ok(offerMessageSchema, '🚲'.repeat(2000))
   })
 })
 
