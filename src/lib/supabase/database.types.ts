@@ -414,6 +414,10 @@ export interface Database {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      my_notification_prefs: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: Record<string, never>
   }

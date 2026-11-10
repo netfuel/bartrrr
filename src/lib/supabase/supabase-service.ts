@@ -322,20 +322,55 @@ export async function updateListing(id: string, partial: Partial<Listing>): Prom
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
+/**
+ * Public profile columns. Listed explicitly: since migration 012 other
+ * neighbors can't read `notification_prefs`, so `select('*')` is refused.
+ * The signed-in neighbor's own settings come from `my_notification_prefs()`.
+ */
+const USER_COLUMNS =
+  'id, username, display_name, avatar_url, bio, neighborhood, interests, reputation_score, trade_count, joined_at, late_cancellations'
+
 export async function fetchAllUsers(): Promise<UserProfile[]> {
   const { data, error } = await client()
     .from('users')
-    .select('*')
+    .select(USER_COLUMNS)
     .order('joined_at', { ascending: true })
     .limit(1000)
   if (error) throw error
-  return (data ?? []).map(mapUserRow)
+  return (data ?? []).map((row) => mapUserRow(row as UserRow))
 }
 
 export async function fetchUser(id: string): Promise<UserProfile | null> {
-  const { data, error } = await client().from('users').select('*').eq('id', id).maybeSingle()
+  const { data, error } = await client().from('users').select(USER_COLUMNS).eq('id', id).maybeSingle()
   if (error) throw error
-  return data ? mapUserRow(data) : null
+  return data ? mapUserRow(data as UserRow) : null
+}
+
+/**
+ * The signed-in neighbor's notification settings: from my_notification_prefs()
+ * (migration 012), or straight from their row before 012 is applied.
+ */
+export async function fetchMyNotificationPrefs(): Promise<UserProfile['notificationPrefs']> {
+  const { data, error } = await client().rpc('my_notification_prefs')
+  if (!error) return mapUserRow({ notification_prefs: data } as UserRow).notificationPrefs
+  if (error.code !== 'PGRST202') throw error
+  // Before migration 012 there's no RPC, but the column is still readable
+  const { data: auth } = await client().auth.getUser()
+  if (!auth.user) return undefined
+  const { data: row, error: rowError } = await client()
+    .from('users')
+    .select('notification_prefs')
+    .eq('id', auth.user.id)
+    .maybeSingle()
+  if (rowError || !row) return undefined
+  return mapUserRow(row as UserRow).notificationPrefs
+}
+
+/** Own profile with private settings merged in. */
+async function fetchOwnProfile(id: string): Promise<UserProfile | null> {
+  const [profile, prefs] = await Promise.all([fetchUser(id), fetchMyNotificationPrefs().catch(() => undefined)])
+  if (!profile) return null
+  return prefs ? { ...profile, notificationPrefs: prefs } : profile
 }
 
 /**
@@ -348,7 +383,7 @@ export async function ensureOwnProfile(seed: {
   displayName: string
   avatarUrl?: string
 }): Promise<UserProfile> {
-  const existing = await fetchUser(seed.id)
+  const existing = await fetchOwnProfile(seed.id)
   if (existing) return existing
 
   const base =
@@ -371,7 +406,7 @@ export async function ensureOwnProfile(seed: {
   // 23505: the trigger (or another tab) created it first. That's fine.
   if (error && error.code !== '23505') throw error
 
-  const created = await fetchUser(seed.id)
+  const created = await fetchOwnProfile(seed.id)
   if (!created) throw new Error('Profile could not be created')
   return created
 }
