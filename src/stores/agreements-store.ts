@@ -3,9 +3,9 @@ import type { ExchangeDetails, TradeAgreement } from '@/types'
 import { mockAgreements } from '@/data/mock-agreements'
 import { DEMO_MODE } from '@/lib/env'
 import * as svc from '@/lib/supabase/supabase-service'
-import { hasBackend, persist } from './persist'
+import { persist } from './persist'
 import { sendPushNotification } from '@/lib/push'
-import { canCancel, canFlag, isBeingAgreed, isLateCancellation } from '@/lib/agreements'
+import { canCancel, canFlag, isBeingAgreed, isLateCancellation, missingDetails } from '@/lib/agreements'
 
 interface CreateAgreementData {
   offerId: string
@@ -33,6 +33,18 @@ interface AgreementsState {
 
 const otherParty = (a: TradeAgreement, userId: string) =>
   a.partyA.userId === userId ? a.partyB.userId : a.partyA.userId
+
+/**
+ * Mirrors the server's signing rules (004 agreements_guard, 009 details
+ * guard): only while the terms are still being agreed, only your own
+ * signature, only once, and only after method, time and place are set.
+ */
+function canSign(a: TradeAgreement, userId: string): boolean {
+  if (!isBeingAgreed(a) || missingDetails(a).length > 0) return false
+  if (a.partyA.userId === userId) return !a.partyA.signed
+  if (a.partyB.userId === userId) return !a.partyB.signed
+  return false
+}
 
 /** Matches the id the server assigns when it drafts the agreement on accept. */
 export const agreementIdForOffer = (offerId: string) => `agreement-${offerId}`
@@ -93,7 +105,7 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => {
 
     signAgreement: (id, userId) => {
       const previous = get().agreements.find((a) => a.id === id)
-      if (!previous) return
+      if (!previous || !canSign(previous, userId)) return
       const updated = { ...previous }
       if (previous.partyA.userId === userId) updated.partyA = { ...previous.partyA, signed: true }
       if (previous.partyB.userId === userId) updated.partyB = { ...previous.partyB, signed: true }
@@ -122,7 +134,8 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => {
     completeAgreement: (id) => {
       const previous = get().agreements.find((a) => a.id === id)
       if (!previous) return
-      if (hasBackend() && previous.status !== 'active') return
+      // Only an active trade (both signed) can be completed (004)
+      if (previous.status !== 'active') return
       replace({ ...previous, status: 'completed', completedAt: new Date().toISOString() })
       persist(() => svc.completeAgreement(id), {
         error: "Couldn't mark the trade as done",
@@ -191,7 +204,8 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => {
     flagAgreement: (id, userId, reason) => {
       const previous = get().agreements.find((a) => a.id === id)
       const trimmed = reason.trim()
-      if (!previous || !canFlag(previous) || !trimmed) return
+      // Same 1–500 characters the server checks (char_length counts code points)
+      if (!previous || !canFlag(previous) || !trimmed || [...trimmed].length > 500) return
       replace({
         ...previous,
         status: 'disputed',

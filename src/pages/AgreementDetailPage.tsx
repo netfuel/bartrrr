@@ -96,6 +96,13 @@ export default function AgreementDetailPage() {
   const anySigned = agreement.partyA.signed || agreement.partyB.signed
   const isClosed = agreement.status === 'cancelled' || agreement.status === 'disputed'
   const hasAnyDetail = Boolean(agreement.exchangeMethod || agreement.exchangeDate || agreement.exchangeLocation)
+  /**
+   * One neighbor signed before time and place were required (migration 009).
+   * The server won't take the second signature until details are in, and
+   * saving them clears the early signature, so both sign again after.
+   */
+  const signedBeforeDetails = open && anySigned && missing.length > 0
+  const earlySignerId = agreement.partyA.signed ? agreement.partyA.userId : agreement.partyB.userId
 
   const alreadyReviewed = hasReviewed(agreement.id, currentUser.id)
   const agreementReviews = reviews.filter((r) => r.agreementId === agreement.id)
@@ -140,7 +147,9 @@ export default function AgreementDetailPage() {
       data: { agreementId: agreement.id },
     })
     showToast(
-      anySigned
+      signedBeforeDetails
+        ? `Saved. You and ${otherFirstName} can both sign now.`
+        : anySigned
         ? `Saved. You and ${otherFirstName} will both sign again.`
         : `Saved. We'll let ${otherFirstName} know.`,
       'success',
@@ -323,7 +332,7 @@ export default function AgreementDetailPage() {
       <section className="mt-8" aria-labelledby="when-where">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h3 id="when-where" className="text-heading-section text-ink">When and where</h3>
-          {isParticipant && open && !editingDetails && (
+          {isParticipant && open && !editingDetails && !signedBeforeDetails && (
             <Button variant="outline" size="sm" onClick={() => setEditingDetails(true)}>
               <Pencil className="h-3.5 w-3.5" />
               {hasAnyDetail ? 'Edit time and place' : 'Add time and place'}
@@ -341,7 +350,26 @@ export default function AgreementDetailPage() {
           />
         ) : open || hasAnyDetail ? (
           <>
-            {missing.length > 0 && (
+            {signedBeforeDetails ? (
+              <div role="status" className="mb-4 border-l-2 border-gold bg-gold-light/70 px-4 py-4 text-ink-2">
+                <p className="text-[16px] font-medium text-ink">
+                  {isParticipant && earlySignerId === currentUser.id
+                    ? `Add a time and place before ${otherFirstName} signs.`
+                    : 'Add a time and place before signing.'}
+                </p>
+                <p className="mt-1 text-small leading-relaxed">
+                  {earlySignerId === currentUser.id
+                    ? `You signed before these were required, so you'll sign again once they're in. Either of you can add them.`
+                    : `${nameOf(earlySignerId)} signed before these were required, so they'll sign again once they're in. Either of you can add them.`}
+                </p>
+                {isParticipant && (
+                  <Button variant="primary" size="sm" className="mt-3" onClick={() => setEditingDetails(true)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    Add time and place
+                  </Button>
+                )}
+              </div>
+            ) : missing.length > 0 && (
               <p role="status" className="mb-4 border-l-2 border-gold bg-gold-light/70 px-4 py-3 text-small text-ink-2 leading-relaxed">
                 {missing.length === 3
                   ? `No time or place yet. Pick them with ${otherFirstName}, then add them here. You can both sign once they're set.`

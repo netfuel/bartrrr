@@ -177,6 +177,46 @@ test.describe('G-06 signing', () => {
   })
 })
 
+test.describe('T-03 signed before time and place were required (migration 009)', () => {
+  test('both sides are told to add details first; saving them opens signing to both', async ({ page }) => {
+    await start(page, 'Jamie', '/agreements/agreement-001')
+    // An older row: Jamie signed, no time or place (009 now refuses the second signature)
+    await withStores(page, (s) => {
+      const st = s.useAgreementsStore.getState()
+      const a = st.getAgreementById('agreement-001')
+      st.upsertAgreement({ ...a, exchangeMethod: undefined, exchangeDate: undefined, exchangeLocation: undefined, specialInstructions: undefined })
+    })
+    const notice = page.locator('main [role="status"]').filter({ hasText: 'signed before these were required' })
+
+    // The one who signed early
+    await expect(notice).toContainText('Add a time and place before Dave signs.')
+    await expect(notice).toContainText("You signed before these were required, so you'll sign again once they're in.")
+    await expect(card(page)).not.toContainText('Waiting for Dave to sign')
+    await expect(page.getByRole('button', { name: 'Add time and place' })).toHaveCount(1)
+
+    // The other side: signing waits, details are the next step
+    await switchTo(page, 'Dave', '/agreements/agreement-001')
+    await expect(notice).toContainText('Add a time and place before signing.')
+    await expect(notice).toContainText("Jamie signed before these were required, so they'll sign again once they're in.")
+    await expect(signBtn(page)).toBeDisabled()
+    await expect(honesty(page)).toHaveCount(0)
+    await notice.getByRole('button', { name: 'Add time and place' }).click()
+    await fillDetails(page, { method: 'Meet up in person', hours: 72, place: 'Overton Park shell' })
+    await expect(page.getByText('Saved. You and Jamie can both sign now.').first()).toBeVisible()
+    await expect(notice).toHaveCount(0)
+    await expect(card(page)).toContainText("Jamie hasn't signed yet")
+
+    await honesty(page).check()
+    await signBtn(page).click()
+    await expect(card(page)).toContainText('You signed. Waiting for Jamie to sign.')
+
+    await switchTo(page, 'Jamie', '/agreements/agreement-001')
+    await honesty(page).check()
+    await signBtn(page).click()
+    await expect(card(page)).toContainText('Ready to swap')
+  })
+})
+
 test.describe('G-07 complete and review', () => {
   test('mark as done, then one 1 to 5 star review from each neighbor', async ({ page }) => {
     await start(page, 'Maria', '/agreements/agreement-002')
@@ -347,8 +387,7 @@ test.describe('G-09 flag for review', () => {
     expect(statuses).toEqual(['cancelled', 'in_person', 'disputed'])
   })
 
-  test('the store refuses to sign a canceled agreement', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: signAgreement has no status guard, so a canceled agreement whose other side then signs flips to "active" (Ready to swap)')
+  test('the store refuses to sign a canceled agreement (T-42)', async ({ page }, testInfo) => {
     await start(page, 'Jamie', '/agreements/agreement-001')
     const status = await withStores(page, (s) => {
       const st = s.useAgreementsStore.getState()

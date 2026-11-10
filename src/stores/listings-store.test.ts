@@ -152,8 +152,8 @@ describe('updateListing (L-02)', () => {
     )
   })
 
-  it.fails(
-    'a failed edit rolls back only its own change BUG: rollback restores the whole old listing over a later edit that saved',
+  it(
+    'a failed edit rolls back only its own change (T-29: a later edit that saved stays)',
     async () => {
       let failFirst!: (e: unknown) => void
       updateListing

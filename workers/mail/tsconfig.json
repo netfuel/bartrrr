@@ -1,0 +1,29 @@
+{
+  // The mail Worker (Cloudflare Workers runtime). No @cloudflare/workers-types
+  // in the project, so the standard web APIs the Worker uses (fetch Request /
+  // Response, WebCrypto, TextEncoder, atob/btoa) come from TypeScript's
+  // WebWorker lib; the send_email binding is typed in src/index.ts.
+  // Tests run in Node under Vitest, hence the node types.
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../node_modules/.tmp/tsconfig.mail-worker.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "WebWorker"],
+    "module": "esnext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}

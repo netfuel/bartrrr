@@ -290,8 +290,20 @@ describe('fetch handler status codes (E-02)', () => {
     expect((await r.json()).error.message).toBe('Email send failed (E_RATE)')
   })
 
-  it.fails('signed JSON without email_data → 400 BUG: planEmails throws TypeError, Worker answers with an uncaught 500', async () => {
+  it('signed JSON without email_data → 400 (T-32)', async () => {
     const r = await post(JSON.stringify({ user: { email: 'matt@example.com' } }))
+    expect(r.status).toBe(400)
+    expect((await r.json()).error).toMatchObject({ http_code: 400 })
+    expect(env.EMAIL.send).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['null', 'null'],
+    ['an array', '[]'],
+    ['no user', JSON.stringify({ email_data: { email_action_type: 'signup' } })],
+    ['no action type', JSON.stringify({ user: {}, email_data: {} })],
+  ])('signed JSON with %s → 400 (T-32)', async (_, json) => {
+    const r = await post(json)
     expect(r.status).toBe(400)
   })
 })

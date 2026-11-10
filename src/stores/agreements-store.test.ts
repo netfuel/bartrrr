@@ -203,6 +203,29 @@ describe('sign and complete', () => {
     expect(get().status).toBe('active')
   })
 
+  it.each([
+    ['canceled', { status: 'cancelled' as const }, 'b'],
+    ['flagged', { status: 'disputed' as const }, 'b'],
+    ['missing a place (009)', { exchangeLocation: undefined }, 'b'],
+    ['missing a method (009)', { exchangeMethod: undefined }, 'b'],
+    ['already signed by them', {}, 'a'],
+    ['not their agreement', {}, 'z'],
+  ])('T-42: refuses to sign when %s', (_, over, who) => {
+    const start = agreement({ status: 'pending_signatures', partyB: { userId: 'b', item: 'G', signed: false }, ...over })
+    useAgreementsStore.setState({ agreements: [start] })
+    useAgreementsStore.getState().signAgreement('agreement-offer-1', who)
+    expect(get()).toEqual(start)
+    expect(svc.signAgreement).not.toHaveBeenCalled()
+  })
+
+  it('T-42: flag refuses a reason over 500 characters, counting emoji once', () => {
+    vi.mocked(svc.flagAgreement).mockReturnValue(new Promise(() => {}))
+    useAgreementsStore.getState().flagAgreement('agreement-offer-1', 'a', 'x'.repeat(501))
+    expect(get().status).toBe('active')
+    useAgreementsStore.getState().flagAgreement('agreement-offer-1', 'a', '🚲'.repeat(500))
+    expect(get().status).toBe('disputed')
+  })
+
   it('complete with a backend only from active', () => {
     useAgreementsStore.setState({ agreements: [agreement({ status: 'pending_signatures' })] })
     useAgreementsStore.getState().completeAgreement('agreement-offer-1')

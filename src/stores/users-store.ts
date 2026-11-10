@@ -3,7 +3,7 @@ import type { UserProfile } from '@/types'
 import { mockUsers } from '@/data/mock-users'
 import { DEMO_MODE } from '@/lib/env'
 import * as svc from '@/lib/supabase/supabase-service'
-import { hasBackend, persist } from './persist'
+import { hasBackend, persist, revertKeys } from './persist'
 
 /** Fields a user may edit on their own profile (the rest are server-owned). */
 export type EditableProfile = Pick<
@@ -66,7 +66,9 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       error: "Couldn't save your profile changes",
       onSuccess: () => callbacks?.onSaved?.(),
       rollback: () => {
-        if (previous) get().upsertUser(previous)
+        // Undo only this call's fields, and only where no newer edit replaced them
+        const current = get().users.find((u) => u.id === id)
+        if (previous && current) get().upsertUser(revertKeys<UserProfile>(current, previous, data))
         callbacks?.onFailed?.()
       },
     })

@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase', () => ({
   },
 }))
 
-import { hasBackend, persist, persistError } from './persist'
+import { hasBackend, persist, persistError, revertKeys, sameValue } from './persist'
 import { useToastStore } from './toast-store'
 import { ValidationError } from '@/lib/validation-error'
 
@@ -102,5 +102,29 @@ describe('toast store', () => {
     const id = useToastStore.getState().toasts[0].id
     useToastStore.getState().dismissToast(id)
     expect(useToastStore.getState().toasts.map((t) => t.message)).toEqual(['3', '4'])
+  })
+})
+
+describe('revertKeys (T-28, T-29)', () => {
+  type R = { a: string; b: string; tags?: string[]; prefs?: { x: boolean } }
+  const prev: R = { a: 'old', b: 'old', prefs: { x: false } }
+
+  it('restores only the keys this write applied', () => {
+    expect(revertKeys<R>({ a: 'new', b: 'other' }, prev, { a: 'new' })).toEqual({ a: 'old', b: 'other' })
+  })
+  it('leaves a key a newer edit changed since', () => {
+    expect(revertKeys<R>({ a: 'newer', b: 'old' }, prev, { a: 'new' })).toEqual({ a: 'newer', b: 'old' })
+  })
+  it('compares arrays and objects by value (server copies are new references)', () => {
+    const cur: R = { ...prev, tags: ['x', 'y'], prefs: { x: true } }
+    expect(revertKeys<R>(cur, prev, { tags: ['x', 'y'], prefs: { x: true } })).toEqual(prev)
+  })
+  it('drops a key the previous copy did not have', () => {
+    expect('tags' in revertKeys<R>({ ...prev, tags: ['x'] }, prev, { tags: ['x'] })).toBe(false)
+  })
+  it('sameValue ignores undefined keys and tells arrays from objects', () => {
+    expect(sameValue({ a: 1, b: undefined }, { a: 1 })).toBe(true)
+    expect(sameValue([], {})).toBe(false)
+    expect(sameValue([1, 2], [1, 3])).toBe(false)
   })
 })

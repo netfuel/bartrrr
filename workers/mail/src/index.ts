@@ -101,6 +101,19 @@ export function planEmails(payload: HookPayload, env: Env): Outgoing[] {
   }
 }
 
+const isObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+
+/** The shape planEmails relies on. Signed doesn't mean well-formed. */
+export function isHookPayload(v: unknown): v is HookPayload {
+  return (
+    isObject(v) &&
+    isObject(v.user) &&
+    isObject(v.email_data) &&
+    typeof v.email_data.email_action_type === 'string'
+  )
+}
+
 function hookError(status: number, message: string): Response {
   return Response.json({ error: { http_code: status, message } }, { status })
 }
@@ -122,12 +135,17 @@ export default {
       return hookError(401, message)
     }
 
-    let payload: HookPayload
+    let parsed: unknown
     try {
-      payload = JSON.parse(body) as HookPayload
+      parsed = JSON.parse(body)
     } catch {
       return hookError(400, 'Invalid JSON')
     }
+    if (!isHookPayload(parsed)) {
+      console.warn('[bartrrr-mail] rejected payload: missing user or email_data')
+      return hookError(400, 'Payload needs user and email_data.email_action_type')
+    }
+    const payload = parsed
 
     const outgoing = planEmails(payload, env).filter((o) => o.to)
     if (outgoing.length === 0) {
