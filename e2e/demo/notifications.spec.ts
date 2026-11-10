@@ -172,7 +172,8 @@ test.describe('N-01 notifications', () => {
     await page.getByRole('button', { name: 'Sign agreement' }).click()
     await switchTo(page, 'Jamie', '/dashboard')
     await openBell(page)
-    await expect(panel(page).getByRole('link').first()).toContainText('Dave Morrison signed the trade agreement.')
+    await expect(panel(page).getByRole('link').first()).toContainText('Your turn to sign')
+    await expect(panel(page).getByRole('link').first()).toContainText('Your neighbor signed the trade agreement. Review it and sign to lock in the trade.')
     await panel(page).getByRole('link').first().click()
     await expect(page).toHaveURL(agreementRe)
     await page.getByRole('checkbox').check()
@@ -228,7 +229,6 @@ test.describe('N-01 notifications', () => {
   })
 
   test('signing notifications use the style guide wording', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: signing sends "Trade agreement signed" instead of "Your turn to sign" / "You\'re both signed: time to swap" (style guide §9)')
     await start(page, 'Dave', '/agreements/agreement-001')
     await page.getByRole('checkbox').check()
     await page.getByRole('button', { name: 'Sign agreement' }).click()

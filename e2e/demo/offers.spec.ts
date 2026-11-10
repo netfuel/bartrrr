@@ -209,7 +209,7 @@ test.describe('F-04 accept', () => {
     await expectToast(page, 'Trade accepted. Next, review and sign the trade agreement.')
     await expect(offerStatus(page)).toContainText('Trade accepted. Next: you both sign the trade agreement.')
     await expect(page.getByText('Accepted', { exact: true }).first()).toBeVisible()
-    await expect(page.getByRole('textbox', { name: 'Message Sam' })).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: 'Message Sam' })).toBeVisible() // still free to arrange the swap
 
     await page.getByRole('button', { name: 'Review and sign agreement' }).click()
     await expect(page).toHaveURL(/\/agreements\/agreement-offer-001$/)
@@ -252,7 +252,7 @@ test.describe('F-05 decline', () => {
       await expect(offerStatus(page)).toContainText('You declined this offer.')
 
       await switchTo(page, 'Sam', '/offers/offer-001')
-      await expect(offerStatus(page)).toContainText('Jamie declined this offer. Their reason is in the thread below.')
+      await expect(offerStatus(page)).toContainText('Jamie declined this offer. Their reason is in the thread above.')
       await expect(page.locator('main').getByText(`Declined: ${label}`)).toBeVisible()
       await expect(page.getByRole('link', { name: 'Find another trade' })).toBeVisible()
       await expect(page.getByRole('textbox', { name: 'Message Jamie' })).toHaveCount(0)
@@ -260,7 +260,6 @@ test.describe('F-05 decline', () => {
   }
 
   test('with a reason and a note: the maker still sees the reason', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: a decline note replaces the reason, so the offer maker never sees why it was declined')
     await start(page, 'Jamie', '/offers/offer-001')
     await page.getByRole('button', { name: 'Decline' }).click()
     const dialog = page.getByRole('dialog')
@@ -463,7 +462,6 @@ test.describe('F-07 expired offers and lists', () => {
   })
 
   test('dashboard "Offers to answer" counts only offers waiting on you', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: dashboard counts and lists received offers as "to answer" even after you sent a counter-offer and are waiting on the other neighbor')
     await start(page, 'Jamie', '/offers/offer-001')
     await counter(page, 'Yamaha FG800 Acoustic Guitar') // now waiting on Sam
     await go(page, '/dashboard')
@@ -477,7 +475,6 @@ test.describe('F-07 expired offers and lists', () => {
   })
 
   test('dashboard lists say "Your turn" when it is your move', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: dashboard offer rows show the raw status ("Counter-offer") instead of "Your turn" when it is the reader\'s move')
     await start(page, 'Jamie', '/dashboard')
     await page.getByRole('tab', { name: /Offers received/ }).click()
     try {
@@ -489,7 +486,6 @@ test.describe('F-07 expired offers and lists', () => {
   })
 
   test('inbox preview of a declined offer shows the reason in words, not a code', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: offers inbox preview shows the raw decline reason key (e.g. "not_fair") to the offer maker')
     await start(page, 'Jamie', '/offers/offer-001')
     await page.getByRole('button', { name: 'Decline' }).click()
     await page.getByRole('dialog').getByRole('button', { name: DECLINE_REASON_LABELS.not_fair }).click()
@@ -507,7 +503,6 @@ test.describe('F-07 expired offers and lists', () => {
   })
 
   test('inbox keeps "Your turn" after you send a chat message', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: offers inbox decides "Your turn" from the last chat message, so replying with a message flips it to waiting')
     await start(page, 'Jamie', '/offers/offer-001')
     await page.getByRole('textbox', { name: 'Message Sam' }).fill('Let me think about it overnight.')
     await page.getByRole('button', { name: 'Send message' }).click()
@@ -519,5 +514,18 @@ test.describe('F-07 expired offers and lists', () => {
       await shot(page, 'F-07-inbox-your-turn-after-message', testInfo.project.name)
       throw e
     }
+  })
+
+  test('dashboard keeps declined received offers under Closed, like sent ones', async ({ page }) => {
+    await start(page, 'Jamie', '/offers/offer-001')
+    await page.getByRole('button', { name: 'Decline' }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('button', { name: DECLINE_REASON_LABELS.not_fair }).click()
+    await dialog.getByRole('button', { name: 'Decline offer' }).click()
+    await go(page, '/dashboard')
+    await page.getByRole('tab', { name: /Offers received/ }).click()
+    await expect(page.getByRole('link', { name: /Sam Nguyen wants to trade/ })).toHaveCount(0)
+    await expect(page.getByText('Closed', { exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Sam Nguyen: Vintage Record Player/ })).toContainText('Declined')
   })
 })

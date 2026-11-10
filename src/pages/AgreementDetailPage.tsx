@@ -109,16 +109,18 @@ export default function AgreementDetailPage() {
   ]
 
   const handleSign = () => {
+    const theyAlreadySigned =
+      agreement.partyA.userId === currentUser.id ? agreement.partyB.signed : agreement.partyA.signed
     signAgreement(agreement.id, currentUser.id)
+    // Same wording as the server trigger (migrations 005/009)
     addNotification({
       userId: otherPartyId,
       type: 'agreement_ready',
-      title: 'Trade agreement signed',
-      body: `${currentUser.displayName} signed the trade agreement.`,
+      ...(theyAlreadySigned
+        ? { title: "You're both signed: time to swap", body: 'You both signed the trade agreement. Meet up and make the swap.' }
+        : { title: 'Your turn to sign', body: 'Your neighbor signed the trade agreement. Review it and sign to lock in the trade.' }),
       data: { agreementId: agreement.id },
     })
-    const theyAlreadySigned =
-      agreement.partyA.userId === currentUser.id ? agreement.partyB.signed : agreement.partyA.signed
     showToast(
       theyAlreadySigned
         ? 'You both signed. Time to meet up and swap.'

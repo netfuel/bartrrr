@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowRight, ArrowLeftRight } from 'lucide-react'
 import { Button, Badge, BackLink, ConfirmDialog } from '@/components/ui'
@@ -8,7 +8,19 @@ import { hasBackend } from '@/stores/persist'
 import { useAuth } from '@/providers/AuthProvider'
 import { showToast } from '@/stores/toast-store'
 import { formatTimeLeft, usePageTitle } from '@/lib/utils'
+import { declineContent, isOpenOffer, lastMove, whoseMove } from '@/lib/offers'
 import { OFFER_STATUS_LABELS, OFFER_TTL_HOURS, DECLINE_REASON_LABELS, type OfferDeclineReason } from '@/types'
+
+/** Gap kept between the newest message and the fixed action bar. */
+const BAR_GAP = 16
+
+/** Scroll the window so `el`'s bottom sits just above the fixed action bar. */
+function scrollAboveBar(el: HTMLElement | null, bar: HTMLElement | null, smooth: boolean) {
+  if (!el) return
+  const limit = (bar ? bar.getBoundingClientRect().top : window.innerHeight) - BAR_GAP
+  const delta = el.getBoundingClientRect().bottom - limit
+  if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: smooth ? 'smooth' : 'auto' })
+}
 
 export default function OfferThreadPage() {
   const { id } = useParams()
@@ -31,6 +43,50 @@ export default function OfferThreadPage() {
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
   usePageTitle('Offer')
 
+  // The action bar is fixed, so the page reserves its measured height at the
+  // bottom; otherwise the last message and the status line sit under it.
+  const barRef = useRef<HTMLDivElement>(null)
+  const endRef = useRef<HTMLDivElement>(null)
+  const counterRef = useRef<HTMLDivElement>(null)
+  const [barHeight, setBarHeight] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const bar = barRef.current
+    if (!bar) return
+    const measure = () => setBarHeight(bar.offsetHeight)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(measure)
+    ro.observe(bar)
+    return () => ro.disconnect()
+  }, [offer?.id, currentUser?.id])
+
+  // Newest message in view: on load (instantly), then smoothly when you send
+  // something, or when a reply arrives while you're already at the bottom
+  const messageCount = offer?.messages.length ?? 0
+  const lastSender = offer?.messages[messageCount - 1]?.fromUserId
+  const seen = useRef<{ id?: string; count: number }>({ count: 0 })
+  useEffect(() => {
+    if (!offer || barHeight === null) return
+    const prev = seen.current
+    seen.current = { id: offer.id, count: messageCount }
+    const firstLoad = prev.id !== offer.id
+    if (!firstLoad && messageCount <= prev.count) return
+    const end = endRef.current
+    const bar = barRef.current
+    if (!firstLoad && lastSender !== currentUser?.id && end && bar) {
+      // Someone else's message: only follow along if you were near the bottom
+      const distance = end.getBoundingClientRect().bottom - bar.getBoundingClientRect().top
+      if (distance > 240) return
+    }
+    const frame = requestAnimationFrame(() => scrollAboveBar(end, bar, !firstLoad))
+    return () => cancelAnimationFrame(frame)
+  }, [offer, barHeight, messageCount, lastSender, currentUser?.id])
+
+  // An opened counter-offer form lands just above the action bar
+  useEffect(() => {
+    if (showCounterForm) scrollAboveBar(counterRef.current, barRef.current, true)
+  }, [showCounterForm])
+
   if (!offer || !currentUser) {
     return (
       <div className="px-5 py-24 text-center">
@@ -49,18 +105,20 @@ export default function OfferThreadPage() {
   const otherUserId = currentUser.id === offer.fromUserId ? offer.toUserId : offer.fromUserId
   const otherUser = currentUser.id === offer.fromUserId ? toUser : fromUser
   // Whose turn it is depends on the latest offer/counter, not on chat messages
-  const lastMove = [...offer.messages].reverse().find((m) => m.type === 'offer' || m.type === 'counter')
-  const isWaiting = (lastMove?.fromUserId ?? offer.fromUserId) === currentUser.id && (offer.status === 'pending' || offer.status === 'countered')
+  const isWaiting = whoseMove(offer, currentUser.id) === 'theirs'
   const canCounter = offer.round < offer.maxRounds
   const roundsLeft = offer.maxRounds - offer.round
-  const isActive = offer.status === 'pending' || offer.status === 'countered'
+  const isActive = isOpenOffer(offer)
+  // Neighbors keep talking after accepting, to arrange the swap; the server
+  // allows it. Declined, withdrawn and expired threads are read-only.
+  const canMessage = isActive || offer.status === 'accepted'
   const otherFirstName = otherUser.displayName.split(' ')[0]
   const timeLeft = formatTimeLeft(offer.expiresAt)
   const agreement = getAgreementByOfferId(offer.id)
 
   // The trade in plain terms: the offer-maker gives the proposed items,
   // the listing owner gives the listed item (mirrors handleAccept below).
-  const latestOfferMsg = [...offer.messages].reverse().find((m) => m.type === 'offer' || m.type === 'counter')
+  const latestOfferMsg = lastMove(offer.messages)
   const offeredItems = latestOfferMsg?.items?.join(', ') || 'Items offered'
   const listedItem = listing?.title || 'The listing'
   const iAmOfferMaker = currentUser.id === offer.fromUserId
@@ -102,7 +160,8 @@ export default function OfferThreadPage() {
       userId: otherUserId,
       type: 'offer_declined',
       title: 'Offer declined',
-      body: `${currentUser.displayName} declined your offer. Their reason: “${DECLINE_REASON_LABELS[reason]}”`,
+      // Reason and note together, as the server's notification has them (migration 005)
+      body: `${currentUser.displayName} declined your offer. Their reason: “${(note?.trim() ? declineContent(reason, note) : DECLINE_REASON_LABELS[reason]).slice(0, 200)}”`,
       data: { offerId: offer.id },
     })
     showToast(`Offer declined. We let ${otherFirstName} know.`, 'info')
@@ -134,7 +193,11 @@ export default function OfferThreadPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-64 lg:pb-48">
+    <div
+      className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-64 lg:pb-48"
+      // Clears the fixed action bar (PageShell's own padding clears the bottom nav on phones)
+      style={barHeight !== null ? { paddingBottom: barHeight + 24 } : undefined}
+    >
       <BackLink to="/offers" className="mb-3">All offers</BackLink>
 
       {/* The trade, in plain terms */}
@@ -185,50 +248,52 @@ export default function OfferThreadPage() {
         )}
       </section>
 
-      {/* Where things stand */}
+      {/* How the negotiation has gone */}
       <div className="border-y border-ink/30 py-5 mb-8">
         <OfferTimeline offer={offer} />
-        <div className="mt-4 space-y-1" role="status" aria-live="polite">
-          <p className="text-small text-ink-2">
-            {isActive && !isWaiting && (canCounter
-              ? 'Your move: accept, counter-offer, or decline.'
-              : 'Your move: accept or decline. This is the last round, so counter-offers are closed.')}
-            {isActive && isWaiting && `Waiting for ${otherFirstName} to reply. We'll let you know when they do.`}
-            {offer.status === 'accepted' && (agreement
-              ? 'Trade accepted. Next: you both sign the trade agreement.'
-              : 'Trade accepted. Setting up your trade agreement…')}
-            {offer.status === 'declined' && (iAmOfferMaker
-              ? `${otherFirstName} declined this offer. Their reason is in the thread below.`
-              : 'You declined this offer.')}
-            {offer.status === 'expired' && (iAmOfferMaker
-              ? `This offer expired after ${OFFER_TTL_HOURS} hours without a reply. Make a new offer if you're still interested.`
-              : `This offer expired after ${OFFER_TTL_HOURS} hours without a reply.`)}
-            {offer.status === 'withdrawn' && (iAmOfferMaker
-              ? 'You withdrew this offer.'
-              : `${otherFirstName} withdrew this offer.`)}
-          </p>
-          {isActive && (
-            <p className="text-small text-muted">
-              Round {offer.round} of {offer.maxRounds}
-              {canCounter ? ` · ${roundsLeft} ${roundsLeft === 1 ? 'counter-offer' : 'counter-offers'} left` : ''}
-              {/* expiresAt is the real 72-hour window; the store's expiry ticker flips it to expired */}
-              {timeLeft ? ` · Expires in ${timeLeft}` : ''}
-            </p>
-          )}
-          {isActive && !isWaiting && canCounter && roundsLeft === 1 && (
-            <p className="text-small text-muted">
-              One counter-offer left. If you're close, now's a good time to meet in the middle.
-            </p>
-          )}
-        </div>
       </div>
 
       {/* Conversation */}
       <OfferThread offer={offer} currentUserId={currentUser.id} fromUser={fromUser} toUser={toUser} />
 
+      {/* Where things stand: right after the newest message, just above the actions */}
+      <div ref={endRef} className="mt-8 space-y-1 border-t border-ink/30 pt-4" role="status" aria-live="polite">
+        <p className="text-small text-ink-2">
+          {isActive && !isWaiting && (canCounter
+            ? 'Your move: accept, counter-offer, or decline.'
+            : 'Your move: accept or decline. This is the last round, so counter-offers are closed.')}
+          {isActive && isWaiting && `Waiting for ${otherFirstName} to reply. We'll let you know when they do.`}
+          {offer.status === 'accepted' && (agreement
+            ? 'Trade accepted. Next: you both sign the trade agreement.'
+            : 'Trade accepted. Setting up your trade agreement…')}
+          {offer.status === 'declined' && (iAmOfferMaker
+            ? `${otherFirstName} declined this offer. Their reason is in the thread above.`
+            : 'You declined this offer.')}
+          {offer.status === 'expired' && (iAmOfferMaker
+            ? `This offer expired after ${OFFER_TTL_HOURS} hours without a reply. Make a new offer if you're still interested.`
+            : `This offer expired after ${OFFER_TTL_HOURS} hours without a reply.`)}
+          {offer.status === 'withdrawn' && (iAmOfferMaker
+            ? 'You withdrew this offer.'
+            : `${otherFirstName} withdrew this offer.`)}
+        </p>
+        {isActive && (
+          <p className="text-small text-muted">
+            Round {offer.round} of {offer.maxRounds}
+            {canCounter ? ` · ${roundsLeft} ${roundsLeft === 1 ? 'counter-offer' : 'counter-offers'} left` : ''}
+            {/* expiresAt is the real 72-hour window; the store's expiry ticker flips it to expired */}
+            {timeLeft ? ` · Expires in ${timeLeft}` : ''}
+          </p>
+        )}
+        {isActive && !isWaiting && canCounter && roundsLeft === 1 && (
+          <p className="text-small text-muted">
+            One counter-offer left. If you're close, now's a good time to meet in the middle.
+          </p>
+        )}
+      </div>
+
       {/* Counter offer form (inline) */}
       {showCounterForm && (
-        <div className="mt-4 animate-fade-up">
+        <div ref={counterRef} className="mt-6 animate-fade-up">
           <CounterOfferForm
             onSubmit={handleCounter}
             onCancel={() => setShowCounterForm(false)}
@@ -241,24 +306,24 @@ export default function OfferThreadPage() {
       )}
 
       {/* Action bar */}
-      <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-0 left-0 lg:left-60 right-0 bg-cream/95 backdrop-blur-md border-t border-ink px-4 py-3 sm:p-4 z-30">
-        <div className="max-w-3xl mx-auto space-y-2.5 sm:space-y-3 sm:px-2">
-          {/* Message composer for active offers */}
-          {isActive && (
+      <div ref={barRef} className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-0 left-0 lg:left-60 right-0 bg-cream/95 backdrop-blur-md border-t border-ink px-4 py-2.5 sm:p-4 z-30">
+        <div className="max-w-3xl mx-auto space-y-2 sm:space-y-3 sm:px-2">
+          {/* Message composer: open offers, and accepted ones so neighbors can arrange the swap */}
+          {canMessage && (
             <MessageComposer onSend={handleSendMessage} placeholder={`Message ${otherFirstName}…`} label={`Message ${otherFirstName}`} />
           )}
 
           {/* Action buttons */}
-          <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
+          <div className="flex flex-wrap gap-1.5 sm:flex-nowrap sm:gap-3">
             {isActive ? (
               isWaiting ? (
                 <>
                   {canWithdraw && (
-                    <Button variant="ghost" className="shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowWithdrawConfirm(true)}>
+                    <Button variant="ghost" className="min-h-[44px] sm:min-h-[46px] shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowWithdrawConfirm(true)}>
                       Withdraw offer
                     </Button>
                   )}
-                  <Button variant="ghost" disabled className="flex-1 min-w-0 px-3 text-[14px] sm:text-[15px]">
+                  <Button variant="ghost" disabled className="min-h-[44px] sm:min-h-[46px] flex-1 min-w-0 px-3 text-[14px] sm:text-[15px]">
                     Waiting for {otherFirstName} to reply
                   </Button>
                 </>
@@ -266,29 +331,29 @@ export default function OfferThreadPage() {
                 <>
                   {/* The offer's maker walks away by withdrawing; the listing owner declines */}
                   {canWithdraw ? (
-                    <Button variant="ghost" className="shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowWithdrawConfirm(true)}>
+                    <Button variant="ghost" className="min-h-[44px] sm:min-h-[46px] shrink-0 whitespace-nowrap px-2.5 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowWithdrawConfirm(true)}>
                       {/* Short label keeps all three actions on one row on phones */}
                       <span className="sm:hidden">Withdraw</span>
                       <span className="hidden sm:inline">Withdraw offer</span>
                     </Button>
                   ) : (
-                    <Button variant="ghost" className="shrink-0 whitespace-nowrap px-3 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowDeclineModal(true)}>
+                    <Button variant="ghost" className="min-h-[44px] sm:min-h-[46px] shrink-0 whitespace-nowrap px-2.5 text-[14px] sm:px-5 sm:text-[15px]" onClick={() => setShowDeclineModal(true)}>
                       Decline
                     </Button>
                   )}
                   {canCounter && (
-                    <Button variant="outline" className="flex-1 min-w-max whitespace-nowrap px-3 text-[14px] sm:text-[15px]" aria-expanded={showCounterForm} onClick={() => setShowCounterForm(!showCounterForm)}>
+                    <Button variant="outline" className="min-h-[44px] sm:min-h-[46px] flex-1 min-w-max whitespace-nowrap px-2.5 sm:px-3 text-[14px] sm:text-[15px]" aria-expanded={showCounterForm} onClick={() => setShowCounterForm(!showCounterForm)}>
                       Counter-offer
                     </Button>
                   )}
-                  <Button variant="confirm" className="flex-1 min-w-max whitespace-nowrap px-4 text-[14px] sm:text-[15px]" onClick={() => setShowAcceptConfirm(true)}>
+                  <Button variant="confirm" className="min-h-[44px] sm:min-h-[46px] flex-1 min-w-max whitespace-nowrap px-3 sm:px-4 text-[14px] sm:text-[15px]" onClick={() => setShowAcceptConfirm(true)}>
                     Accept trade
                   </Button>
                 </>
               )
             ) : offer.status === 'accepted' && agreement ? (
               <Link to={`/agreements/${agreement.id}`} className="flex-1">
-                <Button variant="confirm" className="w-full">
+                <Button variant="confirm" className="min-h-[44px] sm:min-h-[46px] w-full">
                   {(iAmOfferMaker ? agreement.partyA.signed : agreement.partyB.signed)
                     ? 'View trade agreement'
                     : 'Review and sign agreement'}
@@ -296,11 +361,11 @@ export default function OfferThreadPage() {
               </Link>
             ) : offer.status === 'declined' && iAmOfferMaker ? (
               <Link to="/browse" className="flex-1">
-                <Button variant="outline" className="w-full">Find another trade</Button>
+                <Button variant="outline" className="min-h-[44px] sm:min-h-[46px] w-full">Find another trade</Button>
               </Link>
             ) : (
               <Link to="/offers" className="flex-1">
-                <Button variant="ghost" className="w-full">Back to your offers</Button>
+                <Button variant="ghost" className="min-h-[44px] sm:min-h-[46px] w-full">Back to your offers</Button>
               </Link>
             )}
           </div>

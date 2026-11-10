@@ -59,6 +59,8 @@ export function DeclineModal({ onDecline, onClose, otherName = 'your neighbor' }
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={3}
+          /* Stored with the reason label in one 2000-character message */
+          maxLength={1800}
         />
 
         {!selectedReason && (

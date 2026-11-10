@@ -520,7 +520,7 @@ describe('offer RPCs', () => {
   })
   it.each([
     ['acceptOffer', () => svc.acceptOffer('offer-1', 'm'), 'accept', 'Offer accepted.'],
-    ['declineOffer with note', () => svc.declineOffer('offer-1', 'm', 'not_fair', '  too low  '), 'decline', 'too low'],
+    ['declineOffer with note', () => svc.declineOffer('offer-1', 'm', 'not_fair', '  too low  '), 'decline', "Offer doesn't feel like a fair trade. too low"],
     ['declineOffer without note', () => svc.declineOffer('offer-1', 'm', 'not_fair', '  '), 'decline', 'not_fair'],
     ['withdrawOffer', () => svc.withdrawOffer('offer-1', 'm'), 'withdraw', 'Offer withdrawn.'],
   ] as const)('%s → respond_to_offer(%s)', async (_n, run, action, content) => {

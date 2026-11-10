@@ -139,7 +139,6 @@ test.describe('M-02 offer thread messages', () => {
   })
 
   test('neighbors can still message each other after the offer is accepted', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: accepting an offer removes the message box, so "Message {name}" on the agreement opens a read-only thread')
     await start(page, 'Jamie', '/agreements/agreement-001')
     await page.getByRole('link', { name: 'Message Dave' }).click()
     await expect(page).toHaveURL(/\/offers\/offer-002$/)
@@ -149,5 +148,50 @@ test.describe('M-02 offer thread messages', () => {
       await shot(page, 'M-02-no-composer-after-accept', testInfo.project.name)
       throw e
     }
+    await composer(page, 'Message Dave').fill('Saturday at 10 at Overton Park works for me.')
+    await sendBtn(page).click()
+    await expect(page.locator('main').getByText('Saturday at 10 at Overton Park works for me.')).toBeVisible()
   })
+
+  test('declined, withdrawn and expired threads have no message box', async ({ page }) => {
+    await start(page, 'Sam', '/offers/offer-003') // Sam declined Jordan's offer
+    await expect(page.locator('main [role="status"]')).toContainText('You declined this offer.')
+    await expect(composer(page, 'Message Jordan')).toHaveCount(0)
+  })
+})
+
+test.describe('M-04 thread layout on phones', () => {
+  /** Top edge of the fixed bar holding the message box and actions. */
+  const barTop = async (page: Page) =>
+    (await composer(page).locator('xpath=ancestor::div[contains(@class, "fixed")][1]').boundingBox())!.y
+  /** Whether `text`'s bubble sits fully between the header and the fixed bar. */
+  const inView = (page: Page, locator: ReturnType<Page['locator']>) => async () => {
+    const box = await locator.boundingBox()
+    if (!box) return false
+    return box.y >= 64 && box.y + box.height <= (await barTop(page))
+  }
+
+  for (const width of [360, 390]) {
+    test(`at ${width}px the status line and newest message clear the fixed bars`, async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile', 'Phone layout')
+      await page.setViewportSize({ width, height: 844 })
+      await start(page, 'Jamie', '/offers/offer-001')
+      const status = page.locator('main [role="status"]')
+      await expect(status).toContainText('Round 2 of 5')
+      try {
+        await expect.poll(inView(page, status)).toBe(true)
+        await expect.poll(inView(page, page.locator('main').getByText('Fair enough! How about I add'))).toBe(true)
+      } catch (e) {
+        await shot(page, `M-04-thread-${width}-on-load`, testInfo.project.name)
+        throw e
+      }
+      // The bar stays compact: at most a quarter of the screen
+      expect(844 - (await barTop(page))).toBeLessThanOrEqual(844 / 4 + 1)
+
+      await composer(page).fill('Could you do Saturday morning instead?')
+      await sendBtn(page).click()
+      await expect.poll(inView(page, page.locator('main').getByText('Could you do Saturday morning instead?'))).toBe(true)
+      expect(await hasHorizontalOverflow(page)).toBe(false)
+    })
+  }
 })

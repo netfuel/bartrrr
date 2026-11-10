@@ -1,22 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Avatar, Badge, EmptyState, Tabs } from '@/components/ui'
+import { Avatar, EmptyState, Tabs } from '@/components/ui'
+import { OfferStatusBadge } from '@/components/bartrrr'
 import { useOffersForUser, useUsersStore, useListingsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { MessageSquare } from 'lucide-react'
 import { usePageTitle } from '@/lib/utils'
-import { OFFER_STATUS_LABELS, type OfferStatus } from '@/types'
+import { messagePreview } from '@/lib/offers'
 
 type Tab = 'incoming' | 'outgoing'
-
-const statusBadge: Record<OfferStatus, { variant: 'teal' | 'gold' | 'clay' | 'closed'; label: string }> = {
-  pending: { variant: 'gold', label: OFFER_STATUS_LABELS.pending },
-  countered: { variant: 'gold', label: OFFER_STATUS_LABELS.countered },
-  accepted: { variant: 'teal', label: OFFER_STATUS_LABELS.accepted },
-  declined: { variant: 'clay', label: OFFER_STATUS_LABELS.declined },
-  withdrawn: { variant: 'closed', label: OFFER_STATUS_LABELS.withdrawn },
-  expired: { variant: 'closed', label: OFFER_STATUS_LABELS.expired },
-}
 
 export default function OffersInboxPage() {
   const [tab, setTab] = useState<Tab>('incoming')
@@ -74,11 +66,6 @@ export default function OffersInboxPage() {
             const otherUser = getUserById(otherUserId)
             const listing = getListingById(offer.listingId)
             const lastMessage = offer.messages[offer.messages.length - 1]
-            const isOpen = offer.status === 'pending' || offer.status === 'countered'
-            const myTurn = isOpen && lastMessage?.fromUserId !== currentUser.id
-            const sb = myTurn
-              ? { variant: 'teal' as const, label: 'Your turn' }
-              : statusBadge[offer.status]
 
             return (
               <Link
@@ -95,7 +82,7 @@ export default function OffersInboxPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <p className="text-[16px] font-medium text-ink truncate">{otherUser?.displayName}</p>
-                    <Badge variant={sb.variant}>{sb.label}</Badge>
+                    <OfferStatusBadge offer={offer} userId={currentUser.id} />
                   </div>
                   <p className="font-display text-[18px] leading-snug text-ink mt-1 truncate transition-colors group-hover:text-clay-dark">{listing?.title}</p>
                   {offer.status === 'withdrawn' ? (
@@ -106,7 +93,7 @@ export default function OffersInboxPage() {
                         : `${otherUser?.displayName.split(' ')[0] || 'Your neighbor'} withdrew this offer.`}
                     </p>
                   ) : lastMessage && (
-                    <p className="text-small text-muted mt-1 line-clamp-1">{lastMessage.content}</p>
+                    <p className="text-small text-muted mt-1 line-clamp-1">{messagePreview(lastMessage)}</p>
                   )}
                 </div>
                 <p className="text-label text-muted shrink-0 pt-0.5">

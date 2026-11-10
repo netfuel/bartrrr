@@ -13,6 +13,7 @@
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './index'
+import { declineContent } from '@/lib/offers'
 import type {
   AgreementRow,
   AgreementUpdate,
@@ -36,6 +37,7 @@ import type {
   Offer,
   OfferMessage,
   OfferMessageType,
+  OfferDeclineReason,
   Review,
   TradeAgreement,
   UserProfile,
@@ -497,8 +499,9 @@ export function acceptOffer(id: string, messageId: string): Promise<Offer> {
   return respond(id, 'accept', messageId, 'Offer accepted.')
 }
 
-export function declineOffer(id: string, messageId: string, reason: string, note?: string): Promise<Offer> {
-  return respond(id, 'decline', messageId, note?.trim() || reason)
+/** Stores the reason and the note together (see declineContent in lib/offers). */
+export function declineOffer(id: string, messageId: string, reason: OfferDeclineReason, note?: string): Promise<Offer> {
+  return respond(id, 'decline', messageId, declineContent(reason, note))
 }
 
 export function counterOffer(id: string, messageId: string, content: string, items: string[]): Promise<Offer> {
