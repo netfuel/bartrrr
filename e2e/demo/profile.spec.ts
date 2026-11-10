@@ -93,7 +93,6 @@ test.describe('P-01 name and bio', () => {
   })
 
   test('the name allows as many characters as sign up does (60)', async ({ page }) => {
-    test.fail(true, 'BUG: Settings caps Display name at 50 characters while sign up, onboarding and the database allow 60')
     await openSettings(page)
     const name = page.getByLabel('Display name')
     await name.fill('N'.repeat(60))
@@ -327,7 +326,6 @@ test.describe('P-05 public profile listings and reviews', () => {
   })
 
   test('your own profile links to edit it in Settings', async ({ page }) => {
-    test.fail(true, 'BUG: your own profile has no Edit profile / Settings link (and phones have no other way to Settings)')
     await login(page, 'Jamie')
     await goInApp(page, '/profile/me')
     await expect(page.getByRole('heading', { level: 1, name: 'Jamie Oakley' })).toBeVisible()

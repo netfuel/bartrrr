@@ -22,8 +22,9 @@ import {
 captureBugShots(test)
 const expect = baseExpect.configure({ timeout: 10_000 })
 
-// Initial view in ListingsMap.tsx
-const MAP_CENTER = { lng: -90.049, lat: 35.1495 }
+// Initial view in ListingsMap.tsx: the signed-in neighbor's neighborhood at
+// zoom 13. The pin-position tests below log in as Jamie (Downtown Memphis).
+const MAP_CENTER = NEIGHBORHOOD_CENTERS['Downtown Memphis']
 const MAP_ZOOM = 13
 
 const listCards = (page: Page) => page.getByRole('main').getByRole('article')
@@ -182,16 +183,25 @@ test.describe('D-01 browse map', () => {
   })
 
   test('pins can be reached and opened with the keyboard', async ({ page }, testInfo) => {
-    test.fail(true, 'BUG: map pins have role="button" but no tabindex or key handler, so keyboard users cannot open them')
     await stubMapStyle(page)
     await login(page, 'Jamie')
     await showMap(page, testInfo)
     const pin = markers(page).and(page.getByRole('button', { name: 'Bike Tune-Up Service', exact: true }))
     await expect(pin).toHaveAttribute('tabindex', '0', { timeout: 3000 })
+    // Enter opens the preview and moves focus into it
+    await pin.focus()
+    await page.keyboard.press('Enter')
+    const view = page.getByRole('button', { name: 'View listing' })
+    await expect(view).toBeFocused()
+    await expect(page.getByText('Sam Nguyen').first()).toBeVisible()
+    // Space works too
+    await page.getByRole('button', { name: 'Close preview' }).click()
+    await pin.focus()
+    await page.keyboard.press(' ')
+    await expect(view).toBeVisible()
   })
 
   test('the map opens on your own neighborhood', async ({ page }, testInfo) => {
-    test.fail(true, "BUG: the map always opens on downtown Memphis at zoom 13, not the neighbor's neighborhood (PRD 5.3); Germantown pins start off screen")
     await stubMapStyle(page)
     await login(page, 'Priya')
     await showMap(page, testInfo)
@@ -336,7 +346,6 @@ test.describe('D-02 filters, search and empty states', () => {
   })
 
   test("browse cards don't offer to trade for your own listing", async ({ page }) => {
-    test.fail(true, "BUG: browse cards show an Offer button on the neighbor's own listings (TradeCard gets onOffer for every card)")
     await login(page, 'Jamie')
     await expect(page.getByRole('heading', { level: 3, name: 'Raised Garden Bed Kit' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Make an offer on Raised Garden Bed Kit' })).toHaveCount(0, { timeout: 2000 })
@@ -384,7 +393,6 @@ test.describe('D-03 neighborhood feed', () => {
   })
 
   test('feed entries open the listing', async ({ page }) => {
-    test.fail(true, 'BUG: feed entries are plain text: "Jamie listed Vintage Record Player" cannot be tapped to open the listing')
     await login(page, 'Jamie')
     await goInApp(page, '/feed')
     await expect(page.getByRole('heading', { level: 1, name: /What's happening in/ })).toBeVisible()

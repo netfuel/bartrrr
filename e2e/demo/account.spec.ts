@@ -186,11 +186,16 @@ test.describe('A-02 sign out', () => {
   })
 
   test('Settings (and so Log out) is reachable from the app navigation', async ({ page }, testInfo) => {
-    test.fail(isMobile(testInfo), 'BUG: on phones no nav item leads to Settings, so there is no way to log out or delete the account without typing the URL')
     await login(page, 'Jamie')
-    const settings = page.getByRole('link', { name: 'Settings' }).first()
-    await expect(settings).toBeVisible()
-    await settings.click()
+    if (isMobile(testInfo)) {
+      // Phones: header avatar → your profile → Edit profile (2 taps)
+      await page.getByRole('link', { name: 'Your profile' }).click()
+      await page.getByRole('main').getByRole('link', { name: 'Edit profile' }).click()
+    } else {
+      const settings = page.getByRole('link', { name: 'Settings' }).first()
+      await expect(settings).toBeVisible()
+      await settings.click()
+    }
     await expect(page).toHaveURL('/settings')
     await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
   })

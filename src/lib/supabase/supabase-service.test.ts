@@ -365,6 +365,18 @@ describe('updateListing builder', () => {
     })
   })
 
+  it('switching to a category without a condition clears the stored condition (T-49)', async () => {
+    h.results.push({ data: listingRow(), error: null })
+    await svc.updateListing('listing-1', { category: 'services' })
+    expect(opsFor('listings', 'update')[0].args[0]).toEqual({ category: 'services', condition: null })
+  })
+
+  it('a goods listing keeps the condition it is sent', async () => {
+    h.results.push({ data: listingRow(), error: null })
+    await svc.updateListing('listing-1', { category: 'goods', condition: 'good' })
+    expect(opsFor('listings', 'update')[0].args[0]).toEqual({ category: 'goods', condition: 'good' })
+  })
+
   it('validates before writing (http image refused)', async () => {
     await expect(svc.updateListing('listing-1', { images: ['http://e.co/a.jpg'] })).rejects.toBeInstanceOf(ValidationError)
     expect(opsFor('listings', 'update')).toHaveLength(0)

@@ -145,7 +145,12 @@ export default function OnboardingPage() {
                 Pick your Memphis neighborhood so we can show you trades nearby. Neighbors see your neighborhood, never your address.
               </p>
 
-              <NeighborhoodPicker value={neighborhood} onChange={setNeighborhood} className="mb-8" />
+              <NeighborhoodPicker value={neighborhood} onChange={setNeighborhood} className="mb-4" />
+
+              {/* Disabled buttons always come with a reason (style guide 4) */}
+              <p id="onboarding-neighborhood-reason" className="text-base text-muted mb-6 min-h-[24px]" aria-live="polite">
+                {neighborhood ? '' : 'Pick your neighborhood to continue.'}
+              </p>
 
               <div className="flex gap-3">
                 <Button variant="ghost" size="lg" onClick={() => setStep('welcome')} className="flex-1">
@@ -156,6 +161,7 @@ export default function OnboardingPage() {
                   size="lg"
                   onClick={() => setStep('interests')}
                   disabled={!neighborhood}
+                  aria-describedby={neighborhood ? undefined : 'onboarding-neighborhood-reason'}
                   className="flex-1"
                 >
                   Continue <ArrowRight className="h-5 w-5 ml-1" />

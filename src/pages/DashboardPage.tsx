@@ -6,6 +6,7 @@ import { useListingsStore, useUsersStore, useOffersForUser, useAgreementsForUser
 import { Badge, Avatar, Button, EmptyState, Tabs, buttonStyles } from '@/components/ui'
 import { TradeCard, WithdrawOfferDialog, OfferStatusBadge } from '@/components/bartrrr'
 import { isOpenOffer, whoseMove } from '@/lib/offers'
+import { ClosedListings } from '@/components/listings/ClosedListings'
 import { usePageTitle } from '@/lib/utils'
 import { AGREEMENT_STATUS_LABELS, type Offer } from '@/types'
 
@@ -119,6 +120,7 @@ export default function DashboardPage() {
               })}
             </div>
           )}
+          <ClosedListings userId={currentUser.id} />
         </div>
       )}
 

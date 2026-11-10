@@ -5,6 +5,7 @@ import { useListingsStore, useAgreementsStore, useUsersStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { CATEGORY_LABELS } from '@/types'
 import { usePageTitle } from '@/lib/utils'
+import { isListingLive } from '@/lib/listings'
 
 type FeedItem =
   | {
@@ -50,7 +51,7 @@ export default function ActivityFeedPage() {
 
     // Recent listings in the same neighborhood (last 20, sorted newest first)
     const neighborhoodListings = listings
-      .filter((l) => l.location.neighborhood === neighborhood && l.status === 'active')
+      .filter((l) => l.location.neighborhood === neighborhood && isListingLive(l))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 20)
       .map<FeedItem>((l) => {
@@ -131,7 +132,10 @@ export default function ActivityFeedPage() {
 
           <div className="space-y-0">
             {feedItems.map((item) => (
-              <div key={`${item.type}-${item.id}`} className="relative flex gap-5 pb-8">
+              <div
+                key={`${item.type}-${item.id}`}
+                className={`group relative flex gap-5 pb-8 ${item.type === 'listing' ? 'cursor-pointer' : ''}`}
+              >
                 {/* Icon bubble */}
                 <div
                   className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full border flex items-center justify-center ${
@@ -154,7 +158,13 @@ export default function ActivityFeedPage() {
                       <p className="text-[16px] text-ink-2 leading-snug">
                         <span className="font-medium text-ink">{item.displayerName}</span>{' '}
                         listed{' '}
-                        <span className="font-display text-[19px] text-ink">{item.title}</span>
+                        {/* Stretched link: the whole entry opens the listing */}
+                        <Link
+                          to={`/listing/${item.id}`}
+                          className="font-display text-[19px] text-ink transition-colors group-hover:text-clay-dark after:absolute after:inset-0 after:content-['']"
+                        >
+                          {item.title}
+                        </Link>
                       </p>
                       <p className="text-small text-muted mt-1">
                         {item.neighborhood} · {item.category}

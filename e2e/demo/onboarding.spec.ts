@@ -230,7 +230,6 @@ test.describe('O-02 onboarding', () => {
   })
 
   test('the onboarding steps say why Continue is disabled', async ({ page }) => {
-    test.fail(true, 'BUG: on the neighborhood step, Continue is disabled with no reason shown nearby (style guide 4: disabled buttons always come with a reason)')
     await login(page, 'Jordan')
     await writeStore(
       page,

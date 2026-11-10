@@ -31,7 +31,14 @@ export interface PhotoPickerProps {
  */
 export function PhotoPicker({ value, onChange, userId, saved = [], onBusyChange }: PhotoPickerProps) {
   const [pending, setPending] = useState<Pending[]>([])
-  const [notice, setNotice] = useState('')
+  const [notice, setNoticeText] = useState('')
+  // A notice the neighbor has to read (the photo limit) stays up until their
+  // next action; progress notices ("Uploading 3 photos…") clear when done.
+  const noticeSticks = useRef(false)
+  const setNotice = (text: string, sticky = false) => {
+    noticeSticks.current = sticky
+    setNoticeText(text)
+  }
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   // Uploads finish out of order and after re-renders: refs hold the latest lists
@@ -67,7 +74,8 @@ export function PhotoPicker({ value, onChange, userId, saved = [], onBusyChange 
     }
     if (!keep.some((p) => p.status === 'uploading')) {
       const failed = keep.filter((p) => p.status === 'error').length
-      setNotice(failed ? `${failed} ${failed === 1 ? 'photo' : 'photos'} couldn’t be added.` : '')
+      if (failed) setNotice(`${failed} ${failed === 1 ? 'photo' : 'photos'} couldn’t be added.`)
+      else if (!noticeSticks.current) setNotice('')
     }
   }
 
@@ -93,15 +101,15 @@ export function PhotoPicker({ value, onChange, userId, saved = [], onBusyChange 
     const chosen = Array.from(files)
     if (chosen.length === 0) return
     if (room <= 0) {
-      setNotice(`You can add up to ${MAX_PHOTOS} photos. Remove one to add another.`)
+      setNotice(`You can add up to ${MAX_PHOTOS} photos. Remove one to add another.`, true)
       return
     }
     const accepted = chosen.slice(0, room)
-    setNotice(
-      chosen.length > room
-        ? `Only the first ${room} ${room === 1 ? 'photo was' : 'photos were'} added. Listings hold up to ${MAX_PHOTOS}.`
-        : `Uploading ${accepted.length} ${accepted.length === 1 ? 'photo' : 'photos'}…`,
-    )
+    if (chosen.length > room) {
+      setNotice(`Only the first ${room} ${room === 1 ? 'photo was' : 'photos were'} added. Listings hold up to ${MAX_PHOTOS}.`, true)
+    } else {
+      setNotice(`Uploading ${accepted.length} ${accepted.length === 1 ? 'photo' : 'photos'}…`)
+    }
     const items: Pending[] = accepted.map((file) => ({
       id: crypto.randomUUID(),
       file,

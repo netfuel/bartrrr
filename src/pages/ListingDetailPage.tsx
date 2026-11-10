@@ -3,9 +3,10 @@ import { MapPin, Star, ChevronLeft, ChevronRight, Pencil, XCircle, RefreshCw, Pa
 import { useState, useRef, useMemo } from 'react'
 import { Button, Badge, Avatar, ShareButton, BackLink, ConfirmDialog } from '@/components/ui'
 import { TradeCard, OfferBuilder } from '@/components/bartrrr'
-import { useListingsStore, useUsersStore, showToast } from '@/stores'
+import { useListingsStore, useUsersStore, showToast, relistListing } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { formatDistance, usePageTitle } from '@/lib/utils'
+import { categoryTakesCondition, isListingLive, listingStatus } from '@/lib/listings'
 import { CATEGORY_LABELS, CATEGORY_COLORS, CONDITION_LABELS } from '@/types'
 
 const badgeVariant = CATEGORY_COLORS as Record<string, 'clay' | 'teal' | 'gold' | 'moss'>
@@ -18,7 +19,6 @@ export default function ListingDetailPage() {
   const listing = useListingsStore((s) => s.getListingById(id || ''))
   const listings = useListingsStore((s) => s.listings)
   const withdrawListing = useListingsStore((s) => s.withdrawListing)
-  const renewListing = useListingsStore((s) => s.renewListing)
   const getUserById = useUsersStore((s) => s.getUserById)
   const user = listing ? getUserById(listing.userId) : undefined
   const [imageIndex, setImageIndex] = useState(0)
@@ -37,7 +37,7 @@ export default function ListingDetailPage() {
     () =>
       listing
         ? listings
-            .filter((l) => l.category === listing.category && l.id !== listing.id && l.status === 'active')
+            .filter((l) => l.category === listing.category && l.id !== listing.id && isListingLive(l))
             .slice(0, 4)
         : [],
     [listings, listing],
@@ -54,6 +54,8 @@ export default function ListingDetailPage() {
   }
 
   const isOwner = currentUser?.id === listing.userId
+  // Past its 30 days reads as closed even before the server's sweep reaches us
+  const status = listingStatus(listing)
 
   return (
     <div className="max-w-6xl mx-auto pb-36 lg:pb-28">
@@ -148,9 +150,9 @@ export default function ListingDetailPage() {
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <Badge variant={badgeVariant[listing.category]}>{CATEGORY_LABELS[listing.category]}</Badge>
-              {listing.condition && <Badge variant="closed">{CONDITION_LABELS[listing.condition]}</Badge>}
-              {listing.status === 'pending' && <Badge variant="gold">Trade in progress</Badge>}
-              {listing.status === 'closed' && <Badge variant="closed">No longer available</Badge>}
+              {listing.condition && categoryTakesCondition(listing.category) && <Badge variant="closed">{CONDITION_LABELS[listing.condition]}</Badge>}
+              {status === 'pending' && <Badge variant="gold">Trade in progress</Badge>}
+              {status === 'closed' && <Badge variant="closed">No longer available</Badge>}
             </div>
             <h1 className="text-heading-page text-ink">{listing.title}</h1>
           </div>
@@ -225,7 +227,7 @@ export default function ListingDetailPage() {
           <div className="flex-1 sm:flex-none sm:min-w-[320px]">
           {isOwner ? (
             <div className="flex gap-3">
-              {listing.status === 'active' ? (
+              {status === 'active' ? (
                 <>
                   <Button variant="outline" className="flex-1" onClick={() => navigate(`/listing/${listing.id}/edit`)}>
                     <Pencil className="h-4 w-4" /> Edit listing
@@ -234,7 +236,7 @@ export default function ListingDetailPage() {
                     <XCircle className="h-4 w-4" /> Take down
                   </Button>
                 </>
-              ) : listing.status === 'pending' ? (
+              ) : status === 'pending' ? (
                 <Button variant="ghost" className="flex-1" disabled>
                   You have a trade in progress for this listing
                 </Button>
@@ -242,22 +244,19 @@ export default function ListingDetailPage() {
                 <Button
                   variant="primary"
                   className="flex-1"
-                  onClick={() => {
-                    renewListing(listing.id)
-                    showToast('Listing renewed. It stays up for another 30 days.', 'success')
-                  }}
+                  onClick={() => relistListing(listing.id)}
                 >
                   <RefreshCw className="h-4 w-4" /> Relist for 30 days
                 </Button>
               )}
             </div>
-          ) : listing.status === 'active' ? (
+          ) : status === 'active' ? (
             <Button variant="primary" size="lg" className="w-full" onClick={() => setShowOfferBuilder(true)}>
               Make an offer
             </Button>
           ) : (
             <Button variant="ghost" size="lg" className="w-full" disabled>
-              {listing.status === 'pending'
+              {status === 'pending'
                 ? 'A trade for this is in progress'
                 : 'This listing is no longer available'}
             </Button>

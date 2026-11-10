@@ -81,7 +81,7 @@ export default function SettingsPage() {
             onChange={(e) => { setDisplayName(e.target.value); setNameError('') }}
             error={nameError || undefined}
             helperText="This is how neighbors see you."
-            maxLength={50}
+            maxLength={60}
           />
           <div className="flex flex-col gap-1.5">
             <span id="settings-neighborhood-label" className="text-label text-ink-2">Neighborhood</span>

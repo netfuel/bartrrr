@@ -14,6 +14,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './index'
 import { declineContent } from '@/lib/offers'
+import { categoryTakesCondition } from '@/lib/listings'
 import type {
   AgreementRow,
   AgreementUpdate,
@@ -308,6 +309,8 @@ export async function updateListing(id: string, partial: Partial<Listing>): Prom
   if (checked.description !== undefined) update.description = checked.description
   if (checked.category !== undefined) update.category = checked.category
   if (partial.condition !== undefined) update.condition = checked.condition ?? null
+  // A category without a condition (services, skills) never keeps one (T-49)
+  if (checked.category !== undefined && !categoryTakesCondition(checked.category)) update.condition = null
   if (checked.seeking !== undefined) update.seeking = checked.seeking
   if (checked.images !== undefined) update.images = checked.images
   if (partial.status !== undefined) update.status = dbStatusMap[partial.status]

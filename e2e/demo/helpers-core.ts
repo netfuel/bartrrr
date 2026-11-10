@@ -72,7 +72,6 @@ export type Neighbor = 'Jamie' | 'Maria' | 'Alex' | 'Priya' | 'Jordan' | 'Sam' |
  * Resolves once the app shell is on screen.
  */
 export async function login(page: Page, name: Neighbor = 'Jamie', to = '/auth/login') {
-  await serveMapAssets(page)
   await blockExternalMedia(page)
   await page.goto(to)
   await page
@@ -256,6 +255,11 @@ const maplibreDist = path.dirname(
  * map's `?url` worker import and its CSS come back 403 and MapLibre throws
  * "e.endsWith is not a function" when it starts its workers. Serve those
  * files from disk. Harmless (a pass-through) in a normal checkout.
+ *
+ * No longer needed (T-64): vite.config.ts now allows the node_modules
+ * folder packages resolve from, and ListingsMap only passes a string to
+ * setWorkerUrl. login() no longer calls it; kept for a dev server started
+ * from an older config.
  */
 export async function serveMapAssets(page: Page) {
   await page.context().route(/\/maplibre-gl\/dist\/maplibre-gl-worker\.mjs\?url/, (route) =>

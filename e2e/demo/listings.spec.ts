@@ -148,7 +148,6 @@ test.describe('L-01 post a listing', () => {
   })
 
   test('a condition picked for goods is not saved on a services listing', async ({ page }) => {
-    test.fail(true, 'BUG: picking a condition, then switching the category to Services, still saves and shows that condition (hidden field keeps its value)')
     await startListing(page)
     await next(page).click()
     await page.getByLabel('Title').fill('Gutter cleaning')
@@ -177,7 +176,6 @@ test.describe('L-02 photos', () => {
   })
 
   test('the photo-limit message stays up after the uploads finish', async ({ page }) => {
-    test.fail(true, 'BUG: "Only the first N photos were added…" is cleared as soon as the accepted photos finish uploading, so it flashes by unread')
     await startListing(page)
     await photoInput(page).setInputFiles(photoFiles(7))
     await expect(thumbs(page)).toHaveCount(6)
@@ -349,6 +347,30 @@ test.describe('L-05 edit a listing', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Edit listing' })).toBeVisible()
   }
 
+  test('switching a listing with a condition to Services drops the condition', async ({ page }) => {
+    await login(page, 'Jamie')
+    await writeStore(
+      page,
+      'listings-store',
+      "(store) => store.setState(s => ({ listings: s.listings.map(l => l.id === 'listing-013' ? { ...l, condition: 'good' } : l) }))",
+    )
+    await goInApp(page, '/listing/listing-013')
+    await expect(page.getByText('Good', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Edit listing' }).click()
+    const condition = page.getByRole('group', { name: 'Condition (optional)' })
+    await expect(condition.getByRole('button', { name: 'Good' })).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Services' }).click()
+    await expect(condition).toHaveCount(0)
+    // Back to a category with a condition: the old pick doesn't come back
+    await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Goods' }).click()
+    await expect(condition.getByRole('button', { name: 'Good' })).toHaveAttribute('aria-pressed', 'false')
+    await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Services' }).click()
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page).toHaveURL('/listing/listing-013')
+    await expect(page.getByText('Services', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Good', { exact: true })).toHaveCount(0)
+  })
+
   test('edit text and photos, then save', async ({ page }) => {
     await openEdit(page)
     await expect(page.getByLabel('Title')).toHaveValue('Raised Garden Bed Kit')
@@ -439,7 +461,6 @@ test.describe('L-06 take down, relist and expiry', () => {
   })
 
   test('the relist message uses "relist", not "renew"', async ({ page }) => {
-    test.fail(true, 'BUG: relisting shows "Listing renewed…": the style guide says relist, never renew')
     await login(page, 'Jamie')
     await writeStore(page, 'listings-store', "(store) => store.getState().withdrawListing('listing-001')")
     await goInApp(page, '/listing/listing-001')
@@ -448,11 +469,38 @@ test.describe('L-06 take down, relist and expiry', () => {
   })
 
   test('a taken-down listing can be found again to relist it', async ({ page }) => {
-    test.fail(true, 'BUG: taken-down (and expired) listings disappear from the dashboard and profile, so there is no way back to "Relist" without the old link')
     await login(page, 'Jamie')
     await writeStore(page, 'listings-store', "(store) => store.getState().withdrawListing('listing-001')")
     await goInApp(page, '/dashboard')
     await expect(page.getByRole('main').getByText('Vintage Record Player')).toBeVisible({ timeout: 3000 })
+  })
+
+  test('relist from the dashboard: taken down and expired listings', async ({ page }) => {
+    await login(page, 'Jamie')
+    await writeStore(page, 'listings-store', "(store) => store.getState().withdrawListing('listing-001')")
+    // listing-013 (Jamie's garden bed kit) ran out of time but the server hasn't closed it yet
+    await writeStore(
+      page,
+      'listings-store',
+      `(store) => store.setState(s => ({ listings: s.listings.map(l => l.id === 'listing-013'
+        ? { ...l, status: 'active', expiresAt: new Date(Date.now() - 3600e3).toISOString() } : l) }))`,
+    )
+    // Your own profile points there
+    await goInApp(page, '/profile/me')
+    await page.getByRole('main').getByRole('link', { name: 'Relist from your dashboard' }).click()
+    await expect(page).toHaveURL('/dashboard#closed-listings')
+    const section = page.getByRole('region', { name: 'Taken down and expired' })
+    await expect(section).toBeVisible()
+    await expect(section.getByRole('article')).toHaveCount(2)
+    await expect(section.getByRole('article').filter({ hasText: 'Vintage Record Player' })).toContainText('Taken down')
+    await expect(section.getByRole('article').filter({ hasText: 'Raised Garden Bed Kit' })).toContainText('Expired')
+
+    await section.getByRole('button', { name: 'Relist Vintage Record Player' }).click()
+    await expect(page.getByText('Listing relisted. It stays up for another 30 days.')).toBeVisible()
+    await expect(section.getByRole('article')).toHaveCount(1)
+    const l = await readStore<{ status: string; expiresAt: string }>(page, 'listings-store', "s => s.listings.find(l => l.id === 'listing-001')")
+    expect(l.status).toBe('active')
+    expect((Date.parse(l.expiresAt) - Date.now()) / 864e5).toBeGreaterThan(29.9)
   })
 
   test('neighbors see a taken-down listing as no longer available', async ({ page }) => {
@@ -465,7 +513,6 @@ test.describe('L-06 take down, relist and expiry', () => {
   })
 
   test('a listing past its 30 days reads as closed', async ({ page }) => {
-    test.fail(true, 'BUG: in the app, a listing whose expiresAt has passed still shows as active with "Make an offer" until data is refetched (only the server mapping closes it)')
     await login(page, 'Maria')
     await writeStore(
       page,

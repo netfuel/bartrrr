@@ -1,18 +1,21 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { Star, MapPin, Calendar, Clock } from 'lucide-react'
-import { Avatar, Chip, Tabs } from '@/components/ui'
+import { Star, MapPin, Calendar, Clock, Pencil, LogOut } from 'lucide-react'
+import { Avatar, Button, Chip, Tabs, buttonStyles } from '@/components/ui'
 import { TradeCard, ReviewCard } from '@/components/bartrrr'
-import { useUsersStore, useListingsStore, useReviewsStore } from '@/stores'
+import { useUsersStore, useListingsStore, useReviewsStore, useRelistableListings } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
 import { usePageTitle } from '@/lib/utils'
+import { CLOSED_LISTINGS_ID, isListingLive } from '@/lib/listings'
 
 type Tab = 'portfolio' | 'reviews'
 
 export default function ProfilePage() {
   const { username } = useParams()
   const [tab, setTab] = useState<Tab>('portfolio')
-  const { currentUser } = useAuth()
+  const navigate = useNavigate()
+  const { currentUser, logout } = useAuth()
+  const [loggingOut, setLoggingOut] = useState(false)
   const getUserByUsername = useUsersStore((s) => s.getUserByUsername)
   const getUserById = useUsersStore((s) => s.getUserById)
   const listings = useListingsStore((s) => s.listings)
@@ -20,6 +23,8 @@ export default function ProfilePage() {
 
   const user = username === 'me' ? currentUser : getUserByUsername(username || '')
   usePageTitle(user?.displayName ?? 'Profile')
+  // Only your own closed listings: neighbors see active listings only
+  const relistable = useRelistableListings(currentUser?.id === user?.id ? user?.id : undefined)
 
   if (!user) {
     return (
@@ -32,7 +37,7 @@ export default function ProfilePage() {
   }
   const isMe = currentUser?.id === user.id
 
-  const userListings = listings.filter((l) => l.userId === user.id && l.status === 'active')
+  const userListings = listings.filter((l) => l.userId === user.id && isListingLive(l))
   const reviews = getReviewsForUser(user.id)
 
   return (
@@ -59,6 +64,24 @@ export default function ProfilePage() {
             </span>
             <span className="flex items-center border-l border-ink px-4 py-2 text-label text-ink-2">{user.tradeCount} {user.tradeCount === 1 ? 'trade' : 'trades'}</span>
           </div>
+          {isMe && (
+            // Same sign-out flow as Settings: clear the session, then the login page
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link to="/settings" className={buttonStyles({ variant: 'outline' })}>
+                <Pencil className="h-4 w-4" aria-hidden="true" /> Edit profile
+              </Link>
+              <Button
+                variant="ghost"
+                loading={loggingOut}
+                onClick={() => {
+                  setLoggingOut(true)
+                  logout().then(() => navigate('/auth/login'))
+                }}
+              >
+                {!loggingOut && <LogOut className="h-4 w-4" aria-hidden="true" />} Log out
+              </Button>
+            </div>
+          )}
           {(user.lateCancellations ?? 0) > 0 && (
             <p className="mt-3 flex items-center gap-1.5 text-small text-muted">
               <Clock className="h-3.5 w-3.5" aria-hidden="true" />
@@ -88,6 +111,17 @@ export default function ProfilePage() {
           { id: 'reviews', label: 'Reviews', count: reviews.length },
         ]}
       />
+
+      {tab === 'portfolio' && isMe && relistable.length > 0 && (
+        <p className="mb-5 text-small text-ink-2">
+          {relistable.length === 1
+            ? '1 of your listings is taken down or expired. '
+            : `${relistable.length} of your listings are taken down or expired. `}
+          <Link to={`/dashboard#${CLOSED_LISTINGS_ID}`} className="text-label link-underline text-ink">
+            Relist from your dashboard
+          </Link>
+        </p>
+      )}
 
       {tab === 'portfolio' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -4,6 +4,8 @@ import type * as maplibregl from 'maplibre-gl'
 import { Map as MapIcon } from 'lucide-react'
 import type { Listing, UserProfile } from '@/types'
 import { formatDistance } from '@/lib/utils'
+import { neighborhoodCenter } from '@/data/neighborhoods'
+import { useAuth } from '@/providers/AuthProvider'
 
 type MaplibreModule = typeof maplibregl
 
@@ -19,7 +21,12 @@ function loadMaplibre(): Promise<MaplibreModule> {
     import('maplibre-gl/dist/maplibre-gl.css'),
   ])
     .then(([mod, worker]) => {
-      mod.setWorkerUrl(worker.default)
+      // `?url` must give a URL string. If a dev server ever hands back the
+      // worker module itself (T-64: files outside its fs.allow list),
+      // setWorkerUrl would crash MapLibre with "e.endsWith is not a function".
+      const workerUrl: unknown = worker.default
+      if (typeof workerUrl === 'string') mod.setWorkerUrl(workerUrl)
+      else console.warn('[Bartrrr] Map worker URL did not resolve to a string; using MapLibre default')
       return mod
     })
     .catch((err) => {
@@ -61,9 +68,8 @@ function warmStyle(map: maplibregl.Map) {
   }
 }
 
-// Memphis, TN service area center
-const DEFAULT_LNG = -90.049
-const DEFAULT_LAT = 35.1495
+// Opening zoom: about a neighborhood across on a phone (PRD 5.3)
+const INITIAL_ZOOM = 13
 
 // Category pin colors match the design tokens in globals.css
 const CATEGORY_COLORS: Record<string, string> = {
@@ -88,6 +94,19 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
   const [mapFailed, setMapFailed] = useState(false)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const navigate = useNavigate()
+  const { currentUser } = useAuth()
+  // Open on the neighbor's own neighborhood (falls back to central Memphis).
+  // Read once: the map isn't re-centered while it's open.
+  const initialCenter = useRef(neighborhoodCenter(currentUser?.neighborhood))
+  // A pin opened from the keyboard moves focus into its preview
+  const focusPreview = useRef(false)
+  const viewButton = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (selectedListing && focusPreview.current) {
+      focusPreview.current = false
+      viewButton.current?.focus()
+    }
+  }, [selectedListing])
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return
@@ -114,8 +133,8 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
         const instance = new maplibre.Map({
           container,
           style: MAP_STYLE_URL,
-          center: [DEFAULT_LNG, DEFAULT_LAT],
-          zoom: 13,
+          center: [initialCenter.current.lng, initialCenter.current.lat],
+          zoom: INITIAL_ZOOM,
           attributionControl: false,
         })
         map.current = instance
@@ -169,8 +188,10 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
       // Outer wrapper — MapLibre owns the transform on this element for positioning.
       // Never touch its transform or the pin will jump to (0,0).
       const wrapper = document.createElement('div')
-      wrapper.style.cssText = `width: 44px; height: 44px; cursor: pointer; display: grid; place-items: center;`
+      // border-radius keeps the global clay focus ring round around the pin
+      wrapper.style.cssText = `width: 44px; height: 44px; cursor: pointer; display: grid; place-items: center; border-radius: 9999px;`
       wrapper.setAttribute('role', 'button')
+      wrapper.setAttribute('tabindex', '0')
       wrapper.setAttribute('aria-label', listing.title)
 
       // Inner element handles all visual styling & hover scale. A dot inside
@@ -196,9 +217,18 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
         pin.style.transform = 'scale(1)'
         pin.style.boxShadow = `0 0 0 10px ${color}29, 0 1px 3px rgba(64,58,52,0.3)`
       })
-      wrapper.addEventListener('click', () => {
+      const open = (byKeyboard = false) => {
+        focusPreview.current = byKeyboard
         setSelectedListing(listing)
         map.current?.flyTo({ center: [lng, lat], zoom: 15 })
+      }
+      wrapper.addEventListener('click', () => open())
+      wrapper.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault() // Space would scroll the page
+          e.stopPropagation() // and MapLibre's keyboard handler would pan
+          open(true)
+        }
       })
 
       const marker = new maplibre.Marker({ element: wrapper })
@@ -271,6 +301,7 @@ export function ListingsMap({ listings, users, className = '' }: ListingsMapProp
             </div>
           </div>
           <button
+            ref={viewButton}
             type="button"
             onClick={() => navigate(`/listing/${selectedListing.id}`)}
             className="pressable mt-3 w-full min-h-[44px] border border-ink bg-ink text-cream text-[15px] font-medium hover:bg-clay-dark hover:border-clay-dark transition-colors duration-300"
