@@ -38,7 +38,9 @@ insert into public.reviews (id, agreement_id, reviewer_id, reviewee_id, rating, 
 insert into public.notifications (id, user_id, type, title, body, offer_id) values
   ('N1', 'bbbbbbbb-0000-0000-0000-000000000002', 'new_offer', 'Ann wants to trade', 'Ann Alpha offered on your drill', 'O2'),
   ('N2', 'aaaaaaaa-0000-0000-0000-000000000001', 'new_offer', 'Bob wants to trade', 'Bob offered on your bike', 'O1'),
-  ('N3', 'cccccccc-0000-0000-0000-000000000003', 'new_offer', 'Bob wants to trade', 'Bob offered on your chair', 'O4');
+  ('N3', 'cccccccc-0000-0000-0000-000000000003', 'new_offer', 'Bob wants to trade', 'Bob offered on your chair', 'O4'),
+  -- Not a server template: only whole-word name matching applies
+  ('N4', 'bbbbbbbb-0000-0000-0000-000000000002', 'new_message', 'Note from Ann', 'Hi! Ann here: the Annual pass is ready, Ann.', 'O2');
 insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'https://push.test/a', 'k', 'a'),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'https://push.test/b', 'k', 'b');
@@ -149,11 +151,19 @@ select tests.check('N-02', 'Cat''s message notice is redacted',
   (select string_agg(body, ' | ') from public.notifications where offer_id = 'O-cat'));
 select tests.check('N-02', 'notifications not about Ann are untouched',
   (select title from public.notifications where id = 'N3') = 'Bob wants to trade');
-select tests.expect_bug('delete_account step 4 replaces the first name as a plain substring, so other words that start with it are mangled ("your Annual garden pass" becomes "your A former neighborual garden pass")');
 select tests.check('N-02', 'redaction leaves the rest of the text alone',
   exists (select 1 from public.notifications where offer_id = 'O-pass' and type = 'new_offer'
             and body = 'A former neighbor wants to trade for your Annual garden pass. Take a look.'),
   (select body from public.notifications where offer_id = 'O-pass' and type = 'new_offer'));
+select tests.check('N-02', 'a notice that fits no template: whole words only ("Annual" kept)',
+  (select title = 'Note from A former neighbor'
+          and body = 'Hi! A former neighbor here: the Annual pass is ready, A former neighbor.'
+     from public.notifications where id = 'N4'),
+  (select title || ' / ' || body from public.notifications where id = 'N4'));
+select tests.check('N-02', 'a notice sent under an earlier name ("Alexandra") is redacted by template',
+  exists (select 1 from public.notifications where offer_id = 'O-dan' and type = 'new_offer'
+            and body = 'A former neighbor wants to trade for your Kayak. Take a look.'),
+  (select string_agg(body, ' | ') from public.notifications where offer_id = 'O-dan'));
 
 -- ─── V-02 the old name appears nowhere other neighbors can read ─────────────
 -- Scans every text-like column of every public table that the reader can
@@ -174,7 +184,8 @@ begin
       join pg_attribute a on a.attrelid = cl.oid and a.attnum > 0 and not a.attisdropped
      where cl.relkind in ('r', 'p', 'v')
        and a.atttypid in ('text'::regtype, 'varchar'::regtype, 'jsonb'::regtype, 'text[]'::regtype)
-       and has_table_privilege(cl.oid, 'select')
+       -- per column: users is readable column by column (012, T-26)
+       and has_column_privilege(cl.oid, a.attnum, 'select')
        and (cl.relname::text, a.attname::text) not in (
          ('listings', 'title'), ('listings', 'description'), ('listings', 'seeking'),
          ('offer_messages', 'content'), ('offer_messages', 'items'),
@@ -208,7 +219,6 @@ select tests.check('V-02', 'a signed-out visitor finds her name nowhere',
   not exists (select 1 from tests.name_hits(:name_pattern)),
   (select string_agg(h, ' | ') from tests.name_hits(:name_pattern) h));
 select tests.as('dan');
-select tests.expect_bug('delete_account only redacts the current display name; notifications sent under an earlier name ("Alexandra wants to trade for your Kayak") keep it');
 select tests.check('V-02', 'Dan (offered to when she was "Alexandra") finds her name nowhere',
   not exists (select 1 from tests.name_hits(:name_pattern)),
   (select string_agg(h, ' | ') from tests.name_hits(:name_pattern) h));

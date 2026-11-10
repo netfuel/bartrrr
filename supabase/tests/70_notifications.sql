@@ -63,21 +63,42 @@ select tests.check('P-06', 'Ann (defaults) got the agreement and completion noti
 
 -- Bob, with everything off
 select tests.as('bob');
-select tests.expect_bug('notify() (004) never reads users.notification_prefs, so every notification is created even for types the neighbor turned off in Settings');
 select tests.check('P-06', 'newOffers off: no new-offer notification',
   not exists (select 1 from public.notifications where offer_id = 'o-ab' and type = 'new_offer'));
-select tests.expect_bug('notify() ignores notification_prefs (newOffers covers counter-offers)');
 select tests.check('P-06', 'newOffers off: no counter-offer notification',
   not exists (select 1 from public.notifications where offer_id = 'o-ba' and type = 'counter_offer'));
-select tests.expect_bug('notify() ignores notification_prefs (messages)');
 select tests.check('P-06', 'messages off: no message notification',
   not exists (select 1 from public.notifications where offer_id = 'o-ba' and type = 'new_message'));
-select tests.expect_bug('notify() ignores notification_prefs (agreementUpdates)');
 select tests.check('P-06', 'agreementUpdates off: no "details changed" / "your turn to sign" notifications',
   not exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba' and type = 'agreement_ready'));
-select tests.expect_bug('notify() ignores notification_prefs (tradeCompletions)');
 select tests.check('P-06', 'tradeCompletions off: no trade-complete notification',
   not exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba' and type = 'trade_complete'));
-select tests.expect_bug('notify() ignores notification_prefs (tradeCompletions covers reviews)');
 select tests.check('P-06', 'tradeCompletions off: no new-review notification',
   not exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba' and type = 'review_request'));
+
+-- Notices with no setting, and ones that are never skipped: a canceled
+-- meetup and a trade flagged for review, even with everything off
+select tests.as('trusted');
+insert into public.listings (id, title, description, category, seeking, user_id, neighborhood) values
+  ('LA2', 'Bread pan', 'd', 'goods', 'help', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young'),
+  ('LA3', 'Cake stand', 'd', 'goods', 'help', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young');
+select tests.as('bob');
+select public.make_offer('o-ba2', 'LA2', 'm-ba2', 'Blower for the pan?', array['Leaf blower']);
+select public.make_offer('o-ba3', 'LA3', 'm-ba3', 'Blower for the stand?', array['Leaf blower']);
+select tests.as('ann');
+select public.respond_to_offer('o-ba3', 'decline', 'm-ba3-d', 'not_fair', '{}');
+select public.respond_to_offer('o-ba2', 'accept', 'm-ba2-a', 'Deal', '{}');
+update public.agreements set status = 'cancelled' where id = 'agreement-o-ba2';
+update public.agreements set status = 'disputed', dispute_reason = 'Blower was missing its bag'
+ where id = 'agreement-o-ba';
+
+select tests.as('bob');
+select tests.check('P-06', 'everything off: accepted and declined offers are still announced (no setting for them)',
+  exists (select 1 from public.notifications where offer_id = 'o-ba2' and type = 'offer_accepted')
+  and exists (select 1 from public.notifications where offer_id = 'o-ba3' and type = 'offer_declined'));
+select tests.check('P-06', 'everything off: "Trade canceled" is never skipped',
+  exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba2' and title = 'Trade canceled'));
+select tests.check('P-06', 'everything off: "Trade flagged for review" is never skipped',
+  exists (select 1 from public.notifications where agreement_id = 'agreement-o-ba' and title = 'Trade flagged for review'));
+select tests.check('P-06', 'notifications record who caused them (data.actorId), for account deletion',
+  (select data->>'actorId' = tests.uid('ann') from public.notifications where offer_id = 'o-ba3' and type = 'offer_declined'));

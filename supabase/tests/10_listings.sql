@@ -93,12 +93,20 @@ select tests.no_effect('L-08', 'Bob can''t take down Ann''s listing',
 -- ─── L-10 match notifications ───────────────────────────────────────────────
 -- The app's rule (CreateListingPage): neighbors other than the poster whose
 -- interests include the new listing's category get a 'match' notification.
+-- Server side (012): onboarding's finer interest ids map to categories,
+-- recipients are nearby (same neighborhood or within 5 mi), at most 50 per
+-- listing and one per neighbor per hour, and perfectMatches is honored.
 select tests.as('cat');
 update public.users set interests = array['goods', 'outdoor'] where id = tests.uid('cat');
 select tests.as('dan');
 update public.users set interests = array['services'] where id = tests.uid('dan');
 select tests.as('ann');
 update public.users set interests = array['goods'] where id = tests.uid('ann');
+-- Onboarding stores finer interest ids (OnboardingPage INTEREST_CATEGORIES);
+-- 'household' is a kind of goods
+select tests.as('bob');
+update public.users set interests = array['household', 'tutoring'] where id = tests.uid('bob');
+select tests.as('ann');
 
 select tests.ok('L-10', 'Ann posts a goods listing',
   $$insert into public.listings (id, title, description, category, seeking, user_id, neighborhood)
@@ -106,7 +114,6 @@ select tests.ok('L-10', 'Ann posts a goods listing',
             'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young')$$);
 
 select tests.as('cat');
-select tests.expect_bug('No server code creates ''match'' notifications, and the client''s addNotification() is a no-op when a backend is configured, so interested neighbors are never told');
 select tests.check('L-10', 'Cat (interested in goods) gets a match notification',
   exists (select 1 from public.notifications where type = 'match' and listing_id = 'L-ann-3'));
 select tests.as('dan');
@@ -119,3 +126,64 @@ select tests.err('L-10', 'a client can''t create the match notification for some
   $$insert into public.notifications (user_id, type, title, body, listing_id)
     values ('cccccccc-0000-0000-0000-000000000003', 'match', 'New listing you might like', 'x', 'L-ann-3')$$,
   'permission denied');
+
+-- Onboarding vocabulary and copy (docs/content-style-guide.md §9)
+select tests.as('bob');
+select tests.check('L-10', 'Bob (onboarding interest "household", Midtown) gets a match for a goods listing',
+  exists (select 1 from public.notifications where type = 'match' and listing_id = 'L-ann-3'));
+select tests.check('L-10', 'match copy: "New listing you might like" / A neighbor just posted "Camp stove"...',
+  exists (select 1 from public.notifications where type = 'match' and listing_id = 'L-ann-3'
+            and title = 'New listing you might like'
+            and body = 'A neighbor just posted "Camp stove". It matches what you''re looking for.'
+            and data->>'listingId' = 'L-ann-3'),
+  (select string_agg(title || ' / ' || body, '; ') from public.notifications where type = 'match'));
+
+-- At most one match notification per neighbor per hour
+select tests.as('ann');
+insert into public.listings (id, title, description, category, seeking, user_id, neighborhood)
+values ('L-ann-4', 'Kettle', 'Electric', 'goods', 'anything', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young');
+select tests.as('cat');
+select tests.check('L-10', 'a second listing within the hour sends Cat nothing more',
+  (select count(*) = 1 from public.notifications where type = 'match'));
+
+-- An hour later: Bob turned matches off, Dan moved far away
+select tests.as('trusted');
+update public.notifications set created_at = now() - interval '2 hours' where type = 'match';
+select tests.as('bob');
+update public.users set notification_prefs = '{"perfectMatches":false}' where id = tests.uid('bob');
+select tests.as('dan');
+update public.users set interests = array['goods'], neighborhood = 'Collierville' where id = tests.uid('dan');
+select tests.as('ann');
+insert into public.listings (id, title, description, category, seeking, user_id, neighborhood)
+values ('L-ann-5', 'Toaster', 'Four slots', 'goods', 'anything', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young');
+select tests.as('cat');
+select tests.check('L-10', 'an hour later Cat gets the next match',
+  exists (select 1 from public.notifications where type = 'match' and listing_id = 'L-ann-5'));
+select tests.as('bob');
+select tests.check('L-10', 'perfectMatches off: Bob gets none',
+  not exists (select 1 from public.notifications where type = 'match' and listing_id = 'L-ann-5'));
+select tests.as('dan');
+select tests.check('L-10', 'Dan (goods, but in Collierville, ~20 mi away) gets none',
+  not exists (select 1 from public.notifications where type = 'match'));
+
+-- A taken-down listing posted by the operator notifies nobody
+select tests.as('trusted');
+insert into public.listings (id, title, description, category, seeking, user_id, neighborhood, status)
+values ('L-ann-off', 'Old radio', 'd', 'goods', 'x', 'aaaaaaaa-0000-0000-0000-000000000001', 'Cooper-Young', 'withdrawn');
+select tests.check('L-10', 'no matches for a listing that isn''t active',
+  not exists (select 1 from public.notifications where listing_id = 'L-ann-off'));
+
+-- At most 50 neighbors per listing
+insert into auth.users (id, email, raw_user_meta_data)
+select ('eeeeeeee-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid, 'n' || g || '@example.com',
+       jsonb_build_object('full_name', 'Neighbor ' || g)
+  from generate_series(1, 60) g;
+update public.users set interests = array['furniture'], neighborhood = 'Cooper-Young'
+ where id like 'eeeeeeee-%';
+select tests.as('cat');
+insert into public.listings (id, title, description, category, seeking, user_id, neighborhood)
+values ('L-cat-1', 'Armchair', 'Green', 'goods', 'anything', 'cccccccc-0000-0000-0000-000000000003', 'Binghampton');
+select tests.as('trusted');
+select tests.check('L-10', 'one listing notifies at most 50 neighbors',
+  (select count(*) = 50 from public.notifications where type = 'match' and listing_id = 'L-cat-1'),
+  (select count(*) || ' match notifications' from public.notifications where type = 'match' and listing_id = 'L-cat-1'));

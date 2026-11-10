@@ -27,7 +27,7 @@ npm run test:db          # same as: bash supabase/tests/run.sh
 | File | Cases |
 |---|---|
 | `10_listings.sql` | L-07 coordinates rounded to ~1 km, L-08 30-day expiry and renewal, L-10 match notifications |
-| `20_offers.sql` | F-01 make, F-02 counter (5 rounds), F-03 accept, F-04 decline reasons, F-05 withdraw, F-06 expiry sweep |
+| `20_offers.sql` | F-01 make, F-02 counter (5 rounds), F-03 accept (one listing, one trade; cancel relists), F-04 decline reasons, F-05 withdraw, F-06 expiry sweep, F-07 offer-type messages only via the RPCs |
 | `30_agreements.sql` | G-01 to G-08: exchange details, signing, cancel and late cancels, flag for review, notifications, operator paths |
 | `40_deletion.sql` | X-02 delete own account, X-03 can't delete anyone else, N-02 names redacted in notifications, V-02 old name visible nowhere |
 | `50_security.sql` | S-01 neighbor vs neighbor for every table and RPC, S-02 signed-out visitor |

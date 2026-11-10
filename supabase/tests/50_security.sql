@@ -166,6 +166,33 @@ select tests.check('S-01', 'listings: LB still belongs to Bob',
 select tests.err('S-01', 'notifications: Bob can only change read_at on his own',
   $$update public.notifications set body = 'x' where user_id = 'bbbbbbbb-0000-0000-0000-000000000002'$$, 'permission denied');
 
+-- users.notification_prefs is private (column grants); the rest of a profile is public
+select tests.as('trusted');
+update public.users set notification_prefs = '{"messages":false}' where id = tests.uid('ann');
+select tests.as('bob');
+select tests.err('S-01', 'users: Bob can''t read Ann''s notification_prefs',
+  $$select notification_prefs from public.users where id = 'aaaaaaaa-0000-0000-0000-000000000001'$$, 'permission denied');
+select tests.err('S-01', 'users: select * is refused too (it includes notification_prefs)',
+  $$select * from public.users$$, 'permission denied');
+select tests.err('S-01', 'users: nor can he filter on it',
+  $$select id from public.users where notification_prefs->>'messages' = 'false'$$, 'permission denied');
+select tests.check('S-01', 'users: Bob reads Ann''s public profile columns, late_cancellations included',
+  (select display_name = 'Ann Alpha' and late_cancellations = 0 and trade_count >= 0
+     from public.users where id = tests.uid('ann')));
+select tests.as('ann');
+select tests.err('S-01', 'users: even Ann can''t select the column directly (grants are per column, not per row)',
+  $$select notification_prefs from public.users where id = 'aaaaaaaa-0000-0000-0000-000000000001'$$, 'permission denied');
+select tests.check('S-01', 'my_notification_prefs(): Ann reads her own settings',
+  public.my_notification_prefs() = '{"messages":false}'::jsonb);
+select tests.ok('S-01', 'Ann can still change her settings',
+  $$update public.users set notification_prefs = '{"messages":true}' where id = 'aaaaaaaa-0000-0000-0000-000000000001'$$);
+select tests.as('bob');
+select tests.check('S-01', 'my_notification_prefs(): Bob gets his own, not Ann''s',
+  public.my_notification_prefs() is distinct from '{"messages":true}'::jsonb);
+select tests.as('service_role');
+select tests.check('S-01', 'users: the service role reads notification_prefs',
+  (select notification_prefs = '{"messages":true}'::jsonb from public.users where id = 'aaaaaaaa-0000-0000-0000-000000000001'));
+
 -- ─── S-01 every RPC Bob can call ────────────────────────────────────────────
 select tests.as('trusted');
 create table tests.rpc_rules (fn text primary key, why text);
@@ -173,6 +200,7 @@ insert into tests.rpc_rules values
   ('make_offer(text,text,text,text,text[])', 'acts as the caller; checked below'),
   ('respond_to_offer(text,text,text,text,text[])', 'acts as the caller under RLS; checked below'),
   ('delete_my_account()', 'only ever deletes the caller (40_deletion.sql X-02/X-03)'),
+  ('my_notification_prefs()', 'returns only the caller''s own settings; checked below'),
   ('agreement_exchange_at(text)', 'parses a string; reads no table');
 select tests.check('S-01', 'RPC classified: ' || p.oid::regprocedure::text,
          exists (select 1 from tests.rpc_rules r where r.fn = p.oid::regprocedure::text),
@@ -247,6 +275,13 @@ select tests.err('S-02', 'anon can''t run the expiry sweep',
   $$select public.expire_stale_offers()$$, 'permission denied');
 select tests.err('S-02', 'anon can''t send notifications',
   $$select public.notify('aaaaaaaa-0000-0000-0000-000000000001', 'new_message', 'x', 'y', '{}')$$, 'permission denied');
+select tests.err('S-02', 'anon can''t read anyone''s notification_prefs',
+  $$select notification_prefs from public.users$$, 'permission denied');
+select tests.check('S-02', 'anon reads public profile columns (late_cancellations is the reliability metric)',
+  (select count(*) > 0 from (select id, display_name, avatar_url, reputation_score, trade_count, late_cancellations
+                               from public.users) q));
+select tests.err('S-02', 'anon can''t call my_notification_prefs',
+  $$select public.my_notification_prefs()$$, 'permission denied');
 select tests.err('S-02', 'anon can''t read auth.users',
   $$select * from auth.users$$, 'permission denied');
 select tests.check('S-02', 'agreement_exchange_at only parses: same answer for anon, no table access',

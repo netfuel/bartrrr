@@ -1,5 +1,5 @@
 -- Offers: make (F-01), counter (F-02), accept (F-03), decline (F-04),
--- withdraw (F-05), expiry sweep (F-06).
+-- withdraw (F-05), expiry sweep (F-06), thread message types (F-07).
 
 select tests.as('trusted');
 insert into public.listings (id, title, description, category, seeking, user_id, neighborhood, status) values
@@ -137,26 +137,55 @@ select tests.err('F-03', 'no new offers while the listing is on hold',
   $$select public.make_offer('o3-dan', 'LB3', 'm3-dan', 'x', array['x'])$$, 'row-level security');
 
 select tests.as('bob');
-select tests.expect_bug('accepting needs only the offer to be open, not the listing: a listing already on hold accepts a second offer and drafts a second agreement for the same item');
+select tests.check('F-03', 'the listing''s other open offer is declined for Bob with "accepted_another"',
+  (select status = 'declined' from public.offers where id = 'o3-cat')
+  and exists (select 1 from public.offer_messages where offer_id = 'o3-cat' and type = 'decline'
+                and content = 'accepted_another' and from_user_id = tests.uid('bob')));
+select tests.as('cat');
+select tests.check('F-03', 'Cat is told: "Bob declined your offer. Their reason: “I''ve already accepted another offer”"',
+  (select count(*) = 1 from public.notifications where offer_id = 'o3-cat' and type = 'offer_declined'
+     and body = 'Bob declined your offer. Their reason: “I''ve already accepted another offer”'),
+  (select string_agg(body, ' | ') from public.notifications where offer_id = 'o3-cat'));
+
+select tests.as('bob');
 select tests.err('F-03', 'Bob can''t accept a second offer on the same listing',
   $$select public.respond_to_offer('o3-cat', 'accept', 'm3-cat-a', 'Sure', '{}')$$, '');
+-- The listing check itself, reached by offers that predate it (operator rows)
 select tests.as('trusted');
-select tests.expect_bug('see previous check: two agreements exist for one listing');
+insert into public.offers (id, listing_id, from_user_id, to_user_id) values
+  ('o3-held', 'LB-held', 'cccccccc-0000-0000-0000-000000000003', 'bbbbbbbb-0000-0000-0000-000000000002'),
+  ('o3-gone', 'LB-gone', 'cccccccc-0000-0000-0000-000000000003', 'bbbbbbbb-0000-0000-0000-000000000002');
+select tests.as('bob');
+select tests.err('F-03', 'an open offer on a listing already on hold can''t be accepted',
+  $$select public.respond_to_offer('o3-held', 'accept', 'm3-held-a', 'ok', '{}')$$, 'already has a trade in progress');
+select tests.err('F-03', 'an open offer on a taken-down listing can''t be accepted',
+  $$select public.respond_to_offer('o3-gone', 'accept', 'm3-gone-a', 'ok', '{}')$$, 'no longer available');
+select tests.check('F-03', 'neither refused accept drafted an agreement or left a message',
+  not exists (select 1 from public.agreements where offer_id in ('o3-held', 'o3-gone'))
+  and not exists (select 1 from public.offer_messages where id in ('m3-held-a', 'm3-gone-a')));
+select tests.as('trusted');
 select tests.check('F-03', 'one listing, one agreement',
   (select count(*) = 1 from public.agreements a join public.offers o on o.id = a.offer_id where o.listing_id = 'LB3'),
   (select count(*) || ' agreements' from public.agreements a join public.offers o on o.id = a.offer_id where o.listing_id = 'LB3'));
 
 -- Cancel before signing: the item should be tradeable again
+select tests.as('trusted');
+update public.listings set expires_at = now() + interval '1 day' where id = 'LB3';
 select tests.as('ann');
 select tests.ok('F-03', 'Ann cancels the unsigned agreement',
   $$update public.agreements set status = 'cancelled' where id = 'agreement-o3'$$);
 select tests.as('trusted');
 update public.agreements set status = 'cancelled' where offer_id = 'o3-cat';  -- the duplicate, if any
 select tests.as('bob');
-select tests.expect_bug('nothing takes a listing off hold when its agreement is canceled; it stays ''pending'' and the owner''s page only shows "You have a trade in progress"');
 select tests.check('F-03', 'canceling the trade puts the listing back up',
   (select status = 'active' from public.listings where id = 'LB3'),
   (select 'listing status ' || status from public.listings where id = 'LB3'));
+select tests.check('F-03', 'and restarts its 30 days, like relisting',
+  (select tests.near(expires_at, now() + interval '30 days') from public.listings where id = 'LB3'),
+  (select 'expires ' || expires_at from public.listings where id = 'LB3'));
+select tests.as('dan');
+select tests.ok('F-03', 'the relisted item takes offers again',
+  $$select public.make_offer('o3-again', 'LB3', 'm3-again', 'Still available?', array['Helmet'])$$);
 
 select tests.as('ann');
 select public.make_offer('o3-late', 'LB6', 'm3-late', 'Tent for a tarp?', array['Tarp']);
@@ -211,22 +240,25 @@ select tests.check('F-04', 'Bob is not notified of his own declines',
 
 -- Repeating an answer (double tap, retry after a lost response, or the other side)
 select tests.as('bob');
-select tests.expect_bug('respond_to_offer: an accept/decline on an offer already in that state passes offers_guard (status unchanged = no-op) and still inserts another thread message, so a repeat decline sends a second "Offer declined" notification');
 select tests.err('F-04', 'declining an already-declined offer is refused',
   $$select public.respond_to_offer('o4-not_fair', 'decline', 'm4-z', 'not_fair', '{}')$$, 'already declined');
 select tests.as('ann');
-select tests.expect_bug('same root cause: the offer maker can post a decline on an offer that was already declined, which notifies the owner "Ann declined your offer"');
 select tests.err('F-04', 'the maker can''t post a decline on an offer Bob already declined',
   $$select public.respond_to_offer('o4-note', 'decline', 'm4-z2', 'no_longer_available', '{}')$$, 'already declined');
-select tests.expect_bug('same root cause: duplicate decline notifications');
 select tests.check('F-04', 'still exactly one decline notification per offer after the repeats',
   (select count(*) = 1 from public.notifications where offer_id = 'o4-not_fair' and type = 'offer_declined')
   and not exists (select 1 from public.notifications where offer_id = 'o4-note' and user_id = tests.uid('bob')),
   (select count(*) || ' notifications on o4-not_fair' from public.notifications where offer_id = 'o4-not_fair'));
 select tests.as('ann');
-select tests.expect_bug('same root cause: the offer maker can post an "accept" message on her own already-accepted offer');
 select tests.err('F-03', 'Ann can''t accept her own offer after Bob accepted it',
   $$select public.respond_to_offer('o2', 'accept', 'm2-dup', 'ok', '{}')$$, 'already accepted');
+select tests.as('bob');
+select tests.err('F-03', 'Bob accepting the same offer twice is refused: "This offer is already accepted."',
+  $$select public.respond_to_offer('o2', 'accept', 'm2-dup2', 'ok', '{}')$$, 'This offer is already accepted.');
+select tests.err('F-04', 'countering a declined offer is refused',
+  $$select public.respond_to_offer('o4-not_fair', 'counter', 'm4-c', 'how about', array['x'])$$, 'already declined');
+select tests.check('F-04', 'the refused repeats left no thread messages',
+  not exists (select 1 from public.offer_messages where id in ('m4-z', 'm4-z2', 'm2-dup', 'm2-dup2', 'm4-c')));
 
 -- ─── F-05 withdraw ──────────────────────────────────────────────────────────
 select tests.as('ann');
@@ -306,3 +338,36 @@ select tests.err('F-06', 'an expired offer can''t be accepted later',
   $$select public.respond_to_offer('e1', 'accept', 'me1-a', 'ok', '{}')$$, 'already expired');
 select tests.err('F-06', 'signed-in neighbors can''t run the sweep',
   $$select public.expire_stale_offers()$$, 'permission denied');
+
+-- ─── F-07 offer-type thread messages come only from the RPCs ────────────────
+-- offers_after_accept() takes the latest 'offer' / 'counter' message as what
+-- the maker gives, so a hand-inserted one would rewrite the agreement.
+select tests.as('ann');
+select public.make_offer('o7', 'LB5', 'm7', 'Record player for a cake?', array['Cake']);
+select tests.as('trusted');
+update public.offers set expires_at = now() + interval '1 hour' where id = 'o7';
+select tests.as('ann');
+select tests.err('F-07', 'the maker can''t post a later "offer" message with new items',
+  $$insert into public.offer_messages (offer_id, from_user_id, type, content, items)
+    values ('o7', 'aaaaaaaa-0000-0000-0000-000000000001', 'offer', 'Actually', array['A sticker'])$$,
+  'offer buttons');
+select tests.as('bob');
+select tests.err('F-07', 'the owner can''t post an "offer" message in the thread either',
+  $$insert into public.offer_messages (offer_id, from_user_id, type, content, items)
+    values ('o7', 'bbbbbbbb-0000-0000-0000-000000000002', 'offer', 'x', array['Gold bar'])$$,
+  'offer buttons');
+select tests.err('F-07', 'a hand-inserted "decline" message is refused (it would notify without declining)',
+  $$insert into public.offer_messages (offer_id, from_user_id, type, content)
+    values ('o7', 'bbbbbbbb-0000-0000-0000-000000000002', 'decline', 'not_fair')$$,
+  'offer buttons');
+select tests.err('F-07', 'a hand-inserted "counter" message is refused',
+  $$insert into public.offer_messages (offer_id, from_user_id, type, content, items)
+    values ('o7', 'bbbbbbbb-0000-0000-0000-000000000002', 'counter', 'x', array['Gold bar'])$$,
+  'offer buttons');
+select tests.ok('F-07', 'plain messages still work',
+  $$insert into public.offer_messages (offer_id, from_user_id, type, content)
+    values ('o7', 'bbbbbbbb-0000-0000-0000-000000000002', 'message', 'What kind of cake?')$$);
+select tests.ok('F-07', 'Bob accepts through the RPC', $$select public.respond_to_offer('o7', 'accept', 'm7-a', 'Deal', '{}')$$);
+select tests.check('F-07', 'the agreement has the items from Ann''s real offer',
+  (select party_a_item = 'Cake' from public.agreements where offer_id = 'o7'),
+  (select party_a_item from public.agreements where offer_id = 'o7'));
