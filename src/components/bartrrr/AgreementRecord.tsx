@@ -8,6 +8,18 @@ import {
 } from '@/types'
 import { exchangeTime, formatExchangeTime, formatLongDate } from '@/lib/agreements'
 
+/** Signature time in Memphis time: "November 10, 2026 at 3:42 PM CST" */
+const formatSignedAt = (iso: string) =>
+  new Date(iso).toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/Chicago',
+    timeZoneName: 'short',
+  }).replace(/, (\d{1,2}:)/, ' at $1')
+
 export interface AgreementRecordProps {
   agreement: TradeAgreement
   partyA: UserProfile
@@ -170,7 +182,12 @@ export function AgreementRecord({ agreement, partyA, partyB }: AgreementRecordPr
             <div key={user.id}>
               <p className="record-signature">{side.signed ? user.displayName : ' '}</p>
               <p className="record-small">
-                {user.displayName}: {side.signed ? 'signed' : 'not signed'}
+                {user.displayName}:{' '}
+                {!side.signed
+                  ? 'not signed'
+                  : side.signedAt
+                    ? `signed ${formatSignedAt(side.signedAt)}`
+                    : 'signed, time not recorded'}
               </p>
             </div>
           ))}

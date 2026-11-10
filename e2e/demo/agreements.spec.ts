@@ -536,6 +536,8 @@ test.describe('T-14 save a copy as PDF', () => {
       await expect(r).toContainText(text)
     }
     await expect(r).toContainText(/(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday), \w+ \d+ at \d+:\d\d [AP]M/)
+    // Signature times (PRD 5.7): a stamped time, or an honest note for older agreements
+    await expect(r).toContainText(/Dave Morrison: signed( \w+ \d+, \d{4} at \d+:\d\d [AP]M C[SD]T|, time not recorded)/)
     // Nobody's email or home address, no raw enum values
     await expect(r).not.toContainText('@')
     await expect(r).not.toContainText(/pending_signatures|service_at_location|disputed|cancelled/)
