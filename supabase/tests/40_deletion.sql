@@ -1,6 +1,7 @@
--- Account deletion (007 operator function, 010 self-service):
---   X-02 a neighbor deletes their own account
+-- Account deletion (007 operator function, 010 self-service, 013 fresh sign-in):
+--   X-02 a neighbor deletes their own account, then their photos
 --   X-03 nobody can delete someone else's account (or the auth rows)
+--   X-04 deleting needs a sign-in from the last 10 minutes (013)
 --   N-02 other neighbors' notifications lose the leaving neighbor's name
 --   V-02 afterwards the old name appears nowhere other neighbors can read
 --
@@ -92,13 +93,115 @@ select tests.err('X-03', 'a session with no user id is refused',
   $$select public.delete_my_account()$$, 'Sign in to delete');
 reset role;
 
--- ─── X-02 Ann deletes her account ───────────────────────────────────────────
+-- ─── X-04 deleting needs a fresh sign-in (013) ──────────────────────────────
+-- tests.signed_in(who, ago, method): Ann's token, as Supabase Auth issues it,
+-- for a session that signed in `ago` before now. The amr timestamp is when
+-- that sign-in happened; iat is when this token was issued (every refresh).
+select tests.as('trusted');
+create function tests.signed_in(p_who text, p_ago interval, p_method text default 'password',
+                                p_extra jsonb default '{}'::jsonb) returns void
+language plpgsql as $$
+begin
+  perform tests.as(p_who);
+  perform set_config('request.jwt.claims',
+    (jsonb_build_object(
+       'sub', tests.uid(p_who), 'role', 'authenticated',
+       'iat', floor(extract(epoch from now())),
+       'amr', jsonb_build_array(jsonb_build_object(
+                'method', p_method, 'timestamp', floor(extract(epoch from now() - p_ago)))))
+     || p_extra)::text, false);
+end $$;
+
+-- SQLSTATE a statement fails with (null if it runs; its effects are kept)
+create function tests.sqlstate_of(p_sql text) returns text
+language plpgsql as $$
+begin
+  execute p_sql;
+  return null;
+exception when others then
+  return sqlstate;
+end $$;
+
+-- True when the statement runs; always rolled back
+create function tests.runs_then_rollback(p_sql text) returns boolean
+language plpgsql as $$
+begin
+  execute p_sql;
+  raise exception 'tests.rollback';
+exception when others then
+  if sqlerrm <> 'tests.rollback' then
+    raise notice 'runs_then_rollback: % (%)', sqlerrm, sqlstate;
+  end if;
+  return sqlerrm = 'tests.rollback';
+end $$;
+
+-- Ann's sign-in is from yesterday, but her current token is new: the token
+-- refreshes every hour, so iat alone must not count as a fresh sign-in.
+update auth.users set last_sign_in_at = now() - interval '1 day' where id = tests.uid('ann')::uuid;
+
 select tests.as('ann');
--- The app removes her photos through the Storage API first (008 policies)
-select tests.check('X-02', 'Ann lists only her own photos', (select count(*) = 1 from storage.objects));
-select tests.ok('X-02', 'Ann removes her photos', $$delete from storage.objects where bucket_id = 'listing-photos'$$);
+select tests.err('X-04', 'a token with no amr and an old last sign-in is refused',
+  $$select public.delete_my_account()$$, 'Confirm it''s you again');
+select tests.check('X-04', 'the refusal is SQLSTATE 28000 (the app shows the confirm step again)',
+  tests.sqlstate_of('select public.delete_my_account()') = '28000');
+
+select tests.signed_in('ann', interval '11 minutes');
+select tests.err('X-04', 'a password sign-in 11 minutes ago is refused (token just refreshed)',
+  $$select public.delete_my_account()$$, 'Confirm it''s you again');
+select tests.signed_in('ann', interval '3 hours', 'oauth');
+select tests.err('X-04', 'a Google sign-in 3 hours ago is refused',
+  $$select public.delete_my_account()$$, 'Confirm it''s you again');
+select tests.signed_in('ann', interval '1 minute', 'token_refresh');
+select tests.err('X-04', 'a recent token_refresh entry doesn''t count as signing in',
+  $$select public.delete_my_account()$$, 'Confirm it''s you again');
+
+-- Signing in on another device moves last_sign_in_at, not this session's amr
+select tests.as('trusted');
+update auth.users set last_sign_in_at = now() - interval '1 minute' where id = tests.uid('ann')::uuid;
+select tests.signed_in('ann', interval '2 hours');
+select tests.err('X-04', 'an old session stays refused after a fresh sign-in elsewhere',
+  $$select public.delete_my_account()$$, 'Confirm it''s you again');
+
+select tests.as('trusted');
+select tests.check('X-04', 'nothing changed after the refusals',
+  (select display_name from public.users where id = tests.uid('ann')) = 'Ann Alpha'
+  and exists (select 1 from auth.users where id = tests.uid('ann')::uuid)
+  and (select count(*) from public.listings where user_id = tests.uid('ann')) = 2);
+
+-- Fresh sign-ins are let through (checked in a rolled-back transaction)
+select tests.signed_in('ann', interval '9 minutes');
+select tests.check('X-04', 'a password sign-in 9 minutes ago is allowed',
+  tests.runs_then_rollback('select public.delete_my_account()'));
+select tests.signed_in('ann', interval '30 seconds', 'oauth');
+select tests.check('X-04', 'a Google sign-in 30 seconds ago is allowed',
+  tests.runs_then_rollback('select public.delete_my_account()'));
+select tests.signed_in('ann', interval '1 minute', 'password',
+  jsonb_build_object('amr', jsonb_build_array(
+    jsonb_build_object('method', 'password', 'timestamp', floor(extract(epoch from now() - interval '5 hours'))),
+    jsonb_build_object('method', 'oauth', 'timestamp', floor(extract(epoch from now() - interval '2 minutes'))))));
+select tests.check('X-04', 'with several sign-in methods, the newest one counts',
+  tests.runs_then_rollback('select public.delete_my_account()'));
+-- A token without amr (custom access token hook) falls back to last_sign_in_at
+select tests.as('ann');
+select tests.check('X-04', 'no amr: a last sign-in 1 minute ago is allowed',
+  tests.runs_then_rollback('select public.delete_my_account()'));
+select tests.as('trusted');
+select tests.check('X-04', 'still nothing changed after the rolled-back runs',
+  (select display_name from public.users where id = tests.uid('ann')) = 'Ann Alpha'
+  and exists (select 1 from auth.users where id = tests.uid('ann')::uuid));
+
+-- ─── X-02 Ann deletes her account, then her photos ──────────────────────────
+-- She types her password again in the dialog: a new session
+select tests.signed_in('ann', interval '5 seconds');
 select tests.ok('X-02', 'Ann deletes her account', $$select public.delete_my_account()$$);
 select tests.ok('X-02', 'calling it again (double tap, retry) is harmless', $$select public.delete_my_account()$$);
+-- Storage has no foreign key from objects to auth.users (storage migration
+-- 0017), so her files outlive the sign-in. The app then removes them through
+-- the Storage API with her still-valid token (008 policies match its sub).
+select tests.check('X-02', 'her photos are still there after the sign-in is gone',
+  (select count(*) = 1 from storage.objects where name like 'aaaaaaaa%'));
+select tests.check('X-02', 'with her old token, Ann lists only her own photos', (select count(*) = 1 from storage.objects));
+select tests.ok('X-02', 'with her old token, Ann removes her photos', $$delete from storage.objects where bucket_id = 'listing-photos'$$);
 
 select tests.as('trusted');
 select tests.check('X-02', 'photos: Ann''s gone, Bob''s kept',

@@ -1,5 +1,5 @@
 -- Minimal Supabase stand-ins, applied to a fresh database before the
--- migrations. Only what 001–011 and the tests touch: the API roles, auth.uid(),
+-- migrations. Only what 001–013 and the tests touch: the API roles, auth.uid(),
 -- auth.users, the storage tables and foldername(), the realtime publication,
 -- the extensions schema, and Supabase's default grants on public.
 
@@ -31,6 +31,7 @@ create table auth.users (
   id uuid primary key,
   email text,
   raw_user_meta_data jsonb default '{}'::jsonb,
+  last_sign_in_at timestamptz,
   created_at timestamptz default now()
 );
 create table auth.identities (

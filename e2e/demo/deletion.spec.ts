@@ -1,27 +1,29 @@
 /// <reference lib="dom" />
 import type { Page } from '@playwright/test'
 import { test, expect as baseExpect } from '../fixtures'
-import { captureBugShots, goInApp, login, readStore, writeStore } from './helpers-core'
+import { captureBugShots, goInApp, login, readStore, writeStore, type Neighbor } from './helpers-core'
 
 /**
  * X-01 the delete-account section and dialog in Settings, X-03 finishing
- * deletion in demo mode (nothing is deleted; the neighbor is logged out).
+ * deletion in demo mode (nothing is deleted; the neighbor is logged out),
+ * X-04 confirming it's you first: a password for email accounts (Jamie),
+ * a trip through Google for Google accounts (Maria, in the demo).
  * The real server-side deletion needs Supabase and is covered elsewhere.
  */
 
 captureBugShots(test)
 const expect = baseExpect.configure({ timeout: 10_000 })
 
-async function openSettings(page: Page) {
-  await login(page, 'Jamie')
+async function openSettings(page: Page, who: Neighbor = 'Jamie') {
+  await login(page, who)
   await goInApp(page, '/settings')
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
 }
 
 const dialog = (page: Page) => page.getByRole('dialog', { name: 'Delete your account?' })
 
-async function openDialog(page: Page) {
-  await openSettings(page)
+async function openDialog(page: Page, who: Neighbor = 'Jamie') {
+  await openSettings(page, who)
   await page.getByRole('region', { name: 'Delete account' }).getByRole('button', { name: 'Delete account' }).click()
   await expect(dialog(page)).toBeVisible()
 }
@@ -44,7 +46,7 @@ test.describe('X-01 delete account section', () => {
     await expect(d.getByRole('listitem')).toHaveCount(5)
     await expect(d).toContainText('Withdraw your open offers and cancel trade agreements that aren’t finished.')
     await expect(d).toContainText('Messages you sent stay in their conversations.')
-    await expect(d.getByText('This is the demo, so nothing is deleted: you’ll just be logged out.')).toBeVisible()
+    await expect(d.getByText('This is the demo, so nothing is deleted: you’ll just be logged out. Any password works.')).toBeVisible()
   })
 
   test('open offers and agreements are named in the warning', async ({ page }) => {
@@ -66,6 +68,7 @@ test.describe('X-01 delete account section', () => {
   test('the delete button stays off until DELETE is typed, in any case', async ({ page }) => {
     await openDialog(page)
     const d = dialog(page)
+    await d.getByLabel('Your password').fill('demo-password')
     const input = d.getByLabel('Type DELETE to confirm')
     const confirm = d.getByRole('button', { name: 'Delete account' })
     await expect(confirm).toBeDisabled()
@@ -99,6 +102,7 @@ test.describe('X-01 delete account section', () => {
 
   test('"Keep my account" closes the dialog and returns focus', async ({ page }) => {
     await openDialog(page)
+    await dialog(page).getByLabel('Your password').fill('demo-password')
     await dialog(page).getByLabel('Type DELETE to confirm').fill('DELETE')
     await dialog(page).getByRole('button', { name: 'Keep my account' }).click()
     await expect(dialog(page)).toHaveCount(0)
@@ -110,6 +114,7 @@ test.describe('X-01 delete account section', () => {
     // Reopening starts fresh
     await opener.click()
     await expect(dialog(page).getByLabel('Type DELETE to confirm')).toHaveValue('')
+    await expect(dialog(page).getByLabel('Your password')).toHaveValue('')
   })
 
   test('Escape closes the dialog', async ({ page }) => {
@@ -127,9 +132,91 @@ test.describe('X-01 delete account section', () => {
   })
 })
 
+test.describe('X-04 confirm it’s you before deleting', () => {
+  test('email accounts: the password is needed as well as DELETE', async ({ page }) => {
+    await openDialog(page)
+    const d = dialog(page)
+    await expect(d.getByRole('group', { name: 'Confirm it’s you' })).toBeVisible()
+    const password = d.getByLabel('Your password')
+    await expect(password).toHaveAttribute('type', 'password')
+    await expect(password).toHaveAttribute('autocomplete', 'current-password')
+    await expect(d.getByRole('button', { name: /Confirm with Google/ })).toHaveCount(0)
+    const confirm = d.getByRole('button', { name: 'Delete account' })
+
+    await d.getByLabel('Type DELETE to confirm').fill('DELETE')
+    await expect(confirm).toBeDisabled()
+    await expect(d.getByText('Enter your password above too.')).toBeVisible()
+
+    await password.fill('anything')
+    await expect(confirm).toBeEnabled()
+    await expect(d.getByText('Ready when you are.')).toBeVisible()
+
+    await password.fill('')
+    await expect(confirm).toBeDisabled()
+    // Enter does nothing without a password either
+    await d.getByLabel('Type DELETE to confirm').press('Enter')
+    await expect(page).toHaveURL('/settings')
+  })
+
+  test('Google accounts: no password field, a "Confirm with Google" step instead', async ({ page }) => {
+    await openDialog(page, 'Maria')
+    const d = dialog(page)
+    await expect(d.getByLabel('Your password')).toHaveCount(0)
+    await expect(d).toContainText('We’ll send you to Google and bring you back here.')
+    await expect(d.getByText('This is the demo, so nothing is deleted: you’ll just be logged out.')).toBeVisible()
+    await expect(d).not.toContainText('Any password works.')
+
+    await d.getByLabel('Type DELETE to confirm').fill('DELETE')
+    await expect(d.getByRole('button', { name: 'Delete account' })).toBeDisabled()
+    await expect(d.getByText('Confirm with Google above too.')).toBeVisible()
+  })
+
+  test('Google accounts: the round trip comes back to Settings with the dialog open and confirmed', async ({ page }) => {
+    await openDialog(page, 'Maria')
+    await dialog(page).getByRole('button', { name: 'Confirm with Google' }).click()
+
+    // Back on Settings (the ?confirm=delete marker is cleaned up), dialog reopened
+    await expect(dialog(page)).toBeVisible()
+    await expect(page).toHaveURL('/settings')
+    const d = dialog(page)
+    await expect(d.getByText('Confirmed with Google.')).toBeVisible()
+    await expect(d.getByRole('button', { name: 'Confirm with Google' })).toHaveCount(0)
+
+    const confirm = d.getByRole('button', { name: 'Delete account' })
+    await expect(confirm).toBeDisabled()
+    await d.getByLabel('Type DELETE to confirm').fill('delete')
+    await expect(confirm).toBeEnabled()
+    await confirm.click()
+    await expect(page).toHaveURL('/goodbye')
+    await expect.poll(() => readStore<string | null>(page, 'auth-store', 's => s.currentUserId')).toBeNull()
+  })
+
+  test('Google accounts: closing the dialog forgets the confirmation', async ({ page }) => {
+    await openDialog(page, 'Maria')
+    await dialog(page).getByRole('button', { name: 'Confirm with Google' }).click()
+    await expect(dialog(page).getByText('Confirmed with Google.')).toBeVisible()
+    await dialog(page).getByRole('button', { name: 'Keep my account' }).click()
+    await expect(dialog(page)).toHaveCount(0)
+    await page.getByRole('region', { name: 'Delete account' }).getByRole('button', { name: 'Delete account' }).click()
+    await expect(dialog(page).getByRole('button', { name: 'Confirm with Google' })).toBeVisible()
+  })
+
+  test('coming back to ?confirm=delete without starting the round trip asks again', async ({ page }) => {
+    await openSettings(page, 'Maria')
+    // The page drops ?confirm=delete at once, so don't wait to see it in the URL
+    await goInApp(page, '/settings?confirm=delete', { redirects: true })
+    const d = dialog(page)
+    await expect(d).toBeVisible()
+    await expect(d.getByRole('alert')).toHaveText('We couldn’t confirm it’s you, so nothing was deleted. Try again below.')
+    await expect(d.getByRole('button', { name: 'Confirm with Google' })).toBeVisible()
+    await expect(page).toHaveURL('/settings')
+  })
+})
+
 test.describe('X-03 finishing deletion (demo)', () => {
   test('deleting goes to the goodbye page and signs out', async ({ page }) => {
     await openDialog(page)
+    await dialog(page).getByLabel('Your password').fill('demo-password')
     await dialog(page).getByLabel('Type DELETE to confirm').fill('delete')
     await dialog(page).getByRole('button', { name: 'Delete account' }).click()
     await expect(page).toHaveURL('/goodbye')
@@ -147,6 +234,7 @@ test.describe('X-03 finishing deletion (demo)', () => {
 
   test('pressing Enter in the confirm field deletes too', async ({ page }) => {
     await openDialog(page)
+    await dialog(page).getByLabel('Your password').fill('demo-password')
     const input = dialog(page).getByLabel('Type DELETE to confirm')
     await input.fill('DELETE')
     await input.press('Enter')
@@ -155,6 +243,7 @@ test.describe('X-03 finishing deletion (demo)', () => {
 
   test('after deleting, Settings and other private pages need a login again', async ({ page }) => {
     await openDialog(page)
+    await dialog(page).getByLabel('Your password').fill('demo-password')
     await dialog(page).getByLabel('Type DELETE to confirm').fill('DELETE')
     await dialog(page).getByRole('button', { name: 'Delete account' }).click()
     await expect(page).toHaveURL('/goodbye')
@@ -178,5 +267,8 @@ test.describe('X-03 finishing deletion (demo)', () => {
   })
   test.skip('network and expired-session errors keep the dialog open with a message', () => {
     // Needs a backend to fail; ACCOUNT_DELETION_IS_DEMO short-circuits in demo mode.
+  })
+  test.skip('a wrong password, or a sign-in older than 10 minutes, keeps the account', () => {
+    // Needs Supabase Auth and migration 013; covered by unit tests and 40_deletion.sql X-04.
   })
 })
