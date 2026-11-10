@@ -211,6 +211,13 @@ describe('mapOfferRow', () => {
 })
 
 describe('mapAgreementRow', () => {
+  it('maps signature times (migration 014); absent or null means not recorded', () => {
+    const a = svc.mapAgreementRow(agreementRow({ party_a_signed_at: '2026-11-02T15:00:00Z', party_b_signed_at: null }))
+    expect(a.partyA.signedAt).toBe('2026-11-02T15:00:00Z')
+    expect(a.partyB.signedAt).toBeUndefined()
+    const before014 = svc.mapAgreementRow(agreementRow())
+    expect(before014.partyA).not.toHaveProperty('signedAt', expect.anything())
+  })
   it('maps nulls to undefined and keeps cancelled_late false by default', () => {
     const a = svc.mapAgreementRow(agreementRow())
     expect(a).toEqual({
@@ -532,10 +539,8 @@ describe('offer RPCs', () => {
   })
   it.each([
     ['acceptOffer', () => svc.acceptOffer('offer-1', 'm'), 'accept', 'Offer accepted.'],
-    ['declineOffer with note', () => svc.declineOffer('offer-1', 'm', 'not_fair', '  too low  '), 'decline', "Offer doesn't feel like a fair trade. too low"],
-    ['declineOffer without note', () => svc.declineOffer('offer-1', 'm', 'not_fair', '  '), 'decline', 'not_fair'],
     ['withdrawOffer', () => svc.withdrawOffer('offer-1', 'm'), 'withdraw', 'Offer withdrawn.'],
-  ] as const)('%s → respond_to_offer(%s)', async (_n, run, action, content) => {
+  ] as const)('%s → respond_to_offer(%s) without p_reason', async (_n, run, action, content) => {
     h.results.push({ data: offerRow(), error: null }, { data: [], error: null })
     await run()
     expect(h.client.rpc).toHaveBeenCalledWith('respond_to_offer', {
@@ -545,6 +550,57 @@ describe('offer RPCs', () => {
       p_content: content,
       p_items: [],
     })
+  })
+  it.each([
+    ['with note', '  too low  ', 'too low'],
+    ['without note', '  ', 'not_fair'],
+  ] as const)('declineOffer %s sends the code as p_reason (migration 014)', async (_n, note, content) => {
+    h.results.push({ data: offerRow(), error: null }, { data: [], error: null })
+    await svc.declineOffer('offer-1', 'm', 'not_fair', note)
+    expect(h.client.rpc).toHaveBeenCalledTimes(1)
+    expect(h.client.rpc).toHaveBeenCalledWith('respond_to_offer', {
+      p_offer_id: 'offer-1',
+      p_action: 'decline',
+      p_message_id: 'm',
+      p_content: content,
+      p_items: [],
+      p_reason: 'not_fair',
+    })
+  })
+  it.each([
+    ['with note', '  too low  ', "Offer doesn't feel like a fair trade. too low"],
+    ['without note', '  ', 'not_fair'],
+  ] as const)('declineOffer %s falls back to the pre-014 call when p_reason is unknown (PGRST202)', async (_n, note, content) => {
+    h.client.rpc.mockResolvedValueOnce({ error: { code: 'PGRST202', message: 'Could not find the function public.respond_to_offer' } })
+    h.results.push({ data: offerRow(), error: null }, { data: [], error: null })
+    await svc.declineOffer('offer-1', 'm', 'not_fair', note)
+    expect(h.client.rpc).toHaveBeenCalledTimes(2)
+    expect(h.client.rpc).toHaveBeenLastCalledWith('respond_to_offer', {
+      p_offer_id: 'offer-1',
+      p_action: 'decline',
+      p_message_id: 'm',
+      p_content: content,
+      p_items: [],
+    })
+  })
+  it('declineOffer doesn\'t retry other errors', async () => {
+    h.client.rpc.mockResolvedValueOnce({ error: { code: 'P0001', message: 'This offer is already declined.' } })
+    await expect(svc.declineOffer('offer-1', 'm', 'not_fair')).rejects.toEqual({ code: 'P0001', message: 'This offer is already declined.' })
+    expect(h.client.rpc).toHaveBeenCalledTimes(1)
+  })
+  it('maps decline_reason onto the message, and its absence (before 014) to undefined', async () => {
+    h.results.push(
+      { data: offerRow(), error: null },
+      {
+        data: [
+          msgRow({ id: 'd1', type: 'decline', content: 'Too low', decline_reason: 'not_fair' }),
+          msgRow({ id: 'd2', type: 'decline', content: 'not_fair' }),
+        ],
+        error: null,
+      },
+    )
+    const o = await svc.declineOffer('offer-1', 'm', 'not_fair', 'Too low')
+    expect(o?.messages.map((m) => m.declineReason)).toEqual(['not_fair', undefined])
   })
   it('RPC errors are thrown as-is', async () => {
     h.client.rpc.mockResolvedValueOnce({ error: { code: 'P0001', message: 'Offer is closed' } })

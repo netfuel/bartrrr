@@ -64,9 +64,12 @@ export type OfferMessageType =
 export type OfferMessage = {
   id: string
   fromUserId: string
+  /** For a decline: the neighbor's note, or the reason code when there's no note (or, before migration 014, "<label>. <note>") */
   content: string
   items?: string[]
   type: OfferMessageType
+  /** Decline reason code (offer_messages.decline_reason, migration 014). Read declines with parseDecline. */
+  declineReason?: OfferDeclineReason
   createdAt: string
 }
 
@@ -129,8 +132,12 @@ export type AgreementStatus =
 export type TradeAgreement = {
   id: string
   offerId: string
-  partyA: { userId: string; item: string; signed: boolean }
-  partyB: { userId: string; item: string; signed: boolean }
+  /**
+   * signedAt: when that party signed (ISO), stamped by the server (migration
+   * 014). Undefined when unsigned, or signed before 014 (time not recorded).
+   */
+  partyA: { userId: string; item: string; signed: boolean; signedAt?: string }
+  partyB: { userId: string; item: string; signed: boolean; signedAt?: string }
   exchangeMethod?: 'in_person' | 'dropoff' | 'service_at_location'
   exchangeDate?: string
   exchangeLocation?: string
@@ -212,13 +219,17 @@ export type Review = {
 }
 
 // ─── Notification ────────────────────────────────────────────
+/** Mirrors notifications_type_check (migration 014). Labels, icons and settings: lib/notifications.ts */
 export type NotificationType =
   | 'new_offer'
   | 'counter_offer'
   | 'offer_accepted'
   | 'offer_declined'
+  | 'offer_withdrawn'
   | 'new_message'
   | 'agreement_ready'
+  | 'trade_canceled'
+  | 'trade_flagged'
   | 'trade_complete'
   | 'review_request'
   | 'match'

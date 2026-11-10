@@ -12,6 +12,7 @@ import type { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import * as svc from '@/lib/supabase/supabase-service'
 import { DEMO_MODE } from '@/lib/env'
+import { photoFromMetadata } from '@/lib/auth/google-photo'
 import { subscribeToPush, isPushSupported, getPushPermissionState } from '@/lib/push'
 import { useAuthStore } from '@/stores/auth-store'
 import { useUsersStore } from '@/stores/users-store'
@@ -59,7 +60,8 @@ function profileSeedFromSession(session: Session) {
       [str(meta.given_name), str(meta.family_name)].filter(Boolean).join(' ') ||
       fromEmail ||
       'Neighbor',
-    avatarUrl: str(meta.avatar_url) ?? str(meta.picture),
+    // Same reading Settings uses to restore it ("Use my Google photo")
+    avatarUrl: photoFromMetadata(meta),
   }
 }
 

@@ -161,6 +161,8 @@ export interface Database {
           type: 'offer' | 'counter' | 'accept' | 'decline' | 'message'
           content: string
           items: string[]
+          /** Migration 014; absent on a database that hasn't applied it */
+          decline_reason?: string | null
           created_at: string
         }
         Insert: {
@@ -170,6 +172,7 @@ export interface Database {
           type: 'offer' | 'counter' | 'accept' | 'decline' | 'message'
           content: string
           items?: string[]
+          decline_reason?: string | null
           created_at?: string
         }
         Update: {
@@ -179,6 +182,7 @@ export interface Database {
           type?: 'offer' | 'counter' | 'accept' | 'decline' | 'message'
           content?: string
           items?: string[]
+          decline_reason?: string | null
           created_at?: string
         }
         Relationships: []
@@ -193,6 +197,9 @@ export interface Database {
           party_b_user_id: string
           party_b_item: string
           party_b_signed: boolean
+          /** Migration 014: server-stamped when each party signs; absent on a database without it */
+          party_a_signed_at?: string | null
+          party_b_signed_at?: string | null
           status: 'draft' | 'under_review' | 'pending_signatures' | 'active' | 'completed' | 'cancelled' | 'disputed'
           exchange_method: 'in_person' | 'dropoff' | 'service_at_location' | null
           exchange_date: string | null
@@ -300,8 +307,11 @@ export interface Database {
             | 'counter_offer'
             | 'offer_accepted'
             | 'offer_declined'
+            | 'offer_withdrawn'
             | 'new_message'
             | 'agreement_ready'
+            | 'trade_canceled'
+            | 'trade_flagged'
             | 'trade_complete'
             | 'review_request'
             | 'match'
@@ -322,8 +332,11 @@ export interface Database {
             | 'counter_offer'
             | 'offer_accepted'
             | 'offer_declined'
+            | 'offer_withdrawn'
             | 'new_message'
             | 'agreement_ready'
+            | 'trade_canceled'
+            | 'trade_flagged'
             | 'trade_complete'
             | 'review_request'
             | 'match'
@@ -344,8 +357,11 @@ export interface Database {
             | 'counter_offer'
             | 'offer_accepted'
             | 'offer_declined'
+            | 'offer_withdrawn'
             | 'new_message'
             | 'agreement_ready'
+            | 'trade_canceled'
+            | 'trade_flagged'
             | 'trade_complete'
             | 'review_request'
             | 'match'
@@ -407,6 +423,8 @@ export interface Database {
           p_message_id: string
           p_content: string
           p_items?: string[]
+          /** Migration 014: decline reason code (decline only) */
+          p_reason?: string
         }
         Returns: Database['public']['Tables']['offers']['Row']
       }

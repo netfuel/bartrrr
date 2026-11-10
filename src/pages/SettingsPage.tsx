@@ -123,6 +123,10 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-heading-section text-ink">Notifications</h2>
           <p className="text-small text-muted mt-2">Choose what we let you know about.</p>
+          {/* Types with no switch (lib/notifications.ts, migrations 012 and 014) */}
+          <p className="text-small text-muted mt-2">
+            We always tell you when an offer is accepted, declined, withdrawn or expires, and when a trade is canceled or flagged.
+          </p>
         </div>
         <div className="divide-y divide-ink/15 border-y border-ink/15">
           {NOTIF_LABELS.map(({ key, label }) => (

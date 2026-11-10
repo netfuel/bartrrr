@@ -10,7 +10,7 @@ import {
 import { mockOffers } from '@/data/mock-offers'
 import { DEMO_MODE } from '@/lib/env'
 import { generateId } from '@/lib/utils'
-import { declineContent } from '@/lib/offers'
+import { declinePayload } from '@/lib/offers'
 import * as svc from '@/lib/supabase/supabase-service'
 import { persist } from './persist'
 import { showToast } from './toast-store'
@@ -208,9 +208,11 @@ export const useOffersStore = create<OffersState>((set, get) => {
       const previous = snapshot(offerId)
       if (!assertOpen(previous)) return
       const messageId = generateId('msg')
+      // Same shape the server stores since migration 014: code + note
+      const { content, reason: declineReason } = declinePayload(reason, note)
       appendMessage(
         offerId,
-        { id: messageId, fromUserId: userId, content: declineContent(reason, note), type: 'decline', createdAt: new Date().toISOString() },
+        { id: messageId, fromUserId: userId, content, declineReason, type: 'decline', createdAt: new Date().toISOString() },
         { status: 'declined' },
       )
       persist(() => svc.declineOffer(offerId, messageId, reason, note), {

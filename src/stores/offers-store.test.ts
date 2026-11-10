@@ -186,10 +186,17 @@ describe('acceptOffer and declineOffer', () => {
   it('decline keeps both the reason and the note, and rolls back on failure', async () => {
     vi.mocked(svc.declineOffer).mockRejectedValue(new Error('x'))
     useOffersStore.getState().declineOffer('offer-1', 'owner', 'not_fair', 'Too low')
-    expect(get().messages.at(-1)).toMatchObject({ type: 'decline', content: "Offer doesn't feel like a fair trade. Too low" })
+    // Reason code and note kept apart, like the server since migration 014 (T-67)
+    expect(get().messages.at(-1)).toMatchObject({ type: 'decline', declineReason: 'not_fair', content: 'Too low' })
     expect(svc.declineOffer).toHaveBeenCalledWith('offer-1', expect.any(String), 'not_fair', 'Too low')
     await flush()
     expect(get()).toEqual(offer())
+  })
+
+  it('a decline without a note stores the code as content', () => {
+    vi.mocked(svc.declineOffer).mockReturnValue(new Promise(() => {}))
+    useOffersStore.getState().declineOffer('offer-1', 'owner', 'no_longer_available', '   ')
+    expect(get().messages.at(-1)).toMatchObject({ type: 'decline', declineReason: 'no_longer_available', content: 'no_longer_available' })
   })
 })
 

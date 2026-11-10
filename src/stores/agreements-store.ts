@@ -107,8 +107,10 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => {
       const previous = get().agreements.find((a) => a.id === id)
       if (!previous || !canSign(previous, userId)) return
       const updated = { ...previous }
-      if (previous.partyA.userId === userId) updated.partyA = { ...previous.partyA, signed: true }
-      if (previous.partyB.userId === userId) updated.partyB = { ...previous.partyB, signed: true }
+      // Optimistic time; the server's own stamp (migration 014) replaces it on success
+      const signedAt = new Date().toISOString()
+      if (previous.partyA.userId === userId) updated.partyA = { ...previous.partyA, signed: true, signedAt }
+      if (previous.partyB.userId === userId) updated.partyB = { ...previous.partyB, signed: true, signedAt }
       if (updated.partyA.signed && updated.partyB.signed) updated.status = 'active'
       replace(updated)
 
@@ -154,8 +156,9 @@ export const useAgreementsStore = create<AgreementsState>((set, get) => {
         exchangeDate: details.exchangeDate,
         exchangeLocation: details.exchangeLocation?.trim() || undefined,
         specialInstructions: details.specialInstructions?.trim() || undefined,
-        partyA: { ...previous.partyA, signed: false },
-        partyB: { ...previous.partyB, signed: false },
+        // Editing clears both signatures and their times (004/009, 014)
+        partyA: { ...previous.partyA, signed: false, signedAt: undefined },
+        partyB: { ...previous.partyB, signed: false, signedAt: undefined },
         termsUpdatedBy: userId,
         termsUpdatedAt: now,
       })

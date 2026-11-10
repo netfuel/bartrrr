@@ -469,3 +469,105 @@ test.describe('Agreements list', () => {
     await expect(page).toHaveURL(/\/agreements$/)
   })
 })
+
+test.describe('T-14 save a copy as PDF', () => {
+  const saveBtn = (page: Page) => page.getByRole('button', { name: 'Save as PDF' })
+  const record = (page: Page) => page.getByTestId('agreement-record')
+
+  test('offered once both signed; opens the print window with a file name', async ({ page }) => {
+    await start(page, 'Dave', '/agreements/agreement-002')
+    await page.evaluate(() => {
+      const w = window as unknown as { __printTitles: string[] }
+      w.__printTitles = []
+      window.print = () => { w.__printTitles.push(document.title) }
+    })
+    await expect(saveBtn(page)).toBeVisible()
+    await saveBtn(page).click()
+    expect(await page.evaluate(() => (window as unknown as { __printTitles: string[] }).__printTitles))
+      .toEqual(['Bartrrr trade agreement agreement-002'])
+    // The page title comes back once printing is done
+    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')))
+    await expect(page).toHaveTitle('Trade agreement | Bartrrr')
+  })
+
+  test('not offered while still waiting to sign', async ({ page }) => {
+    await start(page, 'Jamie', '/agreements/agreement-001')
+    await expect(card(page)).toContainText('Waiting to sign')
+    await expect(saveBtn(page)).toHaveCount(0)
+    await expect(record(page)).toHaveCount(0)
+  })
+
+  test('print shows only the paper copy, with the whole agreement', async ({ page }) => {
+    await start(page, 'Dave', '/agreements/agreement-002')
+    await expect(saveBtn(page)).toBeVisible()
+    // On screen the copy stays hidden
+    await expect(record(page)).toBeHidden()
+
+    await page.emulateMedia({ media: 'print' })
+    await expect(record(page)).toBeVisible()
+    // Nav, header, page and every button are gone; only the copy prints
+    await expect(page.locator('main')).toBeHidden()
+    await expect(page.locator('header').first()).toBeHidden()
+    for (const nav of await page.locator('[aria-label="Main navigation"]').all()) await expect(nav).toBeHidden()
+    await expect(saveBtn(page)).toBeHidden()
+    await expect(page.getByRole('button', { name: 'We made the swap' })).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Cancel trade' })).toBeHidden()
+    await expect(record(page).getByRole('button')).toHaveCount(0)
+
+    const r = record(page)
+    await expect(r.getByRole('heading', { level: 1 })).toHaveText('Trade agreement')
+    for (const text of [
+      'agreement-002',
+      'April 8, 2026',
+      'Copy saved',
+      'This agreement is voluntary and not legally binding.',
+      'Made the offer',
+      'Posted the listing',
+      'Dave Morrison gives',
+      'Homemade Lasagna + Garlic Bread',
+      'Maria Santos gives',
+      '2 Hours of Math Tutoring (algebra, middle school level)',
+      'Service on site',
+      'Cossitt Library, second-floor study room',
+      'Dave brings the food at the start, tutoring runs about 2 hours after that.',
+      'I’ve described what I’m giving honestly, including its condition, and I agree to these terms.',
+      'Canceling within 24 hours of the meetup counts as a late cancellation',
+      'it can’t decide who’s right or guarantee an outcome',
+      'Dave Morrison: signed',
+      'Maria Santos: signed',
+      'Status: Ready to swap',
+    ]) {
+      await expect(r).toContainText(text)
+    }
+    await expect(r).toContainText(/(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday), \w+ \d+ at \d+:\d\d [AP]M/)
+    // Signature times (PRD 5.7): a stamped time, or an honest note for older agreements
+    await expect(r).toContainText(/Dave Morrison: signed( \w+ \d+, \d{4} at \d+:\d\d [AP]M C[SD]T|, time not recorded)/)
+    // Nobody's email or home address, no raw enum values
+    await expect(r).not.toContainText('@')
+    await expect(r).not.toContainText(/pending_signatures|service_at_location|disputed|cancelled/)
+
+    await page.emulateMedia({ media: 'screen' })
+    await expect(record(page)).toBeHidden()
+    await expect(page.locator('main')).toBeVisible()
+  })
+
+  test('kept as a record for completed and canceled trades', async ({ page }) => {
+    await start(page, 'Nina', '/agreements/agreement-003')
+    await expect(saveBtn(page)).toBeVisible()
+    await page.emulateMedia({ media: 'print' })
+    await expect(record(page)).toContainText('Status: Completed')
+    await expect(record(page)).toContainText('Custom Logo Design (3 concepts, 2 revisions, final files)')
+    await page.emulateMedia({ media: 'screen' })
+
+    // Canceled before Dave signed: still worth keeping
+    await switchTo(page, 'Jamie', '/agreements/agreement-001')
+    await page.getByRole('button', { name: 'Cancel trade' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel trade' }).click()
+    await expect(page.getByRole('heading', { name: 'Canceled' })).toBeVisible()
+    await expect(saveBtn(page)).toBeVisible()
+    await page.emulateMedia({ media: 'print' })
+    await expect(record(page)).toContainText('Status: Canceled')
+    await expect(record(page)).toContainText(/Canceled.*by Jamie Oakley/)
+    await expect(record(page)).toContainText('Dave Morrison: not signed')
+  })
+})

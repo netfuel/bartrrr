@@ -260,6 +260,65 @@ select tests.err('F-04', 'countering a declined offer is refused',
 select tests.check('F-04', 'the refused repeats left no thread messages',
   not exists (select 1 from public.offer_messages where id in ('m4-z', 'm4-z2', 'm2-dup', 'm2-dup2', 'm4-c')));
 
+-- ─── F-04 decline reason codes (T-67, migration 014) ───────────────────────
+-- respond_to_offer(..., p_reason) stores the code in offer_messages.
+-- decline_reason and the note as content (the code itself when there's no
+-- note). Old callers that put the reason in content still get the code.
+select tests.as('ann');
+select public.make_offer('o4r-' || k, 'LB4', 'm4r-' || k, 'For your rice cooker?', array['Spice set'])
+  from unnest(array['code', 'nullnote', 'note', 'bad', 'legacy', 'counter']) k;
+select tests.as('bob');
+select tests.ok('F-04', 'T-67 Bob declines with a reason code and no note',
+  $$select public.respond_to_offer('o4r-code', 'decline', 'm4rd-code', 'not_fair', '{}', 'not_fair')$$);
+select tests.ok('F-04', 'T-67 Bob declines with a reason code and a null note',
+  $$select public.respond_to_offer('o4r-nullnote', 'decline', 'm4rd-nullnote', null, '{}', 'no_longer_available')$$);
+select tests.ok('F-04', 'T-67 Bob declines with a reason code and a note',
+  $$select public.respond_to_offer('o4r-note', 'decline', 'm4rd-note', 'Too low for me. Sorry!', '{}', 'not_fair')$$);
+select tests.err('F-04', 'T-67 an unknown reason code is refused',
+  $$select public.respond_to_offer('o4r-bad', 'decline', 'm4rd-bad', 'x', '{}', 'rude')$$,
+  'Pick one of the decline reasons');
+select tests.ok('F-04', 'T-67 the pre-014 call (reason label + note in content, 5 arguments) still works',
+  $$select public.respond_to_offer('o4r-legacy', 'decline', 'm4rd-legacy',
+      'Offer doesn''t feel like a fair trade. Too low', array[]::text[])$$);
+select tests.ok('F-04', 'T-67 p_reason on a counter-offer is ignored',
+  $$select public.respond_to_offer('o4r-counter', 'counter', 'm4rd-counter', 'Two spice sets?', array['Spice set', 'Spice set'], 'not_fair')$$);
+select tests.check('F-04', 'T-67 code stored in decline_reason, the note (or the code) in content',
+  (select decline_reason = 'not_fair' and content = 'not_fair' from public.offer_messages where id = 'm4rd-code')
+  and (select decline_reason = 'no_longer_available' and content = 'no_longer_available' from public.offer_messages where id = 'm4rd-nullnote')
+  and (select decline_reason = 'not_fair' and content = 'Too low for me. Sorry!' from public.offer_messages where id = 'm4rd-note'),
+  (select string_agg(id || '=' || coalesce(decline_reason, 'null') || '/' || content, ' | ') from public.offer_messages where id like 'm4rd-%'));
+select tests.check('F-04', 'T-67 the refused decline left the offer open and no message',
+  (select status = 'pending' from public.offers where id = 'o4r-bad')
+  and not exists (select 1 from public.offer_messages where id = 'm4rd-bad'));
+select tests.check('F-04', 'T-67 old-style declines get their code from content, content unchanged',
+  (select decline_reason = 'not_fair' and content = 'Offer doesn''t feel like a fair trade. Too low'
+     from public.offer_messages where id = 'm4rd-legacy')
+  and (select decline_reason = 'not_fair' from public.offer_messages where id = 'm4d-not_fair')
+  and (select bool_and(decline_reason = substr(id, 5)) from public.offer_messages
+        where id in ('m4d-not_interested', 'm4d-looking_for_specific', 'm4d-accepted_another', 'm4d-no_longer_available')));
+select tests.check('F-04', 'T-67 a note-only decline has no code',
+  (select decline_reason is null from public.offer_messages where id = 'm4d-note'));
+select tests.check('F-04', 'T-67 the automatic "accepted_another" decline (one listing, one trade) has its code',
+  (select decline_reason = 'accepted_another' from public.offer_messages where offer_id = 'o3-cat' and type = 'decline'));
+select tests.check('F-04', 'T-67 non-decline messages never carry a code',
+  not exists (select 1 from public.offer_messages where type <> 'decline' and decline_reason is not null));
+
+select tests.as('ann');
+select tests.check('F-04', 'T-67 notifications: label, or "label. note", same wording as before',
+  (select count(*) = 4 from public.notifications n
+     join (values
+       ('o4r-code',     'Bob declined your offer. Their reason: “Offer doesn''t feel like a fair trade”'),
+       ('o4r-nullnote', 'Bob declined your offer. Their reason: “It''s no longer available”'),
+       ('o4r-note',     'Bob declined your offer. Their reason: “Offer doesn''t feel like a fair trade. Too low for me. Sorry!”'),
+       ('o4r-legacy',   'Bob declined your offer. Their reason: “Offer doesn''t feel like a fair trade. Too low”')
+     ) e(offer_id, body) on e.offer_id = n.offer_id and e.body = n.body
+    where n.type = 'offer_declined' and n.title = 'Offer declined' and n.user_id = tests.uid('ann')),
+  (select string_agg(offer_id || ': ' || body, ' | ') from public.notifications where offer_id like 'o4r-%'));
+select tests.err('F-04', 'T-67 a neighbor can''t put a reason code on a chat message',
+  $$insert into public.offer_messages (offer_id, from_user_id, type, content, decline_reason)
+    values ('o4r-counter', 'aaaaaaaa-0000-0000-0000-000000000001', 'message', 'hi', 'not_fair')$$,
+  'offer_messages_decline_reason_check');
+
 -- ─── F-05 withdraw ──────────────────────────────────────────────────────────
 select tests.as('ann');
 select public.make_offer('o5', 'LB5', 'm5', 'For the record player?', array['Vinyl crate']);
@@ -288,8 +347,8 @@ select tests.err('F-05', 'a declined offer can''t be withdrawn',
 select tests.check('F-05', 'Ann is not notified of her own withdrawal',
   not exists (select 1 from public.notifications where offer_id in ('o5', 'o5c') and title = 'Offer withdrawn'));
 select tests.as('bob');
-select tests.check('F-05', 'Bob is told: "Ann withdrew their offer on your Record player."',
-  (select count(*) = 2 from public.notifications where offer_id in ('o5', 'o5c') and type = 'offer_declined'
+select tests.check('F-05', 'Bob is told: "Ann withdrew their offer on your Record player." (type offer_withdrawn, T-04)',
+  (select count(*) = 2 from public.notifications where offer_id in ('o5', 'o5c') and type = 'offer_withdrawn'
      and title = 'Offer withdrawn' and body = 'Ann withdrew their offer on your Record player.'),
   (select string_agg(title || ': ' || body, ' | ') from public.notifications where offer_id in ('o5', 'o5c')));
 

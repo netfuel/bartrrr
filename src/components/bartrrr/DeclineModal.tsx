@@ -59,7 +59,10 @@ export function DeclineModal({ onDecline, onClose, otherName = 'your neighbor' }
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={3}
-          /* Stored with the reason label in one 2000-character message */
+          /* The reason is a separate code (migration 014), but a database
+             without 014 stores "<label>. <note>" in one 2000-character
+             message, so leave room for the longest label. Counted like
+             the database: an emoji is 1 (T-66) */
           limit={1800}
         />
 

@@ -27,13 +27,14 @@ npm run test:db          # same as: bash supabase/tests/run.sh
 | File | Cases |
 |---|---|
 | `10_listings.sql` | L-07 coordinates rounded to ~1 km, L-08 30-day expiry and renewal, L-10 match notifications |
-| `20_offers.sql` | F-01 make, F-02 counter (5 rounds), F-03 accept (one listing, one trade; cancel relists), F-04 decline reasons, F-05 withdraw, F-06 expiry sweep, F-07 offer-type messages only via the RPCs |
-| `30_agreements.sql` | G-01 to G-08: exchange details, signing, cancel and late cancels, flag for review, notifications, operator paths |
+| `20_offers.sql` | F-01 make, F-02 counter (5 rounds), F-03 accept (one listing, one trade; cancel relists), F-04 decline reasons (codes in `decline_reason`, T-67), F-05 withdraw, F-06 expiry sweep, F-07 offer-type messages only via the RPCs |
+| `30_agreements.sql` | G-01 to G-09: exchange details, signing (and signature times, PRD 5.7), cancel and late cancels, flag for review, notifications, operator paths |
 | `40_deletion.sql` | X-02 delete own account, then own photos, X-03 can't delete anyone else, X-04 needs a sign-in from the last 10 minutes, N-02 names redacted in notifications, V-02 old name visible nowhere |
 | `50_security.sql` | S-01 neighbor vs neighbor for every table and RPC, S-02 signed-out visitor |
-| `60_storage.sql` | S-03 listing-photos bucket limits and folder policies |
-| `70_notifications.sql` | P-06 notification preferences |
+| `60_storage.sql` | S-03 listing-photos bucket limits and folder policies; T-05 `orphaned_photo_paths()` |
+| `70_notifications.sql` | P-06 notification preferences; T-04 cancel / flag / withdraw types |
 | `80_time.sql` | Z-03 24-hour late-cancel boundary, offer and listing expiry boundaries, DST (Nov 1 2026, America/Chicago), midnight UTC |
+| `90_upgrade_014.sql` | U-14 upgrading to 014: T-04 and T-67 backfills on pre-014 rows, then 014 run a second time |
 
 ## Output
 
@@ -147,4 +148,7 @@ fails the run as unclassified. Add the rule and the attack statements there.
 - Realtime delivery, the `send-push` Edge Function, and the pg_cron schedule
   itself (pg_cron isn't in plain Postgres; the job's function is called directly).
 - Listing drafts: there is no drafts table; an unposted listing exists only in
-  the open Create listing page (its uploaded photos are covered by S-03).
+  the open Create listing page (its uploaded photos are covered by S-03, and
+  listed for the sweep by `orphaned_photo_paths()` once abandoned). The sweep
+  script's Storage API deletes (`scripts/sweep-orphan-photos.mjs`) aren't
+  exercised here.

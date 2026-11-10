@@ -19,7 +19,7 @@ function OfferBubbleInner({
   const isAccept = message.type === 'accept'
   const showAsConfirmed = isConfirmed || isAccept
   // Declines carry a reason, a note, or both: show the reason's label, then the note
-  const decline = message.type === 'decline' ? parseDecline(message.content) : null
+  const decline = message.type === 'decline' ? parseDecline(message.content, message.declineReason) : null
   const typeLabel: Partial<Record<OfferMessage['type'], string>> = {
     offer: 'Offer',
     counter: 'Counter-offer',

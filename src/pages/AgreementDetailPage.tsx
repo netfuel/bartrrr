@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Pencil,
   Flag,
+  FileDown,
   X,
 } from 'lucide-react'
 import { cn, usePageTitle } from '@/lib/utils'
@@ -22,6 +23,7 @@ import {
   FirstTradeCelebration,
   FlagTradeDialog,
 } from '@/components/bartrrr'
+import { AgreementRecord } from '@/components/bartrrr/AgreementRecord'
 import { useAgreementsStore, useUsersStore, useNotificationsStore } from '@/stores'
 import { useReviewsStore } from '@/stores'
 import { useAuth } from '@/providers/AuthProvider'
@@ -29,6 +31,7 @@ import { ReviewForm, ReviewCard } from '@/components/bartrrr'
 import {
   canCancel,
   canFlag,
+  canSaveCopy,
   exchangeTime,
   formatExchangeTime,
   formatShortDate,
@@ -104,6 +107,8 @@ export default function AgreementDetailPage() {
   const signedBeforeDetails = open && anySigned && missing.length > 0
   const earlySignerId = agreement.partyA.signed ? agreement.partyA.userId : agreement.partyB.userId
 
+  const saveable = isParticipant && canSaveCopy(agreement)
+
   const alreadyReviewed = hasReviewed(agreement.id, currentUser.id)
   const agreementReviews = reviews.filter((r) => r.agreementId === agreement.id)
 
@@ -162,7 +167,7 @@ export default function AgreementDetailPage() {
     if (late) noteLateCancellation(currentUser.id)
     addNotification({
       userId: otherPartyId,
-      type: 'agreement_ready',
+      type: 'trade_canceled',
       title: 'Trade canceled',
       body: `${myFirstName} canceled your trade agreement. Message them if you want to try again.`,
       data: { agreementId: agreement.id },
@@ -175,12 +180,27 @@ export default function AgreementDetailPage() {
     flagAgreement(agreement.id, currentUser.id, reason)
     addNotification({
       userId: otherPartyId,
-      type: 'agreement_ready',
+      type: 'trade_flagged',
       title: 'Trade flagged for review',
       body: `${myFirstName} flagged your trade: “${reason.slice(0, 120)}” Talk it through with them in your messages.`,
       data: { agreementId: agreement.id },
     })
     showToast(`Trade flagged. We let ${otherFirstName} know.`, 'success')
+  }
+
+  /**
+   * Open the print window for the paper copy (AgreementRecord); "Save as PDF"
+   * there gives the file. The title names the file the browser suggests.
+   */
+  const handleSaveCopy = () => {
+    const previousTitle = document.title
+    document.title = `Bartrrr trade agreement ${agreement.id}`
+    const restore = () => {
+      document.title = previousTitle
+      window.removeEventListener('afterprint', restore)
+    }
+    window.addEventListener('afterprint', restore)
+    window.print()
   }
 
   const handleComplete = () => {
@@ -223,7 +243,15 @@ export default function AgreementDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-16">
-      <BackLink to="/agreements" className="mb-3">All agreements</BackLink>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <BackLink to="/agreements">All agreements</BackLink>
+        {saveable && (
+          <Button variant="outline" size="sm" onClick={handleSaveCopy}>
+            <FileDown className="h-3.5 w-3.5" aria-hidden="true" />
+            Save as PDF
+          </Button>
+        )}
+      </div>
 
       {/* Journey: agree → meet → done (hidden once canceled or flagged) */}
       {!isClosed && (
@@ -546,6 +574,9 @@ export default function AgreementDetailPage() {
           onClose={() => setShowCompleteConfirm(false)}
         />
       )}
+
+      {/* The paper copy: hidden on screen, the only thing printed */}
+      {saveable && <AgreementRecord agreement={agreement} partyA={partyA} partyB={partyB} />}
 
       {/* First trade celebration */}
       {showCelebration && (

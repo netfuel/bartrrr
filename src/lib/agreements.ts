@@ -59,6 +59,21 @@ export function formatExchangeTime(at: Date): string {
 export const formatShortDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
+/** "April 6, 2026" */
+export const formatLongDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+/**
+ * Agreements with a copy worth saving (PRD 5.7): once both neighbors have
+ * signed, and closed ones (completed, canceled, flagged) as a record.
+ */
+export const canSaveCopy = (a: Pick<TradeAgreement, 'status' | 'partyA' | 'partyB'>) =>
+  (a.partyA.signed && a.partyB.signed) ||
+  a.status === 'active' ||
+  a.status === 'completed' ||
+  a.status === 'cancelled' ||
+  a.status === 'disputed'
+
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /** ISO → value for <input type="datetime-local"> in the viewer's time zone */

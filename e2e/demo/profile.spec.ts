@@ -248,6 +248,61 @@ test.describe('P-03 profile photo', () => {
   })
 })
 
+test.describe('T-06 use my Google photo', () => {
+  // Maria "signed up with Google" in the demo (DEMO_OAUTH_USERS) and starts with her Google picture
+  const MARIA = 'user-002'
+  const GOOGLE = 'https://picsum.photos/seed/maria/200/200'
+  const googleBtn = (page: Page) => page.getByRole('button', { name: 'Use my Google photo' })
+  const maria = <T,>(page: Page, pick: string) =>
+    readStore<T>(page, 'users-store', `s => (${pick})(s.users.find(u => u.id === '${MARIA}'))`)
+
+  async function openMariaSettings(page: Page) {
+    await login(page, 'Maria')
+    await goInApp(page, '/settings')
+    await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
+  }
+
+  test('hidden while the Google picture is the profile photo', async ({ page }) => {
+    await openMariaSettings(page)
+    await expect(page.getByRole('button', { name: 'Change photo' })).toBeVisible()
+    expect(await maria<string>(page, 'u => u.avatarUrl')).toBe(GOOGLE)
+    await expect(googleBtn(page)).toHaveCount(0)
+  })
+
+  test('after uploading a new photo, brings the Google picture back and frees the upload', async ({ page }) => {
+    await openMariaSettings(page)
+    await avatarInput(page).setInputFiles({ name: 'a.png', mimeType: 'image/png', buffer: makePng(300, 300) })
+    await expect(page.getByText('Profile photo saved.')).toBeVisible()
+    const uploaded = await maria<string>(page, 'u => u.avatarUrl')
+    expect(uploaded).toMatch(/^blob:/)
+
+    await googleBtn(page).click()
+    await expect(page.getByText('Your Google photo is back.')).toBeVisible()
+    expect(await maria<string>(page, 'u => u.avatarUrl')).toBe(GOOGLE)
+    await expect(googleBtn(page)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Remove photo' })).toBeVisible()
+    await expect.poll(() => imageSize(page, uploaded).then(() => 'loads', () => 'freed')).toBe('freed')
+  })
+
+  test('after removing the photo, brings it back', async ({ page }) => {
+    await openMariaSettings(page)
+    await page.getByRole('button', { name: 'Remove photo' }).click()
+    await expect(page.getByText('Profile photo removed.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Add a photo' })).toBeVisible()
+    await googleBtn(page).click()
+    await expect(page.getByText('Your Google photo is back.')).toBeVisible()
+    expect(await maria<string>(page, 'u => u.avatarUrl')).toBe(GOOGLE)
+  })
+
+  test('neighbors who use a password never see it', async ({ page }) => {
+    await openSettings(page)
+    await avatarInput(page).setInputFiles({ name: 'a.png', mimeType: 'image/png', buffer: makePng(300, 300) })
+    await expect(page.getByText('Profile photo saved.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Remove photo' })).toBeVisible()
+    await expect(googleBtn(page)).toHaveCount(0)
+  })
+})
+
 test.describe('P-04 public profile header', () => {
   test("another neighbor's profile shows rating, trades, neighborhood and bio", async ({ page }) => {
     await login(page, 'Jamie')

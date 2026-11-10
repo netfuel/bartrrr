@@ -31,23 +31,35 @@ export function whoseMove(
 }
 
 // ─── Declines ────────────────────────────────────────────────
-// respond_to_offer (migration 004) stores one text field per decline. A
-// decline without a note stores the reason key, which the server's
-// notification trigger (migration 005) turns into its label. With a note it
-// stores "<reason label>. <note>", so the notification reads naturally and
-// the app can still split it back into reason and note.
+// Since migration 014 a decline is stored as a reason code
+// (offer_messages.decline_reason, sent as respond_to_offer's p_reason) plus
+// the neighbor's note as the message content, or the code itself as content
+// when there's no note (content can't be empty). The server's notification
+// renders "<label>" or "<label>. <note>".
+//
+// Before 014 there was one text field: the reason key alone, or
+// "<reason label>. <note>" (declineContent). Those rows are still read here
+// (014 backfills their code but leaves content as written), and
+// declineContent is still what the app sends to a database without 014.
 
 const SEPARATOR = '. '
 
-/** The text to store for a decline. */
+function isReason(code: unknown): code is OfferDeclineReason {
+  return typeof code === 'string' && Object.prototype.hasOwnProperty.call(DECLINE_REASON_LABELS, code)
+}
+
+/** What to send for a decline (migration 014): the code, and the note (or the code) as content. */
+export function declinePayload(reason: OfferDeclineReason, note?: string): { reason: OfferDeclineReason; content: string } {
+  return { reason, content: note?.trim() || reason }
+}
+
+/** The pre-014 single text for a decline: the key, or "<label>. <note>". */
 export function declineContent(reason: OfferDeclineReason, note?: string): string {
   const trimmed = note?.trim()
   return trimmed ? `${DECLINE_REASON_LABELS[reason]}${SEPARATOR}${trimmed}` : reason
 }
 
-/** Split a stored decline back into its reason and note. Older declines may hold only a note. */
-export function parseDecline(content: string): { reason?: OfferDeclineReason; note?: string } {
-  const text = content.trim()
+function parseLegacy(text: string): { reason?: OfferDeclineReason; note?: string } {
   for (const [key, label] of Object.entries(DECLINE_REASON_LABELS) as [OfferDeclineReason, string][]) {
     if (text === key || text === label) return { reason: key }
     if (text.startsWith(label + SEPARATOR)) {
@@ -58,15 +70,32 @@ export function parseDecline(content: string): { reason?: OfferDeclineReason; no
   return text ? { note: text } : {}
 }
 
+/**
+ * Split a stored decline into its reason and note. `code` is the message's
+ * decline_reason when the server sent one; without it (a database before
+ * 014, or a note-only decline) the reason is read out of the content, as
+ * before. Note-only declines have no reason.
+ */
+export function parseDecline(
+  content: string,
+  code?: string | null,
+): { reason?: OfferDeclineReason; note?: string } {
+  const text = content.trim()
+  const legacy = parseLegacy(text)
+  // Old-shape content (key, label, "label. note") already agrees with the code
+  if (!isReason(code) || legacy.reason === code) return legacy
+  return text ? { reason: code, note: text } : { reason: code }
+}
+
 /** One line for previews: "Declined: <reason>. <note>". */
-export function declineSummary(content: string): string {
-  const { reason, note } = parseDecline(content)
+export function declineSummary(content: string, code?: string | null): string {
+  const { reason, note } = parseDecline(content, code)
   if (!reason) return note ?? 'Declined'
   const label = `Declined: ${DECLINE_REASON_LABELS[reason]}`
   return note ? `${label}${SEPARATOR}${note}` : label
 }
 
 /** Preview text for a thread message (inbox rows, notifications). */
-export function messagePreview(message: Pick<OfferMessage, 'type' | 'content'>): string {
-  return message.type === 'decline' ? declineSummary(message.content) : message.content
+export function messagePreview(message: Pick<OfferMessage, 'type' | 'content' | 'declineReason'>): string {
+  return message.type === 'decline' ? declineSummary(message.content, message.declineReason) : message.content
 }

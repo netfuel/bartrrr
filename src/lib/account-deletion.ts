@@ -30,6 +30,7 @@ import { PHOTO_BUCKET } from '@/lib/photos'
 import { isNetworkError } from '@/lib/auth/errors'
 import { OAUTH_PROVIDERS, type OAuthProviderConfig } from '@/lib/auth/providers'
 import { signInWithProvider } from '@/lib/auth/actions'
+import { DEMO_OAUTH_USERS } from '@/lib/auth/google-photo'
 
 export type AccountDeletionErrorKind =
   /** Couldn't reach Supabase */
@@ -67,8 +68,6 @@ export type ReauthMethod =
   | { kind: 'password'; email: string }
   | { kind: 'oauth'; provider: OAuthProviderConfig }
 
-/** Demo: sample neighbors who "signed up with Google". Everyone else uses a password. */
-const DEMO_OAUTH_USERS: Record<string, OAuthProviderConfig['id']> = { 'user-002': 'google' }
 
 function providerConfig(id: string): OAuthProviderConfig | undefined {
   return OAUTH_PROVIDERS.find((p) => p.id === id)
