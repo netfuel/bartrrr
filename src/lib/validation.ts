@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { ValidationError } from './validation-error'
 
+// Must run before any schema is built: otherwise zod probes `new Function`
+// to see if it can compile fast parsers, which the site's CSP (no
+// 'unsafe-eval') reports as a violation on every page load
+z.config({ jitless: true })
+
 /**
  * Validation at the client ↔ server boundary. These mirror the length
  * limits in supabase/migrations/004 so users get a clear message before the

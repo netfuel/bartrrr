@@ -12,6 +12,37 @@ export function isStaleChunkError(error: Error): boolean {
   )
 }
 
+let leaving = false
+let leavingTimer: ReturnType<typeof setTimeout> | undefined
+
+/** Mark the page as unloading. Exported for tests. */
+export function markPageLeaving(): void {
+  leaving = true
+  // Another beforeunload handler can cancel the navigation: don't stay stuck
+  clearTimeout(leavingTimer)
+  leavingTimer = setTimeout(() => {
+    leaving = false
+  }, 3000)
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', markPageLeaving)
+  window.addEventListener('pagehide', markPageLeaving)
+  window.addEventListener('pageshow', () => {
+    clearTimeout(leavingTimer)
+    leaving = false
+  })
+}
+
+/**
+ * The page is navigating away. Safari cancels page code that's still
+ * downloading and reports it as a failed import; that's not a new build or
+ * a dropped connection, so there's nothing to check or reload.
+ */
+export function isPageLeaving(): boolean {
+  return leaving
+}
+
 /** The browser says there's no connection. */
 export function isOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false

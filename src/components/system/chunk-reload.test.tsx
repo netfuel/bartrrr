@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { RELOAD_FLAG, failedModuleUrl, isNetworkReachable, isStaleChunkError, lazyWithRetry } from './chunk-reload'
+import { RELOAD_FLAG, failedModuleUrl, isNetworkReachable, isPageLeaving, isStaleChunkError, lazyWithRetry } from './chunk-reload'
 import { ErrorBoundary } from './ErrorBoundary'
 
 /** T-72: a page that fails to load offline says so, and loads once the connection is back. */
@@ -15,6 +15,23 @@ describe('chunk loading', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('knows when the page is navigating away, and forgets after a canceled unload', () => {
+    vi.useFakeTimers()
+    try {
+      expect(isPageLeaving()).toBe(false)
+      window.dispatchEvent(new Event('beforeunload'))
+      expect(isPageLeaving()).toBe(true)
+      vi.advanceTimersByTime(3000)
+      expect(isPageLeaving()).toBe(false)
+      window.dispatchEvent(new Event('pagehide'))
+      expect(isPageLeaving()).toBe(true)
+      window.dispatchEvent(new Event('pageshow'))
+      expect(isPageLeaving()).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('recognizes failed page chunks in every browser', () => {

@@ -15,6 +15,10 @@ test.beforeEach(async ({ page }) => {
   await stabilize(page)
 })
 
+/** Safari only tabs to form fields unless Option is held (its default setting), so WebKit presses Alt+Tab */
+const tabKey = (shift = false) =>
+  `${test.info().project.name === 'webkit' ? 'Alt+' : ''}${shift ? 'Shift+' : ''}Tab`
+
 const isFocused = (l: Locator) => l.evaluate((el) => el === document.activeElement).catch(() => false)
 
 /** Press Tab until `target` has focus. Fails if it isn't reached. */
@@ -22,7 +26,7 @@ async function tabTo(page: Page, target: Locator, max = 80) {
   await expect(target).toBeVisible()
   for (let i = 0; i < max; i++) {
     if (await isFocused(target)) return
-    await page.keyboard.press('Tab')
+    await page.keyboard.press(tabKey())
   }
   expect(await isFocused(target), `reached ${target} by Tab within ${max} presses`).toBe(true)
 }
@@ -105,14 +109,14 @@ test.describe('Y-02 dialogs trap focus and return it', () => {
       const inside = () => dialog.evaluate((el) => el.contains(document.activeElement))
       expect(await inside(), 'focus moves into the dialog').toBe(true)
       for (let i = 0; i < 25; i++) {
-        await page.keyboard.press('Tab')
+        await page.keyboard.press(tabKey())
         if (!(await inside())) {
           await bugShot(page, testInfo, `focus-escape-${d.name}`)
           throw new Error(`focus left the ${d.name} dialog after ${i + 1} Tab presses`)
         }
       }
       for (let i = 0; i < 10; i++) {
-        await page.keyboard.press('Shift+Tab')
+        await page.keyboard.press(tabKey(true))
         expect(await inside(), `Shift+Tab ${i + 1} stays inside`).toBe(true)
       }
 
@@ -127,7 +131,7 @@ test('Y-02 skip link, if present, jumps to the main content', async ({ page }) =
   await signIn(page)
   await page.goto('/dashboard')
   await settle(page)
-  await page.keyboard.press('Tab')
+  await page.keyboard.press(tabKey())
   const first = await page.evaluate(() => {
     const el = document.activeElement as HTMLElement | null
     return { text: el?.textContent?.trim() ?? '', href: el?.getAttribute('href') ?? '' }
@@ -176,7 +180,7 @@ test.describe('Y-02 visible focus ring on every Tab stop', () => {
       const bad: string[] = []
       let checked = 0
       for (let i = 0; i < 60; i++) {
-        await page.keyboard.press('Tab')
+        await page.keyboard.press(tabKey())
         // Stop when Tab wraps back to an element already checked
         const again = await page.evaluate(() => {
           const el = document.activeElement as HTMLElement | null

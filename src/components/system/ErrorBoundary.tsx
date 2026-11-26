@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Wordmark, buttonStyles } from '@/components/ui'
-import { isNetworkReachable, isOffline, isStaleChunkError, reloadOnceForNewBuild, retryFailedChunks } from './chunk-reload'
+import { isNetworkReachable, isOffline, isPageLeaving, isStaleChunkError, reloadOnceForNewBuild, retryFailedChunks } from './chunk-reload'
 
 interface Props {
   children: ReactNode
@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[Bartrrr] Unhandled render error', error, info.componentStack)
-    if (!isStaleChunkError(error) || this.state.offline) return
+    if (!isStaleChunkError(error) || this.state.offline || isPageLeaving()) return
     // The browser thinks it's online: check before reloading into an error page
     void isNetworkReachable().then((reachable) => {
       if (this.state.error !== error) return

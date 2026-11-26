@@ -138,7 +138,18 @@ test.describe('X-01 delete account section', () => {
       await openDialog(page)
       const d = dialog(page)
       for (const name of ['Keep my account', 'Delete account']) {
-        const box = (await d.getByRole('button', { name, exact: true }).boundingBox())!
+        const button = d.getByRole('button', { name, exact: true })
+        // The sheet slides up on open: measure once it has settled (slower CI machines caught it mid-slide)
+        let last = -1
+        await expect
+          .poll(async () => {
+            const y = (await button.boundingBox())?.y ?? -1
+            const settled = y === last
+            last = y
+            return settled
+          }, { intervals: [100] })
+          .toBe(true)
+        const box = (await button.boundingBox())!
         expect(box.y, name).toBeGreaterThanOrEqual(0)
         expect(box.y + box.height, name).toBeLessThanOrEqual(size.height)
         expect(box.height, name).toBeGreaterThanOrEqual(44)
