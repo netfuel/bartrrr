@@ -712,6 +712,8 @@ test.describe('L-09 share a listing', () => {
     await goInApp(page, '/listing/listing-003')
     await page.getByRole('button', { name: 'Share' }).click()
     await expect(page.getByRole('button', { name: 'Link copied' })).toBeVisible()
+    // WebKit won't let a test read the clipboard back; the "Link copied" state above is the check there
+    if (browserName !== 'chromium') return
     const text = await page.evaluate(() => navigator.clipboard.readText())
     expect(text).toContain('KitchenAid Stand Mixer')
     expect(text).toMatch(/\/listing\/listing-003$/)
