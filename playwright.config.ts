@@ -23,6 +23,11 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01 } },
+  // GitHub's runners have different system fonts from the cloud workspace, so
+  // CI keeps its own screenshot baselines (made by .github/workflows/ci.yml)
+  ...(process.env.CI
+    ? { snapshotPathTemplate: '{testDir}/{testFileDir}/{testFileName}-ci-snapshots/{arg}-{projectName}{ext}' }
+    : {}),
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
     { name: 'mobile', use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } } },

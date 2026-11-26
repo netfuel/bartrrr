@@ -1,0 +1,171 @@
+# Regression suite on every push to main and every pull request.
+#
+#   checks     typecheck, lint, unit tests, build, bundle budget
+#   database   the SQL rules suite against Postgres 16
+#   baselines  CI screenshot baselines: made once, then reused (see below)
+#   e2e        demo and quality tests, desktop and phone, Chromium (blocking)
+#   safari     the same tests in WebKit (reported, not blocking yet)
+#
+# Screenshot baselines: GitHub's runners render fonts differently from the
+# cloud workspace, so CI keeps its own copies in *-ci-snapshots folders.
+# If they're missing, the baselines job makes them and commits them. After an
+# intended visual change, run this workflow by hand with "update baselines".
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      update_baselines:
+        description: Remake the CI screenshot baselines
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+  NODE_VERSION: 22
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Build (demo mode, no backend)
+        run: npx vite build
+        env: { VITE_DEMO_MODE: 'true' }
+      - run: npm run test:bundle
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm run test:db
+
+  baselines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    outputs:
+      made: ${{ steps.check.outputs.make }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        name: Are baselines needed?
+        run: |
+          if [ "${{ inputs.update_baselines }}" = "true" ] || [ -z "$(ls e2e/quality/visual.spec.ts-ci-snapshots 2>/dev/null)" ]; then
+            echo "make=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "make=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.check.outputs.make == 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - if: steps.check.outputs.make == 'true'
+        run: npm ci
+      - if: steps.check.outputs.make == 'true'
+        run: npx playwright install --with-deps chromium webkit
+      - if: steps.check.outputs.make == 'true'
+        name: Make baselines
+        run: npx playwright test e2e/quality/visual.spec.ts --update-snapshots --retries=0
+      - if: steps.check.outputs.make == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-baselines
+          path: e2e/quality/visual.spec.ts-ci-snapshots
+      - if: steps.check.outputs.make == 'true' && github.event_name != 'pull_request'
+        name: Commit baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898693+github-actions[bot]@users.noreply.github.com"
+          git add e2e/quality/visual.spec.ts-ci-snapshots
+          git diff --cached --quiet && exit 0
+          git commit -m "test(visual): CI screenshot baselines"
+          git push
+
+  e2e:
+    needs: baselines
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - if: needs.baselines.outputs.made == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-baselines
+          path: e2e/quality/visual.spec.ts-ci-snapshots
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=desktop --project=mobile --shard=${{ matrix.shard }}/4
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report-${{ matrix.shard }}
+          path: playwright-report
+          retention-days: 14
+
+  safari:
+    needs: baselines
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # Reported but not blocking until the first WebKit runs are clean
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - if: needs.baselines.outputs.made == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-baselines
+          path: e2e/quality/visual.spec.ts-ci-snapshots
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - run: npx playwright test --project=webkit --shard=${{ matrix.shard }}/2
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-report-${{ matrix.shard }}
+          path: playwright-report
+          retention-days: 14
