@@ -47,9 +47,18 @@ test.describe('M-02 offer thread messages', () => {
       'Third, sent with the button',
     ]
     const assertOrder = async () => {
-      const text = await threadText(page)
+      // Poll: the thread re-renders after a send or a page change, and slower CI machines read it mid-render
+      let text = ''
+      await expect
+        .poll(async () => {
+          text = await threadText(page)
+          return order.map((o) => text.indexOf(o)).every((i) => i >= 0)
+        }, { message: 'all messages present', timeout: 10_000 })
+        .toBe(true)
+        .catch((e: Error) => {
+          throw new Error(`${e.message}\nThread text was:\n${text.slice(0, 1500)}`)
+        })
       const idx = order.map((o) => text.indexOf(o))
-      expect(idx.every((i) => i >= 0), `all messages present: ${idx}`).toBe(true)
       expect([...idx].sort((a, b) => a - b)).toEqual(idx)
     }
     await assertOrder()

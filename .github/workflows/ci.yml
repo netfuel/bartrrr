@@ -4,7 +4,7 @@
 #   database   the SQL rules suite against Postgres 16
 #   baselines  CI screenshot baselines: made once, then reused (see below)
 #   e2e        demo and quality tests, desktop and phone, Chromium (blocking)
-#   safari     the same tests in WebKit (reported, not blocking yet)
+#   safari     the same tests in WebKit (Safari's engine)
 #
 # Screenshot baselines: GitHub's runners render fonts differently from the
 # cloud workspace, so CI keeps its own copies in *-ci-snapshots folders.
@@ -148,8 +148,6 @@ jobs:
     needs: baselines
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    # Reported but not blocking until the first WebKit runs are clean
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:

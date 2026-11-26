@@ -286,7 +286,7 @@ Two workflows in `.github/workflows`:
 
 | Workflow | Runs | What it checks |
 |---|---|---|
-| `ci.yml` (CI) | Every push to `main`, every pull request, by hand | Typecheck, lint, unit, build, bundle budget; the SQL suite on Postgres 16; demo and quality browser tests on desktop and phone (Chromium, 4 shards); the same in WebKit for Safari (2 shards, reported but not blocking yet) |
+| `ci.yml` (CI) | Every push to `main`, every pull request, by hand | Typecheck, lint, unit, build, bundle budget; the SQL suite on Postgres 16; demo and quality browser tests on desktop and phone (Chromium, 4 shards); the same in WebKit for Safari (2 shards) |
 | `smoke.yml` (Live smoke) | 5 minutes after each push to `main`, daily at 12:41 UTC, by hand | Read-only checks against https://bartrrr.app (or another URL when run by hand) |
 
 Screenshot baselines: GitHub's runners render fonts differently from the cloud workspace, so CI keeps its own copies in `e2e/quality/visual.spec.ts-ci-snapshots`. The first CI run makes and commits them. After an intended visual change, run CI by hand (Actions → CI → Run workflow) with "Remake the CI screenshot baselines" ticked.
