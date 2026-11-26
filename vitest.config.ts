@@ -1,6 +1,9 @@
 import { defineConfig, mergeConfig } from 'vitest/config'
 import viteConfig from './vite.config'
 
+// Time tests are written for Memphis time; pin it so any machine (CI runs in UTC) agrees
+process.env.TZ = 'America/Chicago'
+
 /** Unit tests (layer 2) and mail Worker tests (layer 5). Files: src/**\/*.test.ts(x), workers/mail/src/**\/*.test.ts */
 export default defineConfig((env) =>
   mergeConfig(viteConfig(env), {

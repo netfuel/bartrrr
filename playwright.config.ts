@@ -19,6 +19,8 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,
+    // Dates on screen are Memphis time, as in the workspace; CI runners default to UTC
+    timezoneId: 'America/Chicago',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

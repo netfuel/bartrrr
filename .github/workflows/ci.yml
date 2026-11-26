@@ -40,8 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npm run typecheck
@@ -69,7 +69,7 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: postgres
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: npm run test:db
 
   baselines:
@@ -80,7 +80,7 @@ jobs:
     outputs:
       made: ${{ steps.check.outputs.make }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: check
         name: Are baselines needed?
         run: |
@@ -90,7 +90,7 @@ jobs:
             echo "make=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.check.outputs.make == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - if: steps.check.outputs.make == 'true'
         run: npm ci
@@ -98,7 +98,10 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - if: steps.check.outputs.make == 'true'
         name: Make baselines
-        run: npx playwright test e2e/quality/visual.spec.ts --update-snapshots --retries=0
+        # WebKit baselines are best effort while the Safari job isn't blocking
+        run: |
+          npx playwright test e2e/quality/visual.spec.ts --update-snapshots --project=desktop --project=mobile
+          npx playwright test e2e/quality/visual.spec.ts --update-snapshots --project=webkit || echo "::warning::Some WebKit baselines failed"
       - if: steps.check.outputs.make == 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -123,13 +126,13 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - if: needs.baselines.outputs.made == 'true'
         uses: actions/download-artifact@v4
         with:
           name: ci-baselines
           path: e2e/quality/visual.spec.ts-ci-snapshots
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -152,13 +155,13 @@ jobs:
       matrix:
         shard: [1, 2]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - if: needs.baselines.outputs.made == 'true'
         uses: actions/download-artifact@v4
         with:
           name: ci-baselines
           path: e2e/quality/visual.spec.ts-ci-snapshots
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps webkit

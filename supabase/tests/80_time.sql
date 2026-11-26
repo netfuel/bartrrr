@@ -162,14 +162,14 @@ select tests.check('Z-03', 'across the 2027 fall-back, 24h before 9 AM Sunday is
 -- ─── Midnight UTC ───────────────────────────────────────────────────────────
 select tests.as('ann');
 select tests.ok('Z-03', '6 PM CST Nov 20 is midnight UTC Nov 21',
-  $$update public.agreements set exchange_date = '2026-11-20T18:00:00-06:00' where id = 'ZP2'$$);
-select tests.check('Z-03', 'stored on the UTC day: 2026-11-21T00:00:00.000Z',
-  (select exchange_date = '2026-11-21T00:00:00.000Z' from public.agreements where id = 'ZP2'),
+  $$update public.agreements set exchange_date = '2030-11-20T18:00:00-06:00' where id = 'ZP2'$$);
+select tests.check('Z-03', 'stored on the UTC day: 2030-11-21T00:00:00.000Z',
+  (select exchange_date = '2030-11-21T00:00:00.000Z' from public.agreements where id = 'ZP2'),
   (select exchange_date from public.agreements where id = 'ZP2'));
 select tests.ok('Z-03', 'one millisecond before midnight UTC',
-  $$update public.agreements set exchange_date = '2026-11-20T23:59:59.999Z' where id = 'ZP2'$$);
+  $$update public.agreements set exchange_date = '2030-11-20T23:59:59.999Z' where id = 'ZP2'$$);
 select tests.check('Z-03', 'kept as 23:59:59.999Z, not rounded into the next day',
-  (select exchange_date = '2026-11-20T23:59:59.999Z' from public.agreements where id = 'ZP2'),
+  (select exchange_date = '2030-11-20T23:59:59.999Z' from public.agreements where id = 'ZP2'),
   (select exchange_date from public.agreements where id = 'ZP2'));
 
 -- ─── "Hasn't happened yet" at the boundary ──────────────────────────────────
